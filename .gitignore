@@ -1,0 +1,18 @@
+# Licensed data never enter the repository. The extraction is read in place from the folder named by SLT_DATA_ROOT.
+*.parquet
+data/
+local/
+# Working notebooks kept on the machine that holds the data
+practice/
+# Run products: the committed aggregates live in results/<vintage>/
+outputs/
+# Python and notebook noise
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.pytest_cache/
+.DS_Store
+# The checkers' working files: the banned-synonym list and the two allow lists are not part of the public text
+.public_text_terms
+.public_text_allow
+.style_allow
