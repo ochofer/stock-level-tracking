@@ -1,0 +1,46 @@
+{
+ "source": "CRSP and Compustat, via Wharton Research Data Services, accessed through Queen Mary University of London",
+ "extraction_date": "2026-09-28",
+ "manifest_sha256": "23e96d189f4b095936f47a1ebacb4e987fb260726afab4b6e6400c25ebce8693",
+ "manifest_sha256_2026_09_28": "8b2e6b6bf762204bb2c4f70b1a53c66d527d02d2905a540caa53275a54de2b22",
+ "manifest_files": 310,
+ "manifest_rows": 112161796,
+ "fetch_dates": {
+  "2026-09-28": [
+   "comp_idxcst_his",
+   "crsp_ccm_lnkhist",
+   "crsp_dsf",
+   "crsp_dsp500list",
+   "crsp_msedelist",
+   "crsp_msenames",
+   "crsp_msf",
+   "crsp_msp500"
+  ],
+  "2026-11-10": [
+   "comp_co_hgic"
+  ]
+ },
+ "tables_used": [
+  "comp_co_hgic",
+  "comp_idxcst_his",
+  "crsp_ccm_lnkhist",
+  "crsp_dsf",
+  "crsp_dsp500list",
+  "crsp_msedelist",
+  "crsp_msenames",
+  "crsp_msf",
+  "crsp_msp500"
+ ],
+ "files_used": 45,
+ "rows_used": 73130868,
+ "vintage": "the extraction of 2026-09-28, with the GICS history added on 2026-11-10; manifest SHA-256 23e96d189f4b095936f47a1ebacb4e987fb260726afab4b6e6400c25ebce8693",
+ "versions": {
+  "python": "3.9.6",
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "pandas": "2.2.3",
+  "numpy": "2.0.2",
+  "pyarrow": "21.0.0"
+ },
+ "written_by": "notebooks/01_extraction.ipynb",
+ "written_at": "2026-11-10 20:45 CET"
+}
