@@ -177,22 +177,47 @@ def read_table(root: pathlib.Path, key: str, columns=None, years=None):
         paths = [p for p in paths if p.stem.rsplit("_", 1)[-1] in wanted]
     if not paths:
         raise SystemExit(f"No file for {key} in {folder}")
-    frames = [pq.read_table(p, columns=columns).to_pandas() for p in paths]
+    # The files carry pandas metadata from the pull, which would restore pandas' nullable types (Int64,
+    # Float64, string). They are read as plain numpy types instead, so that a missing value is NaN everywhere.
+    frames = [pq.read_table(p, columns=columns).to_pandas(ignore_metadata=True) for p in paths]
     df = pd.concat(frames, ignore_index=True) if len(frames) > 1 else frames[0]
     return parse_dates(df)
 
 
 def parse_dates(df):
-    """Parse the text date columns; count the values present that do not parse, column by column."""
+    """Parse the text date columns, make every other text column plain Python strings, and make every
+    nullable number a numpy one.
+
+    Text arrives either as Python objects or as pandas' string type, and numbers as numpy or as pandas'
+    nullable types, depending on the versions of pandas and pyarrow and on the metadata in the file; each
+    is handled the same way, so the code downstream sees one kind, with NaN for a missing value. A date
+    value present that does not parse is counted, column by column, and becomes missing.
+    """
+    import numpy as np
     import pandas as pd
+    from pandas.api.types import (is_bool_dtype, is_datetime64_any_dtype, is_extension_array_dtype, is_float_dtype,
+                                  is_integer_dtype, is_object_dtype, is_string_dtype)
     unparsed = {}
     for c in df.columns:
-        if c in DATE_COLUMNS and df[c].dtype == object:
-            parsed = pd.to_datetime(df[c], format="ISO8601", errors="coerce")
-            bad = int((df[c].notna() & parsed.isna()).sum())
+        col = df[c]
+        if is_extension_array_dtype(col.dtype) and (is_integer_dtype(col.dtype) or is_float_dtype(col.dtype) or is_bool_dtype(col.dtype)):
+            # a nullable number becomes a numpy one: integers stay integers when nothing is missing
+            if is_integer_dtype(col.dtype) and not col.isna().any():
+                df[c] = col.astype("int64")
+            else:
+                df[c] = col.to_numpy(dtype="float64", na_value=np.nan)
+            continue
+        if is_datetime64_any_dtype(col) or not (is_object_dtype(col) or is_string_dtype(col)):
+            continue
+        raw = col.astype(object).where(col.notna(), np.nan)
+        if c in DATE_COLUMNS:
+            parsed = pd.to_datetime(raw, format="ISO8601", errors="coerce")
+            bad = int((raw.notna() & parsed.isna()).sum())
             if bad:
                 unparsed[c] = bad
             df[c] = parsed
+        else:
+            df[c] = raw
     return df, unparsed
 
 
@@ -243,3 +268,11 @@ def write_results(name: str, frame=None, record: dict = None) -> pathlib.Path:
     else:
         path.write_text(json.dumps(record, indent=1, sort_keys=False) + "\n")
     return path
+
+
+def read_result(name: str) -> dict:
+    """A record an earlier notebook committed, read back. Stops with one sentence when it is not there."""
+    path = repo_root() / C.RESULTS_DIR / name
+    if not path.exists():
+        raise SystemExit(f"{name} is not in {C.RESULTS_DIR}: run the notebooks in order, from 01.")
+    return json.loads(path.read_text())

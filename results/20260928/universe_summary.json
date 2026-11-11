@@ -1,0 +1,39 @@
+{
+ "written_by": "notebooks/02_universe.ipynb",
+ "manifest_sha256": "23e96d189f4b095936f47a1ebacb4e987fb260726afab4b6e6400c25ebce8693",
+ "membership_rule": "membership interval covers the last trading day of month t-1",
+ "list": {
+  "spells": 2064,
+  "permnos": 1936,
+  "permnos_with_more_than_one_spell": 119,
+  "overlapping_spells": 0,
+  "spells_ending_before_start": 0,
+  "spells_ending_on_last_date": 503,
+  "earliest_start": "1925-12-31",
+  "latest_end": "2024-12-31"
+ },
+ "months": 1188,
+ "first_month": "1926-01",
+ "last_month": "2024-12",
+ "member_months": 440724,
+ "member_months_with_more_than_one_primary_link": 0,
+ "compustat_rows_for_the_index": 503,
+ "compustat_rows_with_an_end_date": 0,
+ "cross_check": "(a) share of Compustat's member-months found in the universe; (b) join dates on both lists; (c) the two-sided share, which counts the exits Compustat's table omits; by year, no verdict",
+ "compustat_rows": {
+  "rows": 503,
+  "companies": 500,
+  "rows_joined_after_last_date": 35,
+  "rows_without_a_primary_link": 1
+ },
+ "join_dates_all_years": {
+  "members_joined": 468,
+  "same_month": 380,
+  "within_one_month": 21,
+  "further_apart_crsp_earlier": 60,
+  "further_apart_crsp_later": 6,
+  "no_crsp_interval": 1
+ },
+ "member_months_matched_by_more_than_one_names_record": 0,
+ "date_values_not_parsed": {}
+}

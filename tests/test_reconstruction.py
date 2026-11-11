@@ -4,8 +4,11 @@ repository holds?
 Every committed result under results/ is scanned. A file fails when it names a security (an identifier
 column), when it carries a series of CRSP's index file or a column that could hold one, when a table by
 month carries any column outside the list of what the study computes itself (constants.COMMITTED_MONTHLY),
-or when it has more rows than any aggregate of the design needs. The test runs before every push with
-the other tests; it complements the question answered in each commit message and does not replace it.
+or when it has more rows than any aggregate of the design needs. Where the data root is present, a
+column by month also fails if its values equal a field of CRSP's index file, to the sixth decimal, in more
+than 5 per cent of months, because a column can pass by its name and fail by its values. The test runs
+before every push with the other tests; it complements the question answered in each commit message and
+does not replace it.
 """
 import csv
 import json
@@ -27,9 +30,8 @@ CRSP_INDEX_FIELDS = {"vwretd", "vwretx", "ewretd", "ewretx", "sprtrn", "spindx",
 # A table by month may hold only what the study computes itself, under these column names, and the
 # benchmark's weight in each of the twelve sectors (constants.COMMITTED_MONTHLY).
 MONTH_COLUMN = "month"
-MONTHLY_ALLOWED = ({MONTH_COLUMN, "benchmark_return", "benchmark_return_price_only", "universe_count",
-                    "universe_cap_sum"}
-                   | {"weight_" + code for code in C.GICS_SECTORS} | {"weight_" + C.UNCLASSIFIED.lower()})
+# Amended 11 November 2026: the eleven GICS sector weights alone (constants.COMMITTED_MONTHLY).
+MONTHLY_ALLOWED = {MONTH_COLUMN} | {"weight_" + code for code in C.GICS_SECTORS}
 # Twelve sectors over CRSP's 1,189 index months is 14,268 rows in long form, the largest aggregate the
 # design names; a table of one row per security and month would run to hundreds of thousands.
 ROW_LIMIT = 15000
@@ -93,3 +95,51 @@ def test_no_table_is_larger_than_an_aggregate():
         if path.suffix.lower() == ".csv":
             _, rows = header_and_rows(path)
             assert rows <= ROW_LIMIT, f"{path.name} has {rows} rows, above {ROW_LIMIT}"
+
+
+def crsp_index_fields():
+    """CRSP's monthly index file by month, every numeric field, where the data root is present; else None."""
+    import os
+    if not os.environ.get(C.DATA_ROOT_ENV, "").strip():
+        return None
+    import pandas as pd
+    import pyarrow.parquet as pq
+    from slt import extraction as X
+    root = X.data_root()
+    path = sorted((root / "raw" / "crsp_msp500").glob("*.parquet"))[0]
+    names = [n for n in pq.read_schema(path).names if n.lower() in CRSP_INDEX_FIELDS or n == "caldt"]
+    frame, _ = X.read_table(root, "crsp_msp500", columns=names)
+    frame.index = pd.PeriodIndex(frame.pop("caldt"), freq="M")
+    return frame
+
+
+def test_no_column_by_month_equals_a_field_of_crsp_index_file():
+    import numpy as np
+    import pandas as pd
+    import pytest
+    crsp = crsp_index_fields()
+    if crsp is None:
+        pytest.skip("the data root is not set on this machine, so the values cannot be compared")
+    for path in committed_results():
+        if path.suffix.lower() != ".csv":
+            continue
+        frame = pd.read_csv(path)
+        if MONTH_COLUMN not in frame.columns:
+            continue
+        frame.index = pd.PeriodIndex(frame.pop(MONTH_COLUMN), freq="M")
+        for column in frame.columns:
+            ours = pd.to_numeric(frame[column], errors="coerce")
+            for lag in (0, 1):   # the same month, and CRSP's row for the month before, the same day as the start of the month
+                theirs = crsp.reindex(ours.index - lag)
+                theirs.index = ours.index
+                for field in theirs.columns:
+                    both = pd.concat([ours, theirs[field]], axis=1).dropna()
+                    if both.empty:
+                        continue
+                    a, b = both.iloc[:, 0].to_numpy(float), both.iloc[:, 1].to_numpy(float)
+                    equal = (np.round(a, C.RECONSTRUCTION_EQUAL_DECIMALS) == np.round(b, C.RECONSTRUCTION_EQUAL_DECIMALS))
+                    equal |= np.abs(a - b) <= 10.0 ** -C.RECONSTRUCTION_EQUAL_DECIMALS * np.maximum(np.abs(b), 1.0)
+                    equal &= a != 0      # a zero, such as an empty sector, says nothing of CRSP's values
+                    share = equal.mean()
+                    assert share <= C.RECONSTRUCTION_EQUAL_MONTHS_MAX, (
+                        f"{path.name}, column {column}: equal to a field of CRSP's index file in {share:.1%} of months")

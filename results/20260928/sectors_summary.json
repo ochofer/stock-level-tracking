@@ -1,0 +1,49 @@
+{
+ "written_by": "notebooks/05_sectors.ipynb",
+ "manifest_sha256": "23e96d189f4b095936f47a1ebacb4e987fb260726afab4b6e6400c25ebce8693",
+ "gics_timing": "classification in force on the last trading day of month t-1",
+ "sector_link_flags": [
+  "P",
+  "C",
+  "J",
+  "N"
+ ],
+ "link_rows": 123388,
+ "links_kept": 33877,
+ "member_months_with_more_than_one_valid_link": 0,
+ "gics_rows": 45996,
+ "member_months_with_two_classifications": 0,
+ "evaluation_window": {
+  "start_fixed": "1999-07",
+  "end": "2024-12",
+  "member_share_level": 0.95,
+  "cap_share_level": 0.95,
+  "start": "1999-07",
+  "months": 306,
+  "months_below_after_start": 0,
+  "first_month_below_after_start": null,
+  "condition_met": true,
+  "first_month_with_a_sector": "1999-07"
+ },
+ "cell_rule": {
+  "min_members": 3,
+  "max_member_share": 0.8,
+  "gics_sectors": {
+   "cells": 3366,
+   "empty_cells": 207,
+   "cells_failing": 0,
+   "fewest_members": 3,
+   "largest_single_share": 0.583847,
+   "rule_met": true
+  },
+  "unclassified_not_committed": {
+   "cells": 306,
+   "empty_cells": 0,
+   "cells_failing": 306,
+   "fewest_members": 1,
+   "largest_single_share": 1.0,
+   "rule_met": false
+  }
+ },
+ "date_values_not_parsed": {}
+}

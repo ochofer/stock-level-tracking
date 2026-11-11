@@ -5,7 +5,9 @@ Every gate, expectation, sample boundary, mandate level and design parameter is
 defined here, one per line, with its source beside it. A notebook or script may
 read these names; it may not introduce numbers of its own. The design was fixed
 on 9 November 2026, and the readings marked 10 November 2026 were fixed the
-next day, all before any code that uses them was written. A level changed after
+next day, all before any code that uses them was written. The amendments marked
+11 November 2026 follow two findings in the extraction's structure, made from
+counts alone and before any notebook judged a gate. A level changed after
 a run that judges it carries the date and the reason beside it, so that a reader
 can tell a specification from a number set after seeing a result.
 
@@ -76,7 +78,23 @@ TABLES_NOT_USED = {
 MEMBERSHIP_RULE = "membership interval covers the last trading day of month t-1"
 USABLE_COUNT_WITHIN = 10         # the first usable month is the first in which the universe's count is within 10 names of CRSP's count
 SP500_GVKEYX = "000003"          # Compustat's identifier of the S&P 500, selecting the cross-check's rows of its constituent history
-CROSS_CHECK_REPORT = "share of universe-months on which CRSP's and Compustat's lists disagree, by year; reported and not reconciled"
+# Amended 11 November 2026. On this subscription Compustat's constituent history
+# lists the members of September 2026 alone: 503 rows for the index, none with an
+# end date. So the cross-check covers names still in the index and says nothing
+# about removals. It is read on what the table holds, by year, with no verdict:
+# (a) of the member-months of Compustat's members, each from the month after it
+# joined to December 2024, the share found in the universe through the link, with
+# the counts of rows, companies, rows that do not link and rows that joined after
+# CRSP's last date; (b) for the same members, whether the two lists date the join
+# to the same month, to within one month or further apart, CRSP's date being the
+# start of the membership interval that covers Compustat's months; (c) the
+# definition of 9 November, kept beside them and named for what it is: it counts
+# every name that left the index before September 2026, which the table omits.
+CROSS_CHECK_REPORT, CROSS_CHECK_REPORT_2026_11_09 = (
+    "(a) share of Compustat's member-months found in the universe; (b) join dates on both lists; "
+    "(c) the two-sided share, which counts the exits Compustat's table omits; by year, no verdict",
+    "share of universe-months on which CRSP's and Compustat's lists disagree, by year; reported and not reconciled")   # the second superseded on 11 November 2026
+CROSS_CHECK_JOIN_WITHIN_MONTHS = 1   # (b): joins dated to the same month, within one month, or further apart
 SHARE_CODES_COMMON = (10, 11)    # share codes are not filtered, since the list is the universe; members outside these two are counted by year
 
 # ---------------------------------------------------------------------------
@@ -105,19 +123,37 @@ CAP_RULE = "|price| x shares outstanding at the end of month t-1, in thousands o
 # universe's sum, so the weight uses nothing unknown when the month begins, as
 # CAPW_WEIGHT_TIMING does in the source repository.
 BENCHMARK_WEIGHT_TIMING = "start of month"
+# Fixed 11 November 2026: a member without a start-of-month capitalisation (no
+# price or no shares at the end of month t-1, or a price of zero) has no weight in
+# the month. It is left out of the benchmark return and the sector weights, the
+# other weights are rescaled, and it is counted. The same exclusion holds for the
+# optimiser's universe in that month. A negative price marks a bid and ask
+# average: it is used in absolute value and is not counted as missing.
+MISSING_CAP_RULE = "no weight in the month: out of the benchmark, the sector weights and the optimiser's universe, other weights rescaled, counted"
 
 # ---------------------------------------------------------------------------
 # 4. Sectors, through the CRSP-Compustat link
 # ---------------------------------------------------------------------------
 
-# PERMNO is the key; GVKEY attaches through the link history, primary links only,
-# with the link's dates inclusive. Fixed 10 November 2026: where a PERMNO-month
-# still holds more than one GVKEY after these filters, the count is reported and
-# the link with primary flag P is taken over C, then the one with the later start.
+# PERMNO is the key; GVKEY attaches through the link history, with the link's
+# dates inclusive. Fixed 10 November 2026, now for the Compustat cross-check: primary
+# links only, and where a PERMNO-month still holds more than one GVKEY after these
+# filters, the count is reported and the link with primary flag P is taken over C,
+# then the one with the later start. The sector join follows the amendment below.
 LINK_TYPES = ("LC", "LU")
-LINK_PRIMARY_FLAGS = ("P", "C")
+LINK_PRIMARY_FLAGS = ("P", "C")  # the Compustat cross-check's links (section 2), as built and labelled
 LINK_DATES_INCLUSIVE = True
 LINK_TIE_BREAK = ("primary flag P before C", "then the later link start date")
+# Amended 11 November 2026, for the sector join only: a member takes the GVKEY of
+# the link of type LC or LU in force on the day, whatever its primary flag, in the
+# order P, C, J, N, then the later link start where two remain. The member-months
+# classified through a J or an N link are counted by year. Reason: the primary flag
+# says which of a company's securities Compustat treats as primary, which matters
+# going from a company to a security and not from a security to its company, and a
+# second share class has its company's sector. The rule of 10 November, primary
+# links only, is kept beside it as superseded.
+SECTOR_LINK_FLAGS, SECTOR_LINK_FLAGS_2026_11_10 = ("P", "C", "J", "N"), ("P", "C")
+SECTOR_LINK_TIE_BREAK = ("primary flag in the order P, C, J, N", "then the later link start date")
 
 # The GICS history is one pull from Compustat added to the extraction on
 # 10 November 2026, recorded in the manifest like every other file, because the
@@ -129,6 +165,7 @@ GICS_FALLBACK = "comp_company"
 # Fixed 10 November 2026: the sector of month t is the classification in force on
 # the last trading day of month t-1, the day membership and capitalisation are read.
 GICS_TIMING = "classification in force on the last trading day of month t-1"
+GICS_OVERLAP_RULE = "where two classifications are in force on one day, the later start, counted"   # fixed 11 November 2026
 GICS_LEVELS = ("gsector", "ggroup", "gind", "gsubind")   # sector, industry group, industry, sub-industry
 # The eleven GICS sectors by code, under their current names. Real Estate (60) was
 # separated from Financials (40) in 2016, and Telecommunication Services became
@@ -158,6 +195,7 @@ G3_WINDOW = (DAILY_FILE_START, CRSP_END)
 G3_BEFORE_WINDOW = "share with a price at the end of the removal month or the month before, monthly file, no verdict"
 G4_MONTH_SHARE_MIN = 0.90        # G4: market capitalisation present in at least 90% of a name's membership months
 G4_NAME_SHARE_MIN = 0.90         # G4: for at least 90% of names
+G4_WINDOW = "usable window, each name on its own membership months inside it"   # fixed 11 November 2026
 
 # ---------------------------------------------------------------------------
 # 6. Expectations: an expectation not met is a finding
@@ -177,6 +215,12 @@ G4_NAME_SHARE_MIN = 0.90         # G4: for at least 90% of names
 # since 2005, which CRSP's shares outstanding are not.
 E1_TE_MAX = 0.0020
 E1_MEAN_DIFF_MAX = 0.0002        # per month
+# Fixed 11 November 2026: the price-only benchmark against the index's own price
+# return over the months to December 2004, as tracking error and mean difference
+# beside the whole-window figures, with no verdict. Until 2005 the index weighted
+# by full capitalisation, so this gap is evidence on membership independent of
+# CRSP's list, removals included, which Compustat's history cannot test.
+INDEX_FULL_CAP_LAST_MONTH = "2004-12"
 
 # E2, counts and values. In every month of the usable window the universe's count
 # is within 10 of CRSP's count, and the summed capitalisation is within 2% of
@@ -267,11 +311,25 @@ EXPECTATIONS = ("E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "E9")
 # ---------------------------------------------------------------------------
 
 # Evaluation window: monthly rebalancing at the start of each month, with three
-# years of daily returns from the daily file's first date before the first
-# estimate, and CRSP's last month after the last.
-EVAL_START = "1993-01"
+# years of daily returns before the first estimate, and CRSP's last month after
+# the last. Amended 11 November 2026: Compustat's GICS history begins on 30 June
+# 1999, so before July 1999 every member is Unclassified, and the sector bands,
+# the tilt and the exclusions could not bind. The window starts in July 1999, with
+# the first covariance estimate on daily returns from July 1996. The window of
+# 9 November is kept beside it, superseded. 24 paths over 306 months are 7,344
+# optimisation problems. E4 to E9 are judged on this window. The data layer, its
+# usable window, G1 to G4 and E1 to E3 stay over the whole usable window.
+EVAL_START, EVAL_START_2026_11_09 = "1999-07", "1993-01"
 EVAL_END = "2024-12"
-EVAL_MONTHS = 384
+EVAL_MONTHS, EVAL_MONTHS_2026_11_09 = 306, 384
+# Fixed 11 November 2026, before the coverage was seen: in the window's first
+# month and in every later month, at least 95% of the universe's members and at
+# least 95% of its capitalisation have a GICS sector. If July 1999 misses it, the
+# window starts in the first month of 1999 that meets it, recorded with the
+# figures. If no month of 1999 meets it, or a later month falls below, the study
+# stops for a ruling.
+EVAL_GICS_MEMBER_SHARE_MIN = 0.95
+EVAL_GICS_CAP_SHARE_MIN = 0.95
 
 # Covariance estimators, the source repository's four, on the previous three
 # years of daily excess returns of the current universe members, scaled to
@@ -398,13 +456,29 @@ PROVENANCE_FILE = RESULTS_DIR + "/provenance.json"   # the extraction date, the 
 # monthly difference from one, because the benchmark's return beside such a
 # difference would rebuild the licensed series. No per-security row, no list of
 # PERMNOs or GVKEYs with dates and no per-stock weight is ever committed.
-COMMITTED_MONTHLY = (
-    "benchmark return with dividends",
-    "benchmark return, price-only",
-    "universe count",
-    "universe summed capitalisation",
-    "benchmark sector weights",
+# Amended 11 November 2026: the benchmark's return, the universe's count and its
+# summed capitalisation by month reproduce CRSP's index file in their values, so
+# none of the three is committed by month; the by-year tables and the summaries
+# stay. By month the repository holds only the eleven GICS sector weights as shares
+# of the classified capitalisation, July 1999 to December 2024. The list of
+# 10 November is kept beside it as superseded.
+COMMITTED_MONTHLY, COMMITTED_MONTHLY_2026_11_10 = (
+    ("eleven GICS sector weights as shares of the classified capitalisation, July 1999 to December 2024",),
+    ("benchmark return with dividends", "benchmark return, price-only", "universe count",
+     "universe summed capitalisation", "benchmark sector weights"),
 )
+# Fixed 11 November 2026, for every table by month: a cell is committed only if it
+# aggregates at least three members and no member is more than 80% of it. A sector
+# with no member in a month has weight zero, holds no member's value and is
+# committed as zero. Unclassified does not pass and is never committed by month.
+# Notebook 05 checks the rule on what it writes and stops if a cell fails.
+SMALL_CELL_MIN_MEMBERS = 3
+SMALL_CELL_MAX_MEMBER_SHARE = 0.80
+# Fixed 11 November 2026: where the data root is present, the reconstruction test
+# also fails if a committed column by month equals a field of CRSP's index file to
+# the sixth decimal in more than 5% of months.
+RECONSTRUCTION_EQUAL_DECIMALS = 6
+RECONSTRUCTION_EQUAL_MONTHS_MAX = 0.05
 COMPARISON_SUMMARIES = ("tracking error", "mean difference", "correlation", "months outside the tolerance")
 TIMEZONE = "Europe/Amsterdam"
 SEED = 20261109                  # for the tests' made-up data; the design has no random draw

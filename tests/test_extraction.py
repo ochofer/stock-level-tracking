@@ -100,6 +100,16 @@ def test_read_table_parses_dates_and_counts_what_does_not_parse(tmp_path):
     assert parsed["ending"].isna().sum() == 2
 
 
+def test_parse_dates_handles_pandas_string_type():
+    """Text stored as pandas' string type is parsed like text stored as objects."""
+    frame = pd.DataFrame({"start": pd.array(["1999-06-30", None], dtype="string"),
+                          "linkprim": pd.array(["P", None], dtype="string")})
+    parsed, unparsed = X.parse_dates(frame)
+    assert str(parsed["start"].dtype).startswith("datetime64") and unparsed == {}
+    assert parsed["linkprim"].dtype == object
+    assert (parsed["linkprim"] == "P").tolist() == [True, False]
+
+
 def test_provenance_holds_no_row(tmp_path):
     digest = make_extraction(tmp_path)
     manifest = X.check_manifest(tmp_path, expected=digest)
@@ -110,3 +120,27 @@ def test_provenance_holds_no_row(tmp_path):
     text = json.dumps(record)
     assert "select" not in text
     assert set(record) >= {"manifest_sha256", "extraction_date", "vintage", "versions", "source"}
+
+
+def test_nullable_numbers_become_numpy_numbers_with_nan():
+    """Files written from pandas' nullable types carry metadata that restores them; the reader returns numpy types."""
+    frame = pd.DataFrame({"code": pd.array([233, None], dtype="Int64"), "permno": pd.array([1, 2], dtype="Int64"),
+                          "ret": pd.array([0.1, None], dtype="Float64")})
+    parsed, _ = X.parse_dates(frame.copy())
+    assert parsed["code"].dtype == "float64" and parsed["code"].isna().tolist() == [False, True]
+    assert parsed["permno"].dtype == "int64" and parsed["ret"].dtype == "float64"
+    assert parsed["code"].between(200, 299).tolist() == [True, False]
+
+
+def test_read_table_ignores_the_nullable_metadata_in_the_files(tmp_path):
+    folder = tmp_path / "raw" / "crsp_msedelist"
+    folder.mkdir(parents=True)
+    frame = pd.DataFrame({"permno": pd.array([1, 2], dtype="Int64"), "dlstdt": pd.array(["2001-02-28", None], dtype="string"),
+                          "dlstcd": pd.array([552, None], dtype="Int64"), "dlret": pd.array([None, 0.1], dtype="Float64"),
+                          "dlretx": pd.array([None, 0.1], dtype="Float64")})
+    frame.to_parquet(folder / "crsp_msedelist.parquet", index=False)
+    df, unparsed = X.read_table(tmp_path, "crsp_msedelist")
+    assert unparsed == {}
+    assert df["permno"].dtype == "int64" and df["dlstcd"].dtype == "float64" and df["dlret"].dtype == "float64"
+    assert str(df["dlstdt"].dtype).startswith("datetime64")
+    assert df["dlstcd"].between(400, 599).tolist() == [True, False]

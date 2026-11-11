@@ -1,0 +1,49 @@
+{
+ "G1": {
+  "met": true,
+  "tracking_error": 0.001148479159431748,
+  "level": 0.005
+ },
+ "G2": {
+  "met": true,
+  "years": 99.0,
+  "level": 15
+ },
+ "G3": {
+  "met": true,
+  "share": 1.0,
+  "removals": 836,
+  "level": 0.9
+ },
+ "G4": {
+  "met": true,
+  "share_of_names": 0.99477,
+  "names": 1912,
+  "level": 0.9
+ },
+ "E1": {
+  "with_dividends": {
+   "tracking_error": 0.001148479159431748,
+   "mean_difference": -1.759970081023675e-05
+  },
+  "price_only": {
+   "tracking_error": 0.001157753303009866,
+   "mean_difference": -1.637605708861299e-05
+  },
+  "levels": {
+   "tracking_error": 0.002,
+   "mean_difference": 0.0002
+  },
+  "met": true
+ },
+ "E2": {
+  "months": 1188,
+  "months_count_outside": 0,
+  "count_level": 10,
+  "months_value_within": 1186,
+  "share_value_within": 0.998316,
+  "value_level": 0.02,
+  "share_level": 0.95,
+  "met": true
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "in_daily_file": {
+  "removals": 836,
+  "removals_with_price": 836,
+  "share": 1.0,
+  "trading_days": 10,
+  "share_level": 0.9,
+  "window": [
+   "1990-01-02",
+   "2024-12-31"
+  ],
+  "g3_met": true
+ },
+ "before_daily_file": {
+  "removals": 725,
+  "removals_with_price": 658,
+  "share": 0.907586,
+  "reading": "share with a price at the end of the removal month or the month before, monthly file, no verdict"
+ }
+}

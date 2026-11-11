@@ -35,10 +35,13 @@ def test_frontier_has_five_caps_per_estimator():
 
 
 def test_evaluation_window():
-    assert months_between(C.EVAL_START, C.EVAL_END) == C.EVAL_MONTHS == 384
+    assert months_between(C.EVAL_START, C.EVAL_END) == C.EVAL_MONTHS == 306
+    assert months_between(C.EVAL_START_2026_11_09, C.EVAL_END) == C.EVAL_MONTHS_2026_11_09 == 384
     first_estimate_needs = int(C.DAILY_FILE_START[:4]) + C.COV_DAILY_WINDOW_YEARS
     assert int(C.EVAL_START[:4]) >= first_estimate_needs
     assert C.EVAL_END == C.CRSP_END[:7]
+    assert C.PATH_COUNT * C.EVAL_MONTHS == 7344
+    assert 0 < C.EVAL_GICS_MEMBER_SHARE_MIN <= 1 and 0 < C.EVAL_GICS_CAP_SHARE_MIN <= 1
 
 
 def test_sectors():

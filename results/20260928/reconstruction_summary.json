@@ -1,0 +1,74 @@
+{
+ "written_by": "notebooks/04_reconstruction.ipynb",
+ "manifest_sha256": "23e96d189f4b095936f47a1ebacb4e987fb260726afab4b6e6400c25ebce8693",
+ "usable_window": {
+  "first_month": "1926-01",
+  "last_month": "2024-12",
+  "months": 1188
+ },
+ "members_left_out": {
+  "months": 1188,
+  "member_months_without_cap": 526,
+  "most_in_one_month_without_cap": 10,
+  "member_months_without_return": 676,
+  "most_in_one_month_without_return": 10
+ },
+ "with_dividends": {
+  "months": 1188,
+  "tracking_error": 0.001148479159431748,
+  "mean_difference": -1.759970081023675e-05,
+  "correlation": 0.9999811081205925
+ },
+ "price_only": {
+  "months": 1188,
+  "tracking_error": 0.001157753303009866,
+  "mean_difference": -1.637605708861299e-05,
+  "correlation": 0.9999808442618227
+ },
+ "against_index_price_return": {
+  "whole_window": {
+   "months": 1188,
+   "tracking_error": 0.008419150705641077,
+   "mean_difference": -9.075737021992623e-05,
+   "correlation": 0.9989963623607512
+  },
+  "to_december_2004": {
+   "months": 948,
+   "tracking_error": 0.009355952705771371,
+   "mean_difference": -0.0001197415269950453,
+   "correlation": 0.9988696171177357
+  },
+  "from_january_2005": {
+   "months": 240,
+   "tracking_error": 0.002236243980767136,
+   "mean_difference": 2.3730049041794102e-05,
+   "correlation": 0.9998934490501526
+  }
+ },
+ "e2": {
+  "months": 1188,
+  "months_count_outside": 0,
+  "count_level": 10,
+  "months_value_within": 1186,
+  "share_value_within": 0.998316,
+  "value_level": 0.02,
+  "share_level": 0.95,
+  "met": true
+ },
+ "evaluation_window": {
+  "first_month": "1999-07",
+  "last_month": "2024-12",
+  "with_dividends": {
+   "months": 306,
+   "tracking_error": 0.0015242764691187052,
+   "mean_difference": -6.433247108914532e-05,
+   "correlation": 0.999950448572924
+  },
+  "price_only": {
+   "months": 306,
+   "tracking_error": 0.00156004253892957,
+   "mean_difference": -6.390780428394424e-05,
+   "correlation": 0.999947900445814
+  }
+ }
+}

@@ -1,0 +1,17 @@
+{
+ "written_by": "notebooks/03_returns.ipynb",
+ "manifest_sha256": "23e96d189f4b095936f47a1ebacb4e987fb260726afab4b6e6400c25ebce8693",
+ "member_months": 440724,
+ "panel_rows": 440724,
+ "permno_months_with_more_than_one_monthly_row": 0,
+ "delisting_months_by_code_family": {
+  "200": 725,
+  "300": 38,
+  "400": 4,
+  "500": 32
+ },
+ "trading_days": 8817,
+ "first_trading_day": "1990-01-02",
+ "last_trading_day": "2024-12-31",
+ "date_values_not_parsed": {}
+}
