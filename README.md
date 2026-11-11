@@ -1,4 +1,4 @@
-# Stock-Level Tracking: index tracking and attribution at the stock level
+# Stock-level index tracking: a point-in-time benchmark, a long-only mandate, and its performance attribution by sector
 
 This study is in build and at milestone 1 of 4, the data layer.
 
@@ -74,3 +74,13 @@ Shumway, T. (1997). The delisting bias in CRSP data. *Journal of Finance* 52(1),
 - **forced turnover**: the trading that changes in index membership require, selling a stock that leaves and buying one that enters.
 - **chosen turnover**: all other trading, which the optimiser chooses and the turnover cap limits.
 - **allocation**, **selection** and **interaction**: the three parts of the active return in the Brinson-Fachler attribution. Allocation comes from holding sectors at weights other than the benchmark's, selection from returns within a sector that differ from the benchmark's, and interaction from the two together.
+
+## Other projects
+
+**Optimal versus naive diversification.** Under an index-tracking mandate on French's 49 industries, five covariance estimators understate their own tracking error, by 22 to 61 per cent. The replication of DeMiguel, Garlappi and Uppal (2009) reproduces 29 of the 30 Sharpe ratios that carry a band. [Page](https://www.carlohofer.com/projects/optimal-vs-naive-diversification/), [dashboard](https://www.carlohofer.com/optimal-vs-naive-diversification/dashboard/B-P_dashboard.html), [code](https://github.com/ochofer/optimal-vs-naive-diversification)
+
+**Climate risk as an equity signal.** An ownership graph linking 328 listed companies to the 5,115 tracked assets they own. Of 19 apparent ownership changes checked by hand, 12 had no transaction behind them. [Page](https://www.carlohofer.com/projects/climate-risk-equity-signal/), [note](https://github.com/ochofer/paper1-hazard-exposure-data/releases/download/note-v1.2/what-a-vintage-difference-measures.pdf), [code](https://github.com/ochofer/paper1-hazard-exposure-data)
+
+**Volatility-managed portfolios: a replication, the real-time critique, and the months after the sample.** Volatility estimation and position sizing on Ken French's equity factors, backtested out of sample and without look-ahead, replicating Moreira and Muir (2017) and Cederburg, O'Doherty, Wang and Yan (2020). In build: the data and the signal are in place, and nothing in it is a result yet. [Page](https://www.carlohofer.com/projects/volatility-managed-portfolios/), [code](https://github.com/ochofer/volatility-managed-portfolios)
+
+**Rules-based portfolio.** Runs a real-money portfolio under rules published before the first order: two UCITS ETFs at 70/30, a monthly cycle with pre-trade checks, look-through exposure and ex-ante risk on a public dashboard. [Page](https://www.carlohofer.com/projects/rules-based-portfolio/), [dashboard](https://www.carlohofer.com/rules-based-portfolio/), [code](https://github.com/ochofer/rules-based-portfolio)
