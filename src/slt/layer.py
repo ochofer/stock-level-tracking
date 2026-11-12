@@ -82,3 +82,23 @@ def daily_pass(root, ulong, removed, years=None, progress: bool = False) -> dict
         print()
     return {"calendar": np.sort(np.concatenate(days)), "present": present,
             "removed_rows": pd.concat(kept, ignore_index=True), "unparsed": unparsed}
+
+
+def daily_matrix(root, permnos, years, progress: bool = False) -> tuple:
+    """Daily returns of the given stocks as one matrix, trading days by PERMNO, read a year at a time, and the
+    file's calendar of trading days. It is held in memory and never written."""
+    wanted = set(int(p) for p in permnos)
+    parts, days = [], []
+    for year in years:
+        d, _ = X.read_table(root, "crsp_dsf", columns=["permno", "date", "ret"], years=[year])
+        days.append(np.unique(d["date"].dropna().values))
+        d = d[d["permno"].isin(wanted) & d["ret"].notna()].drop_duplicates(["permno", "date"], keep="last")
+        parts.append(d.pivot(index="date", columns="permno", values="ret"))
+        if progress:
+            print(year, end=" ", flush=True)
+    if progress:
+        print()
+    calendar = pd.DatetimeIndex(np.unique(np.concatenate(days)))
+    wide = pd.concat(parts, axis=0).reindex(calendar)
+    wide = wide.reindex(columns=sorted(wanted))
+    return wide, calendar

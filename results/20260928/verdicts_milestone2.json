@@ -1,0 +1,24 @@
+{
+ "E3_momentum": {
+  "met": true,
+  "correlation": 0.8875561705784709,
+  "mean_difference": -0.0010353705228506014,
+  "standard_error": 0.0009021020601712573,
+  "months": 1172
+ },
+ "E3_variance": {
+  "met": true,
+  "correlation": 0.9542936097545783,
+  "mean_difference": 0.00027060759140362667,
+  "standard_error": 0.0009393619693882505,
+  "months": 417
+ },
+ "E4_first_clause": {
+  "met": false,
+  "months": 306,
+  "months_at_or_above_level": 86,
+  "smallest_ratio": 2.7963602908137055,
+  "month_of_smallest_ratio": "2012-08",
+  "median_ratio": 5.411772031947308
+ }
+}

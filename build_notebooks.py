@@ -816,7 +816,363 @@ What could still be wrong. A sector read through the link depends on the link be
 """),
 ]
 
+# ---------------------------------------------------------------------------
+# 06: French's answer key
+# ---------------------------------------------------------------------------
+
+MODULES_06 = """
+from slt import french as FR
+from slt import layer as L
+from slt import sorts as Q
+from slt import validation as V
+"""
+
+NB06 = [
+    md("""
+# 06. French's answer key: momentum and variance sorts of the universe
+
+**What this notebook does.** Each month it ranks the universe's members on two signals known at the start of the month, momentum and the variance of daily returns, cuts them into five groups of equal size, and computes the return of the highest group minus the lowest, each stock in a group weighted by its market value. It sets these spreads beside the same spreads computed by Ken French within the largest stocks of the US market, and judges expectation E3 on the two comparisons. The same sorts in ten groups are reported beside them and not judged.
+
+**Why it comes here.** French's data library publishes these spreads, built from the same CRSP files by a different hand and with different rules for which stocks count as large. If the universe is the set of large US stocks it claims to be, and its returns and weights are right, its spreads should move with French's month by month. This is the data layer's last check from outside CRSP's own index file, and the first that uses daily returns.
+
+**Terms used in this notebook.**
+
+- *universe*: the stocks in CRSP's list of index members on the last trading day of the month before.
+- *verdict*: the result of an expectation, a test fixed in advance in `src/slt/constants.py`, met or not met, printed in the same words either way.
+- *market capitalisation*: price times shares outstanding, at the end of the month before.
+- *value-weighted*: weighted by market capitalisation, each stock's weight being its capitalisation divided by the sum over the stocks held. *Cap-weighted* means the same.
+- *benchmark*: the value-weighted universe, as notebook 04 built it, with delisting returns applied.
+- *momentum*: the return compounded over the eleven months from month t−12 to month t−2, leaving out month t−1, French's definition. A member enters the momentum sort for month t if it has a price at the end of month t−13, a return for month t−2 and a market capitalisation at the end of t−1, French's conditions. A missing return between t−12 and t−3 is skipped in the compounding and counted.
+- *variance*: the variance of a member's daily returns over the 60 trading days ending on the last trading day of month t−1, on at least 20 returns, French's definition and minimum.
+- *quintile* and *decile*: the five, or ten, groups of equal numbers of names, to within one, from lowest signal to highest. Ties are broken by CRSP's permanent number for the security, the PERMNO.
+- *spread*: the value-weighted return of the highest quintile minus that of the lowest, in the month after the sort. Each group's return is taken over its members with a return, delisting returns applied, as the benchmark's is.
+- *French's largest size quintile*: the stocks above the 80th percentile of the market capitalisations of NYSE stocks, in French's 25 portfolios formed on size and on a second signal. French's spread is his highest-signal portfolio minus his lowest within that quintile, value-weighted.
+- *NYSE breakpoints*: French's quintiles are cut at percentiles of NYSE stocks alone, and then applied to all US stocks, so his groups are not of equal size.
+- *vintage*: the version of CRSP's database a file was built from. French prints it on the first line of each file, and the extraction here holds CRSP to December 2024.
+- *provenance*: the record of what a result was built from, here each French file's address, download time and SHA-256 fingerprint.
+- *correlation*: the correlation coefficient of the two spreads over the months both exist.
+- *standard error*: the standard deviation of the monthly difference between the two spreads divided by the square root of the number of months, the precision of their mean difference. E3 is judged on it. The *Newey-West standard error*, which allows the difference in one month to be correlated with the difference in the next twelve, is printed beside it with no verdict. *Autocorrelation* is that correlation of a series with its own past.
+- *basis point*: a hundredth of a percentage point. A basis point a month in the mean difference is about 0.12 percentage points a year.
+
+**What I expect to see, and where it comes from.**
+
+- *E3*, for the momentum sort and for the variance sort: correlation at least 0.80 between the universe's quintile spread and French's, and a mean difference within two standard errors of zero, over the months both exist. The levels date from 6 September 2026 and were fixed before any data was read. French's largest size quintile is set by NYSE breakpoints and holds between about 100 and 530 names a month, fewer than the universe's 500 in almost every month from April 1957 and more than its 90 before, so the two sets overlap without coinciding and a correlation near one is not expected. Below 0.80 the universe is not the large-cap universe it claims to be. The universe goes from about 90 names to about 500 in April 1957, so the momentum comparison is also printed and committed for January 1927 to March 1957 and April 1957 to December 2024, with no verdict. E3's verdict is on the whole window.
+- *The months compared*: momentum from January 1927, the first month with a price thirteen months back in the monthly stock file and a value in French's file, to December 2024. Variance from April 1990, the first month with 60 trading days of the daily stock file before it, to December 2024.
+- *The members left out*: from structural counts made on 11 November 2026, before this notebook was written, about 2,500 of 440,000 member-months from January 1927 have no price at t−13 and about 100 have no return at t−2, and they are left out of the momentum sort. About 550 are sorted with a skipped month. In the variance sort 76 of 209,020 member-months from April 1990 have fewer than 20 daily returns and are left out.
+- *Vintages*: French builds his files on CRSP's database of September 2026. Revisions between that vintage and the extraction's are part of any gap.
+
+Running time: about five minutes, most of it reading the daily stock file. French's four files are downloaded once into `data/french/`, which git ignores.
+"""),
+    code(SETUP),
+    code(MODULES_06),
+    md("""
+## 1. French's spreads
+
+Each file is downloaded if it is not already in `data/french/`, and its provenance record is kept. From each of the two 25-portfolio files the notebook reads the block of value-weighted monthly returns and the block of the number of firms in each portfolio, cut at December 2024. French's spreads stay in memory: no French series is committed by month.
+"""),
+    code("""
+french, french_firms, records = FR.spreads()
+for r in records:
+    print(r["filename"], "|", r["vintage_line"], "| SHA-256", r["zip_sha256"][:12], "| downloaded now:", r["fetched_this_run"])
+for sort in C.SORTS:
+    s = french[sort].dropna()
+    print(f"{sort}: {s.index.min()} to {s.index.max()}, {len(s)} months with a value")
+print("names in French's largest size quintile, mean by year:")
+print(french_firms.loc[[y for y in (1927, 1957, 1958, 1980, 2000, 2024) if y in french_firms.index]].round(0).to_string())
+"""),
+    md("""
+## 2. The momentum sort
+
+The universe and its monthly panel are rebuilt from the files as in notebooks 02 and 03. The signal is computed for every member-month from January 1927 from the monthly stock file, and the member-months that enter the sort are those with a signal and a market capitalisation.
+"""),
+    code("""
+t0 = time.time()
+universe = L.load_universe(root)
+data = L.load_panel(root, universe)
+panel = data["panel"]
+wide = Q.monthly_wide(data["monthly"])
+signals = {"momentum": Q.momentum(universe["ulong"], wide)}
+entered = {"momentum": Q.entering(signals["momentum"], panel)}
+counts = {"momentum": Q.counts_by_year(signals["momentum"], entered["momentum"], "momentum")}
+c = counts["momentum"]
+print(f"{time.time() - t0:.0f} s | member-months {c['member_months'].sum():,} | sorted {c['sorted'].sum():,}")
+print(c.drop(columns="year").sum().to_dict())
+"""),
+    md("""
+## 3. The variance sort
+
+The daily stock file is read a year at a time from 1990, for the stocks that are members in any month from April 1990, and held as one matrix of daily returns in memory. Each member's variance for month t uses its own returns over the 60 trading days before the month, whether or not it was a member on those days.
+"""),
+    code("""
+t0 = time.time()
+first_v = pd.Period(C.VARIANCE_SORT_START, "M")
+ul = universe["ulong"]
+permnos = ul.loc[ul["month"] >= first_v, "permno"].unique()
+daily, calendar = L.daily_matrix(root, permnos, L.daily_years(), progress=True)
+signals["variance"] = Q.variance(ul, daily, universe["ends"])
+entered["variance"] = Q.entering(signals["variance"], panel)
+counts["variance"] = Q.counts_by_year(signals["variance"], entered["variance"], "variance")
+del daily
+c = counts["variance"]
+print(f"{time.time() - t0:.0f} s | member-months {c['member_months'].sum():,} | sorted {c['sorted'].sum():,}")
+print(c.drop(columns="year").sum().to_dict())
+"""),
+    md("""
+## 4. The spreads against French's: E3
+
+For each sort, the quintile spread and the decile spread of the universe by month, compared with French's spread over the months both exist. E3 is judged on the quintiles. The table by year is printed for every tenth year and committed in full.
+"""),
+    code("""
+results, by_year, verdicts = {}, [], {}
+for sort in C.SORTS:
+    q5 = Q.spread(entered[sort], C.SORT_QUANTILES)
+    q10 = Q.spread(entered[sort], C.SORT_QUANTILES_REPORTED)
+    r5, r10 = Q.compare(q5, french[sort]), Q.compare(q10, french[sort])
+    judged = Q.judge_e3(r5)
+    results[sort] = {"quintiles": {**r5, **judged}, "deciles_no_verdict": r10}
+    y5, y10 = Q.compare_by_year(q5, french[sort]), Q.compare_by_year(q10, french[sort])
+    y = y5.merge(y10[["year", "correlation", "mean_universe_spread", "mean_difference", "standard_error"]],
+                 on="year", suffixes=("_quintiles", "_deciles"))
+    y = y.rename(columns={"months": "months", "mean_french_spread": "mean_french_spread"})
+    names = Q.names_by_quantile(entered[sort], C.SORT_QUANTILES).rename("universe_names_per_quintile_mean")
+    y = y.merge(names, left_on="year", right_index=True, how="left")
+    y = y.merge(french_firms[sort].rename("french_names_largest_size_quintile_mean"), left_on="year", right_index=True, how="left")
+    by_year.append(y.assign(sort=sort))
+    print(V.verdict_line(f"E3, {sort}", judged["met"],
+          f"Over {r5['months']} months from {r5['first_month']} to {r5['last_month']}, correlation {r5['correlation']:.3f} "
+          f"against at least {C.E3_CORRELATION_MIN:.2f}, and a mean difference of {r5['mean_difference'] * 1e4:.1f} basis points "
+          f"a month on a standard error of {r5['standard_error'] * 1e4:.1f}, {abs(r5['difference_in_standard_errors']):.2f} standard "
+          f"errors against at most {C.E3_MEAN_DIFF_SE:.0f}"))
+    print(f"   deciles, no verdict: correlation {r10['correlation']:.3f}, mean difference {r10['mean_difference'] * 1e4:.1f} "
+          f"basis points on {r10['standard_error'] * 1e4:.1f} | Newey-West standard error of the quintiles' difference, "
+          f"no verdict: {r5['standard_error_newey_west'] * 1e4:.1f}")
+    verdicts[f"E3_{sort}"] = results[sort]["quintiles"]
+    if sort == "momentum":
+        results[sort]["eras_no_verdict"] = {}
+        for a, b in C.MOMENTUM_ERAS:
+            era = Q.compare(q5.loc[a:b], french[sort].loc[a:b])
+            results[sort]["eras_no_verdict"][f"{a}_to_{b}"] = era
+            print(f"   {a} to {b}, no verdict: {era['months']} months, correlation {era['correlation']:.3f}, mean difference "
+                  f"{era['mean_difference'] * 1e4:.1f} basis points on a standard error of {era['standard_error'] * 1e4:.1f}")
+by_year = pd.concat(by_year, ignore_index=True)
+cols = ["sort", "year"] + [c for c in by_year.columns if c not in ("sort", "year")]
+by_year = by_year[cols]
+print(by_year[by_year["year"] % 10 == 0].round(4).to_string(index=False))
+"""),
+    md("""
+## 5. What is committed
+
+Five files go into `results/20260928/`, each an aggregate with no identifier of a security and no series by month: the comparison by year for each sort, the counts of member-months by year and reason, a summary with the two comparisons over the window, the verdicts of milestone 2 (E3 here, E4's first clause added by notebook 07), and the provenance record of French's files.
+"""),
+    code("""
+count_table = pd.concat([counts[s].assign(sort=s) for s in C.SORTS], ignore_index=True)
+count_table = count_table[["sort"] + [c for c in count_table.columns if c != "sort"]].fillna(0)
+summary = {
+    "written_by": "notebooks/06_answer_key.ipynb", "manifest_sha256": C.MANIFEST_SHA256,
+    "french_vintages": {r["key"]: r["vintage_line"] for r in records},
+    "quantiles_judged": C.SORT_QUANTILES, "quantiles_reported": C.SORT_QUANTILES_REPORTED,
+    "standard_error": C.E3_STANDARD_ERROR, "newey_west_lags_reported": C.E3_NEWEY_WEST_LAGS_REPORTED,
+    "french_columns": {s: {"top": t, "bottom": b, "file": FR.C.FRENCH_FILES[k]} for s, (k, t, b) in C.E3_FRENCH_SPREADS.items()},
+    "comparisons": results,
+    "member_months": {s: {k: int(v) for k, v in counts[s].drop(columns=["year"]).sum().items()} for s in C.SORTS},
+}
+path = ROOT / C.RESULTS_DIR / "verdicts_milestone2.json"
+record = json.loads(path.read_text()) if path.exists() else {}
+record.update({k: {"met": v["met"], "correlation": v["correlation"], "mean_difference": v["mean_difference"],
+                   "standard_error": v["standard_error"], "months": v["months"]} for k, v in verdicts.items()})
+written = [X.write_results("answer_key_by_year.csv", frame=by_year),
+           X.write_results("answer_key_counts_by_year.csv", frame=count_table),
+           X.write_results("answer_key_summary.json", record=summary),
+           X.write_results("verdicts_milestone2.json", record=record),
+           FR.write_provenance(records)]
+for p in written:
+    print("written:", p.relative_to(ROOT))
+"""),
+    md("""
+## What was learned, and what could be wrong
+
+What the notebook establishes: whether the universe's momentum and variance spreads move with French's large-stock spreads month by month and agree with them on average, judged as E3, with the deciles and the counts beside them.
+
+What could still be wrong. French's quintiles are cut at NYSE percentiles and the universe's at its own, so a gap in level can come from the different groups as well as from an error. French's files are built on a later vintage of CRSP than the extraction, and revisions are part of any gap. A missing return between t−12 and t−3 is skipped here, where French's rule admits it only as a missing price, and the counts show how often that happens. And a correlation can be high while one spread runs above the other, which is why E3 judges the mean difference as well.
+"""),
+]
+
+# ---------------------------------------------------------------------------
+# 07: the covariance estimators
+# ---------------------------------------------------------------------------
+
+MODULES_07 = """
+import numpy as np
+
+from slt import estimators as E
+from slt import french as FR
+from slt import layer as L
+from slt import validation as V
+"""
+
+NB07 = [
+    md("""
+# 07. The covariance estimators on the universe
+
+**What this notebook does.** For each of the 306 months of the evaluation window it estimates the covariance matrix, the table of the variances of the members' returns on its diagonal and their covariances off it, from the members' daily returns less the daily risk-free rate, the one-month Treasury bill rate in French's files, over the three years before the month. It does so in four ways, scales each matrix to a month, and records how well conditioned each is. It judges the first clause of expectation E4 on the sample estimator against the Ledoit-Wolf one, and counts the members whose window is not complete and how each is handled.
+
+**Why it comes here.** The mandate of milestone 3 chooses about 500 weights each month by minimising its forecast tracking error, which is computed from one of these matrices. A matrix that understates the risk of some combinations of positions lets the optimiser load on them, so the conditioning is measured before any portfolio is built.
+
+**Terms used in this notebook.**
+
+- *market capitalisation*: price times shares outstanding, at the end of the month before.
+- *benchmark*: the universe weighted by market capitalisation at the start of the month.
+- *universe*: the stocks in CRSP's list of index members on the last trading day of the month before. A member without a market capitalisation at the start of the month is left out of the benchmark and of the matrices for that month.
+- *evaluation window*: July 1999 to December 2024, 306 months, as notebook 05 settled it.
+- *excess return*: a return less the risk-free rate.
+- *provenance*: the record of what a result was built from, here each French file's address, download time, SHA-256 fingerprint and the line naming the CRSP database it was built from.
+- *window*: the trading days of the 36 calendar months before the month, 750 to 759 days.
+- *covariance estimator*: a rule that builds a covariance matrix from a window of returns. Each is scaled from a day to a month by multiplying by 21.
+- *eigenvector*: a set of weights on the members that makes a portfolio uncorrelated with the portfolios of the other eigenvectors.
+- *eigenvalue*: the variance of an eigenvector's portfolio. A covariance matrix has one for each member. A matrix is *positive semi-definite* when none is negative, which every true covariance matrix is, and *singular* when one is zero.
+- *condition number*: the largest eigenvalue divided by the smallest. A large one means the matrix is *near-singular*: close to singular, so that solving with it amplifies small errors in its entries.
+- *sample estimator*: the covariance of the window's returns, each entry from the data alone. With about 500 members and about 750 days it exists, and its smallest eigenvalues are close to zero.
+- *shrinkage*: pulling an estimate towards a simple target, called the *shrinkage target*. The *Ledoit-Wolf estimator* pulls the sample matrix towards a scaled identity matrix, the average variance on the diagonal and zero elsewhere, by a weight from zero to one called the *shrinkage intensity*, chosen from the data to minimise the expected error (Ledoit and Wolf 2004).
+- *factor*: a common source of return.
+- *loading*: the slope of a member's return on a factor in a regression. A *beta* is the same thing under its usual name.
+- *factor model*: each member's return explained by its loadings on French's five factors and his momentum factor. It gives the covariance as the loadings times the factors' covariance times the loadings, plus each member's own variance, called *idiosyncratic*, the variance of what the factors leave.
+- *principal component*: one of the eigenvectors of a covariance matrix, ranked by its eigenvalue. The *PCA estimator* takes the benchmark's excess return as the first factor, with each member's beta on it, describes what is left by the first four principal components of the members' residual covariance, and adds each member's own remaining variance.
+- *complete member*: a member that lacks a return on at most five days of the window. The sample, Ledoit-Wolf and PCA estimators need a matrix with no gap, so they are estimated on the complete members, on the days on which all of them have a return. A day on which a complete member lacks a return is left out of the window. At most 21 days may be left out: where more would go, the bar for complete falls from five days to four and so on, and the month is counted.
+- *model row*: the row of the matrix for a member that is not complete. It comes from a model fitted on the member's own days: its loadings on the six factors and its idiosyncratic variance for the sample, Ledoit-Wolf and factor estimators, and its beta on the benchmark and its residual variance for the PCA estimator. A member with fewer than 60 returns, too few for seven coefficients, takes the market-capitalisation-weighted mean loadings and the median residual variance of the complete members of its GICS sector, when that sector has at least ten of them, and of the whole universe otherwise. The *degrees of freedom* of a regression are its observations less its coefficients.
+- *assembled matrix*: the matrix the mandate will use, complete members and model rows together. Each estimator has one construction for every month, positive semi-definite by construction, and its block for the complete members is what the copied function returns for them. The rules are in `src/slt/constants.py`, section 7.
+- *expectation*: a test fixed in advance in `src/slt/constants.py`, reported as met or not met in the same words either way. Its result is the *verdict*.
+
+**What I expect to see, and where it comes from.**
+
+- *E4, first clause*: in every month of the evaluation window, the condition number of the sample estimator at least ten times that of the Ledoit-Wolf estimator, on the assembled matrices. About 500 members on about 750 days leave the smallest sample eigenvalues near zero, and shrinkage lifts them. The second clause, on realised tracking error, is judged in milestone 3. The condition numbers of the complete members' blocks are printed beside them with no verdict.
+- *The members*: from structural counts made on 11 November 2026, before this notebook was written, about 490 complete members a month and 478 at the least, and about 11 model rows a month and 22 at the most, of which about 3 have fewer than 252 returns and 8 at the most. Fewer than 60 returns: 190 member-months in 134 months.
+- *The check*: every assembled matrix is positive semi-definite by construction, so the notebook computes each one's smallest eigenvalue and stops if one is below minus one ten-billionth of the largest. That would be a fault in the code, and nothing from such a run is reported.
+
+Running time: about ten to twenty minutes, most of it the 306 months of four estimators on about 500 members.
+"""),
+    code(SETUP),
+    code(MODULES_07),
+    md("""
+## 1. The members, their market capitalisations and sectors, and French's daily factors
+
+The universe, its monthly panel and its sectors are rebuilt from the files as in notebooks 02, 03 and 05, for the months from July 1996, the first month of the first window, to December 2024. French's daily factors and risk-free rate are downloaded once into `data/french/`.
+"""),
+    code("""
+t0 = time.time()
+universe = L.load_universe(root)
+data = L.load_panel(root, universe)
+panel = data["panel"]
+first_window = pd.Period(C.EVAL_START, "M") - 12 * C.COV_DAILY_WINDOW_YEARS
+p = panel[panel["month"] >= first_window]
+sectors = L.load_sectors(root, p)
+members = sectors["classified"][["month", "permno", "sector"]].merge(p[["month", "permno", "cap"]], on=["month", "permno"])
+factors, rf, records = FR.daily_factors()
+for r in records:
+    print(r["filename"], "|", r["vintage_line"], "| SHA-256", r["zip_sha256"][:12])
+print(f"{time.time() - t0:.0f} s | member-months from {first_window}: {len(members):,} | without a capitalisation: {members['cap'].isna().sum():,}")
+"""),
+    md("""
+## 2. The daily excess returns and the benchmark's
+
+The daily stock file is read a year at a time from 1996 for the stocks that are members in any month from July 1996, and held as one matrix in memory. The benchmark's daily excess return is each day's return of that month's members weighted by their market capitalisations at the start of the month, rescaled over the members with a return that day, less the risk-free rate. It is the PCA estimator's first factor.
+"""),
+    code("""
+t0 = time.time()
+years = [y for y in L.daily_years() if y >= first_window.year]
+daily, calendar = L.daily_matrix(root, members["permno"].unique(), years, progress=True)
+rf_d = rf.reindex(daily.index)
+excess = daily.sub(rf_d, axis=0)
+bench = E.benchmark_daily_excess(daily, rf, members)
+del daily
+missing_factor_days = int(factors.reindex(excess.index).isna().any(axis=1).sum())
+print(f"{time.time() - t0:.0f} s | trading days {len(excess.index):,} | stocks {excess.shape[1]:,} | days without French's factors: {missing_factor_days}")
+"""),
+    md("""
+## 3. The four estimators, month by month
+
+For each month the four assembled matrices are built, checked and measured, and only their scalars are kept: no matrix and no member's row leaves the loop. A year's months are printed as they finish.
+"""),
+    code("""
+t0 = time.time()
+factors_d = factors.reindex(excess.index)
+rows = []
+for month in pd.period_range(C.EVAL_START, C.EVAL_END, freq="M"):
+    m = members[(members["month"] == month) & members["cap"].notna()]
+    res = E.month_estimates(month, excess, factors_d, bench, m)
+    res.pop("matrices")
+    E.check_positive_semidefinite(res)
+    rows.append(res)
+    if month.month == 12:
+        print(month.year, f"{time.time() - t0:.0f} s", end=" | ", flush=True)
+rows = pd.DataFrame(rows)
+print()
+print(f"months {len(rows)} | every assembled matrix positive semi-definite within the tolerance")
+"""),
+    md("""
+## 4. Conditioning by year, and E4's first clause
+
+The table by year gives each estimator's condition number (median, least and largest), the complete members' median beside it, the smallest ratio of the sample's condition number to the Ledoit-Wolf one's and the months below ten, the shrinkage intensity, and the counts of complete members, model rows and days left out. Every fifth year is printed, and the table is committed in full.
+"""),
+    code("""
+table = E.by_year(rows)
+shown = ["year", "months"] + [f"condition_{n}_median" for n in C.COV_ESTIMATORS] + [
+    "ratio_sample_to_ledoit_wolf_least", "months_ratio_below_level", "lw_intensity_mean", "complete_members_mean",
+    "model_rows_mean", "model_rows_under_252_mean", "model_rows_under_60_member_months", "days_left_out_most", "months_bar_fell"]
+print(table.loc[table["year"] % 5 == 0, shown].round(2).to_string(index=False))
+e4 = E.judge_e4_first_clause(rows)
+print(V.verdict_line("E4, first clause", e4["met"],
+      f"The sample's condition number is at least {C.E4_CONDITION_RATIO_MIN:.0f} times the Ledoit-Wolf one's in "
+      f"{e4['months_at_or_above_level']} of {e4['months']} months, the smallest ratio {e4['smallest_ratio']:.1f} in "
+      f"{e4['month_of_smallest_ratio']}, the median {e4['median_ratio']:.1f}"))
+counts = {"complete_members_mean": float(rows["complete"].mean()), "complete_members_least": int(rows["complete"].min()),
+          "model_rows_mean": float(rows["model_rows"].mean()), "model_rows_most": int(rows["model_rows"].max()),
+          "model_rows_under_252_mean": float(rows["model_rows_under_252"].mean()),
+          "model_rows_under_252_most": int(rows["model_rows_under_252"].max()),
+          "model_rows_under_60_member_months": int(rows["model_rows_under_60"].sum()),
+          "months_with_a_model_row_under_60": int((rows["model_rows_under_60"] > 0).sum()),
+          "days_left_out_most": int(rows["days_left_out"].max()), "months_bar_fell": int(rows["bar_fell"].sum()),
+          "days_without_factors": int(rows["days_without_factors"].sum())}
+print(json.dumps(counts, indent=1))
+"""),
+    md("""
+## 5. What is committed
+
+Four files go into `results/20260928/`, each an aggregate with no identifier of a security and no series by month: the conditioning and the counts by year, a summary with E4's first clause and the eigenvalue check, the verdicts of milestone 2 with E4's first clause added beside E3, and the provenance record of French's files.
+"""),
+    code("""
+summary = {
+    "written_by": "notebooks/07_covariance.ipynb", "manifest_sha256": C.MANIFEST_SHA256,
+    "french_vintages": {r["key"]: r["vintage_line"] for r in records},
+    "estimators": list(C.COV_ESTIMATORS), "window_years": C.COV_DAILY_WINDOW_YEARS, "scale": C.DAILY_TO_MONTHLY_SCALE,
+    "pca_components": C.PCA_N_COMPONENTS, "complete_window_missing_max": C.COMPLETE_WINDOW_MISSING_MAX,
+    "complete_days_left_out_max": C.COMPLETE_DAYS_LEFT_OUT_MAX, "model_row_own_min": C.FACTOR_ROW_OWN_MIN,
+    "sector_min_complete": C.SECTOR_MIN_COMPLETE, "sample_monthly": C.SAMPLE_MONTHLY_STATUS,
+    "e4_first_clause": e4, "read_on": C.E4_READ_ON,
+    "eigenvalue_check": {"tolerance": C.PSD_FAULT_TOLERANCE, "passed_every_month": True,
+                         "smallest_ratio_by_estimator": {n: float(rows[f"smallest_eigenvalue_ratio_{n}"].min()) for n in C.COV_ESTIMATORS}},
+    "counts": counts,
+}
+path = ROOT / C.RESULTS_DIR / "verdicts_milestone2.json"
+record = json.loads(path.read_text()) if path.exists() else {}
+record["E4_first_clause"] = {k: e4[k] for k in ("met", "months", "months_at_or_above_level", "smallest_ratio", "month_of_smallest_ratio", "median_ratio")}
+written = [X.write_results("covariance_by_year.csv", frame=table),
+           X.write_results("covariance_summary.json", record=summary),
+           X.write_results("verdicts_milestone2.json", record=record),
+           FR.write_provenance(records)]
+for p in written:
+    print("written:", p.relative_to(ROOT))
+"""),
+    md("""
+## What was learned, and what could be wrong
+
+What the notebook establishes: how close to singular each of the four estimators is, month by month over the evaluation window, whether the sample estimator's condition number is at least ten times the Ledoit-Wolf one's in every month, judged as E4's first clause, and how many members each month needed a model row.
+
+What could still be wrong. A condition number says how much a matrix amplifies errors. Whether its forecasts are right is for the second clause of E4 and for the bias statistic, the ratio of realised to forecast risk, both in milestone 3. A model row rests on the member's own days, and for a recent listing those can be few and unrepresentative. The factor model's rows use French's factors, built from all US stocks, for a universe of large ones. And the window weights every day of three years equally, so a matrix lags a change in how stocks move together.
+"""),
+]
+
 if __name__ == "__main__":
     for name, cells in (("01_extraction.ipynb", NB01), ("02_universe.ipynb", NB02), ("03_returns.ipynb", NB03),
-                        ("04_reconstruction.ipynb", NB04), ("05_sectors.ipynb", NB05)):
+                        ("04_reconstruction.ipynb", NB04), ("05_sectors.ipynb", NB05), ("06_answer_key.ipynb", NB06),
+                        ("07_covariance.ipynb", NB07)):
         print("wrote", write(name, cells).relative_to(ROOT))

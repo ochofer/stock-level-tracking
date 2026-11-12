@@ -1,0 +1,129 @@
+{
+ "written_by": "notebooks/06_answer_key.ipynb",
+ "manifest_sha256": "23e96d189f4b095936f47a1ebacb4e987fb260726afab4b6e6400c25ebce8693",
+ "french_vintages": {
+  "me_prior": "This file was created using the 202609 CRSP database.",
+  "me_var": "This file was created using the 202609 CRSP database."
+ },
+ "quantiles_judged": 5,
+ "quantiles_reported": 10,
+ "standard_error": "standard deviation of the monthly difference over the square root of the months",
+ "newey_west_lags_reported": 12,
+ "french_columns": {
+  "momentum": {
+   "top": "BIG HiPRIOR",
+   "bottom": "BIG LoPRIOR",
+   "file": "25_Portfolios_ME_Prior_12_2_CSV.zip"
+  },
+  "variance": {
+   "top": "BIG HiVAR",
+   "bottom": "BIG LoVAR",
+   "file": "25_Portfolios_ME_VAR_5x5_CSV.zip"
+  }
+ },
+ "comparisons": {
+  "momentum": {
+   "quintiles": {
+    "months": 1172,
+    "first_month": "1927-01",
+    "last_month": "2024-12",
+    "correlation": 0.8875561705784709,
+    "mean_universe_spread": 0.004770260876466805,
+    "mean_french_spread": 0.005805631399317406,
+    "mean_difference": -0.0010353705228506014,
+    "standard_error": 0.0009021020601712573,
+    "standard_error_newey_west": 0.0008341453995013412,
+    "difference_in_standard_errors": -1.1477310257489537,
+    "correlation_met": true,
+    "mean_difference_met": true,
+    "met": true
+   },
+   "deciles_no_verdict": {
+    "months": 1172,
+    "first_month": "1927-01",
+    "last_month": "2024-12",
+    "correlation": 0.875177696640991,
+    "mean_universe_spread": 0.008164598649424362,
+    "mean_french_spread": 0.005805631399317406,
+    "mean_difference": 0.0023589672501069547,
+    "standard_error": 0.0011392392014593622,
+    "standard_error_newey_west": 0.001124570832996731,
+    "difference_in_standard_errors": 2.070651402343884
+   },
+   "eras_no_verdict": {
+    "1927-01_to_1957-03": {
+     "months": 359,
+     "first_month": "1927-01",
+     "last_month": "1957-03",
+     "correlation": 0.8462764226737274,
+     "mean_universe_spread": 0.00466498740153984,
+     "mean_french_spread": 0.005353203342618385,
+     "mean_difference": -0.0006882159410785449,
+     "standard_error": 0.002347535011561753,
+     "standard_error_newey_west": 0.002127102410704491,
+     "difference_in_standard_errors": -0.29316535757253437
+    },
+    "1957-04_to_2024-12": {
+     "months": 813,
+     "first_month": "1957-04",
+     "last_month": "2024-12",
+     "correlation": 0.92688057537546,
+     "mean_universe_spread": 0.004816746949651037,
+     "mean_french_spread": 0.006005412054120542,
+     "mean_difference": -0.0011886651044695044,
+     "standard_error": 0.0007866491497507931,
+     "standard_error_newey_west": 0.0007498945211013407,
+     "difference_in_standard_errors": -1.5110486102299459
+    }
+   }
+  },
+  "variance": {
+   "quintiles": {
+    "months": 417,
+    "first_month": "1990-04",
+    "last_month": "2024-12",
+    "correlation": 0.9542936097545783,
+    "mean_universe_spread": 0.001582650756871252,
+    "mean_french_spread": 0.0013120431654676256,
+    "mean_difference": 0.00027060759140362667,
+    "standard_error": 0.0009393619693882505,
+    "standard_error_newey_west": 0.0010078052065988611,
+    "difference_in_standard_errors": 0.2880759496574648,
+    "correlation_met": true,
+    "mean_difference_met": true,
+    "met": true
+   },
+   "deciles_no_verdict": {
+    "months": 417,
+    "first_month": "1990-04",
+    "last_month": "2024-12",
+    "correlation": 0.9118373629171324,
+    "mean_universe_spread": 0.0025727317081608355,
+    "mean_french_spread": 0.0013120431654676256,
+    "mean_difference": 0.001260688542693208,
+    "standard_error": 0.001723624359016794,
+    "standard_error_newey_west": 0.0016625645470627738,
+    "difference_in_standard_errors": 0.7314172233051648
+   }
+  }
+ },
+ "member_months": {
+  "momentum": {
+   "member_months": 439656,
+   "left_out_no_price_t13": 2539,
+   "left_out_no_return_t2": 103,
+   "sorted_with_a_skipped_month": 548,
+   "left_out_no_capitalisation": 152,
+   "sorted": 436862,
+   "months": 1176
+  },
+  "variance": {
+   "member_months": 209020,
+   "left_out_too_few_daily_returns": 76,
+   "sorted_with_fewer_than_60_returns": 220,
+   "left_out_no_capitalisation": 9,
+   "sorted": 208935,
+   "months": 417
+  }
+ }
+}

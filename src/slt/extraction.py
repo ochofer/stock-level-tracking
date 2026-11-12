@@ -224,7 +224,7 @@ def parse_dates(df):
 def versions() -> dict:
     """The versions of the tools a result was built with."""
     out = {"python": platform.python_version(), "platform": platform.platform()}
-    for name in ("pandas", "numpy", "pyarrow"):
+    for name in ("pandas", "numpy", "pyarrow", "scipy"):
         mod = sys.modules.get(name)
         if mod is None:
             try:

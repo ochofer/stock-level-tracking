@@ -1,0 +1,56 @@
+{
+ "written_by": "notebooks/07_covariance.ipynb",
+ "manifest_sha256": "23e96d189f4b095936f47a1ebacb4e987fb260726afab4b6e6400c25ebce8693",
+ "french_vintages": {
+  "factors5_daily": "This file was created by using the 202609 CRSP database.",
+  "momentum_daily": "This file was created by using the 202609 CRSP database."
+ },
+ "estimators": [
+  "sample",
+  "ledoit_wolf",
+  "factor",
+  "pca"
+ ],
+ "window_years": 3,
+ "scale": 21,
+ "pca_components": 5,
+ "complete_window_missing_max": 5,
+ "complete_days_left_out_max": 21,
+ "model_row_own_min": 60,
+ "sector_min_complete": 10,
+ "sample_monthly": "unavailable: about 500 names on 120 months give a singular matrix",
+ "e4_first_clause": {
+  "months": 306,
+  "months_expected": 306,
+  "months_at_or_above_level": 86,
+  "smallest_ratio": 2.7963602908137055,
+  "month_of_smallest_ratio": "2012-08",
+  "median_ratio": 5.411772031947308,
+  "months_below": 220,
+  "met": false
+ },
+ "read_on": "the assembled matrices",
+ "eigenvalue_check": {
+  "tolerance": 1e-10,
+  "passed_every_month": true,
+  "smallest_ratio_by_estimator": {
+   "sample": 2.451147519879155e-06,
+   "ledoit_wolf": 6.813163754425204e-05,
+   "factor": 0.00025208850376385797,
+   "pca": 0.00019952060479302739
+  }
+ },
+ "counts": {
+  "complete_members_mean": 490.26797385620915,
+  "complete_members_least": 478,
+  "model_rows_mean": 11.405228758169935,
+  "model_rows_most": 22,
+  "model_rows_under_252_mean": 3.2320261437908497,
+  "model_rows_under_252_most": 8,
+  "model_rows_under_60_member_months": 190,
+  "months_with_a_model_row_under_60": 134,
+  "days_left_out_most": 9,
+  "months_bar_fell": 0,
+  "days_without_factors": 0
+ }
+}

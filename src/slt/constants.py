@@ -7,7 +7,9 @@ read these names; it may not introduce numbers of its own. The design was fixed
 on 9 November 2026, and the readings marked 10 November 2026 were fixed the
 next day, all before any code that uses them was written. The amendments marked
 11 November 2026 follow two findings in the extraction's structure, made from
-counts alone and before any notebook judged a gate. A level changed after
+counts alone and before any notebook judged a gate. The readings marked
+11 November 2026 for notebooks 06 and 07 were fixed before either ran on the
+data. A level changed after
 a run that judges it carries the date and the reason beside it, so that a reader
 can tell a specification from a number set after seeing a result.
 
@@ -66,6 +68,23 @@ TABLES = {
 TABLES_NOT_USED = {
     "crsp_msp500list": "the same file as crsp_dsp500list (identical SHA-256 in the manifest), so it is read once",
 }
+
+# French's data library: the files used, downloaded at run time into FRENCH_CACHE_DIR,
+# which git ignores, and never committed. The provenance record of every run carries
+# each zip's SHA-256 and the vintage line French prints at the top of the file. Added
+# 11 November 2026, for notebooks 06 and 07. Rows after CRSP_END are not used.
+FRENCH_BASE_URL = "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/"
+FRENCH_FILES = {
+    "me_prior": "25_Portfolios_ME_Prior_12_2_CSV.zip",               # 25 portfolios on size and prior (12-2) return, monthly from 1927-01: E3
+    "me_var": "25_Portfolios_ME_VAR_5x5_CSV.zip",                    # 25 portfolios on size and the variance of daily returns, monthly from 1963-07: E3
+    "factors5_daily": "F-F_Research_Data_5_Factors_2x3_daily_CSV.zip",   # Mkt-RF, SMB, HML, RMW, CMA and RF, daily: the factor model and the risk-free rate
+    "momentum_daily": "F-F_Momentum_Factor_daily_CSV.zip",           # Mom, daily: the factor model's sixth factor
+}
+FRENCH_MISSING_CODES = (-99.99, -999.0)   # French's own convention, stated at the top of every file
+FRENCH_RETURNS_ARE_PERCENT = True         # divided by 100 once, when a block is loaded, and nowhere else
+FRENCH_CACHE_DIR = "data/french"
+FRENCH_BLOCK_RETURNS = r"Value Weighted Returns -- Monthly"   # the block of each 25-portfolio file that E3 reads
+FRENCH_BLOCK_FIRMS = r"Number of Firms in Portfolios"          # the block that gives the number of names in each portfolio
 
 # ---------------------------------------------------------------------------
 # 2. The universe: the point-in-time S&P 500 from CRSP's own list
@@ -239,17 +258,71 @@ E2_ALIGNMENT = "universe at the start of month t against CRSP's row for month t-
 # momentum and on variance; for each sort the universe's top-minus-bottom quintile
 # spread against French's top-minus-bottom spread within his largest size
 # quintile: correlation at least 0.80, and mean difference within two standard
-# errors of the difference, over the months both exist. Reason: French's
-# large-cap quintile holds more names than the universe and uses NYSE
-# breakpoints, so a correlation near one is not expected; below 0.80 the
-# universe is not the large-cap universe it claims to be.
+# errors of the difference, over the months both exist. Reason, corrected on
+# 11 November 2026 from French's own counts of firms, before any run: French's
+# largest size quintile is set by NYSE breakpoints and holds between about 100 and
+# 530 names a month, fewer than the universe's 500 in almost every month from April
+# 1957 and more than its 90 before, so the two sets overlap without coinciding and a
+# correlation near one is not expected; below 0.80 the universe is not the large-cap
+# universe it claims to be. No level changed. The reason of 9 November is kept
+# beside it, superseded, because French's counts contradict its first half.
+E3_REASON, E3_REASON_2026_11_09 = (
+    "French's largest size quintile is set by NYSE breakpoints and holds between about 100 and 530 names a month, "
+    "fewer than the universe's 500 in almost every month from April 1957 and more than its 90 before, so the two "
+    "sets overlap without coinciding and a correlation near one is not expected; below 0.80 the universe is not "
+    "the large-cap universe it claims to be.",
+    "French's large-cap quintile holds more names than the universe and uses NYSE breakpoints, so a correlation "
+    "near one is not expected; below 0.80 the universe is not the large-cap universe it claims to be.",
+)
 E3_CORRELATION_MIN = 0.80
 E3_MEAN_DIFF_SE = 2.0
+# Fixed 11 November 2026, before the run: the universe goes from about 90 names to
+# about 500 in April 1957, so the momentum comparison is also reported for the two
+# eras, with its months, correlation, mean difference and standard error, and no
+# verdict. E3's verdict stays on the whole window.
+MOMENTUM_ERAS = (("1927-01", "1957-03"), ("1957-04", "2024-12"))
 SORT_QUANTILES = 5               # quintiles, because French's 25 portfolios are formed in quintiles
 SORT_QUANTILES_REPORTED = 10     # deciles beside them, with no verdict
 MOMENTUM_MONTHS = (12, 2)        # the return from month t-12 to month t-2, French's definition
 VARIANCE_DAYS = 60               # the variance of daily returns over the previous 60 trading days, French's definition
 VARIANCE_SORT_START = "1990-04"  # the first month with 60 daily returns before it
+# Decided 11 November 2026, where the design is silent. The sort for month t
+# uses only what is known at the end of month t-1.
+# Momentum: French's conditions as he states them, a price at the end of month
+# t-13, a return for month t-2 and the capitalisation at the end of t-1. French also
+# requires a missing return between t-12 and t-3 to be CRSP's code for a missing
+# price; the extraction does not hold that code apart from other missing returns,
+# so a missing return there is skipped in the compounding and the member-months
+# are counted. The first month with a price at t-13 in the monthly stock file and a
+# value in French's file is January 1927.
+MOMENTUM_FIRST_MONTH = "1927-01"
+# Variance: the variance of daily returns over the 60 trading days ending on the
+# last trading day of month t-1, with at least 20 returns, French's minimum ("requiring
+# at least 20 non-missing daily returns", in the file's header).
+VARIANCE_MIN_DAYS = 20
+# Breakpoints: the universe's own quantiles, equal numbers of names in each to within
+# one, ties broken by PERMNO. French's NYSE
+# breakpoints would give a universe of 500 names uneven quintiles with no meaning
+# for it. Weights are the benchmark's start-of-month capitalisations, and returns
+# the benchmark's monthly returns with delisting returns applied. Top minus bottom
+# is the highest quantile of the signal minus the lowest.
+SORT_TIE_BREAK = "permno"
+# French's side of E3: within his largest size quintile, the highest prior-return
+# (or variance) quintile minus the lowest, value-weighted, monthly. Columns as
+# French labels them.
+E3_FRENCH_SPREADS = {
+    "momentum": ("me_prior", "BIG HiPRIOR", "BIG LoPRIOR"),
+    "variance": ("me_var", "BIG HiVAR", "BIG LoVAR"),
+}
+E3_FRENCH_LARGEST_QUINTILE = {"momentum": ("BIG LoPRIOR", "ME5 PRIOR2", "ME5 PRIOR3", "ME5 PRIOR4", "BIG HiPRIOR"),
+                              "variance": ("BIG LoVAR", "ME5 VAR2", "ME5 VAR3", "ME5 VAR4", "BIG HiVAR")}
+# The standard error of the mean difference: the standard deviation of the monthly
+# difference over the square root of the number of months, with no correction for
+# autocorrelation, since a difference of two spreads formed each month is not
+# expected to carry any.
+E3_STANDARD_ERROR = "standard deviation of the monthly difference over the square root of the months"
+E3_NEWEY_WEST_LAGS_REPORTED = 12   # Newey-West at 12 lags reported beside the plain standard error, with no verdict
+SORTS = ("momentum", "variance")
 
 # E4, conditioning. In every month of the evaluation window the condition number
 # of the sample covariance on daily data is at least 10 times that of the
@@ -258,6 +331,12 @@ VARIANCE_SORT_START = "1990-04"  # the first month with 60 daily returns before 
 # on about 756 days leave the smallest sample eigenvalues near zero, and
 # shrinkage lifts them; the second clause says whether this shows in tracking.
 E4_CONDITION_RATIO_MIN = 10.0
+# Decided 11 November 2026: the first clause is read on the four matrices as the
+# mandate will use them, assembled as in section 7 (COMPLETE_WINDOW_MISSING_MAX and
+# what follows); the condition numbers of the complete members' matrices are
+# reported beside them with no verdict. No level of E4 moves. Scaling to monthly
+# leaves the ratio unchanged.
+E4_READ_ON = "the assembled matrices"
 
 # E5, the frontier. For each of the two frontier estimators, the mean forecast
 # tracking error does not rise from one cap to the next looser one across the
@@ -344,6 +423,65 @@ PCA_FIRST_COMPONENT = "market"   # the benchmark's excess return is the first fa
 PCA_FURTHER_COMPONENTS = 4       # four further components plus a diagonal
 COV_MIN_DAILY_RETURNS = 252      # a member with fewer daily returns in the window takes the factor model's estimate of its row in every estimator; the count is reported by month
 SAMPLE_MONTHLY_STATUS = "unavailable: about 500 names on 120 months give a singular matrix"
+# Decided 11 November 2026, on members without a complete window, where the design
+# named only the members with fewer than 252 returns. The window is the trading days
+# of the 36 calendar months before the month (750 to 759 days). The sample,
+# Ledoit-Wolf and PCA estimators need a matrix with no gap, and the copied window
+# function leaves out every day on which any member lacks a return, which on 500
+# stocks would cut every window to the newest member's history. So:
+# (a) A member is complete when it lacks a return on at most COMPLETE_WINDOW_MISSING_MAX
+# days of the window. The sample, Ledoit-Wolf and PCA estimators are estimated on the
+# complete members, and a day on which a complete member lacks a return is left out
+# and counted. At most COMPLETE_DAYS_LEFT_OUT_MAX days may be left out of one window:
+# in a month where more would go, the bar for complete falls from five days to four,
+# three and so on down to none, until the days left out are within it, and the month
+# is counted.
+# (b) Every member that is not complete takes a row from a model, with its loadings
+# and its residual variance from a regression on its own days in the window. The
+# factors' covariance and the complete members' loadings come from the same days as
+# the sample block.
+# (c) A member with fewer than FACTOR_ROW_OWN_MIN returns, too few for seven
+# coefficients, takes the capitalisation-weighted mean loadings and the median
+# residual variance of the complete members of its GICS sector when that sector has
+# at least SECTOR_MIN_COMPLETE complete members, and of the whole universe otherwise.
+# (d) Each estimator has one construction for every month, positive semi-definite by
+# construction, and its block for the complete members equals what the copied
+# function returns for them:
+#   sample: the complete members' sample block, and the six-factor row for every
+#     other member (its loadings times the factors' covariance times the complete
+#     members' loadings; its own variance is its systematic part plus its residual
+#     variance). The sample block less its factor part is the residuals' covariance,
+#     so the matrix is positive semi-definite;
+#   Ledoit-Wolf: that assembled sample matrix shrunk towards the scaled identity, with
+#     the intensity and the mean variance estimated on the complete members;
+#   factor model: as copied, every member's loadings and residual variance on its own
+#     days, the factors' covariance on the days of the sample block;
+#   PCA: every member has a beta on the benchmark, a member that is not complete from
+#     its own days; the four further components load on the complete members only;
+#     each member's own variance sits on the diagonal. Below FACTOR_ROW_OWN_MIN returns
+#     the beta and the own variance come from the sector or the universe as in (c).
+# Within one matrix the sample block, the factors' covariance and the residual
+# variances use the same denominator, the estimator's own. This restates the design's
+# "takes the factor model's estimate of its row in every estimator": it holds as
+# written for the sample and the factor estimators; for the other two the member's
+# row follows the estimator's own structure, so that its covariances are treated like
+# every other member's.
+# Notebook 07 computes the smallest eigenvalue of every assembled matrix. One below
+# minus PSD_FAULT_TOLERANCE times the largest is a fault in the code: the notebook
+# stops and nothing is reported from that run.
+# The counts are reported by year: complete members, members with a model row, of
+# which fewer than 252 returns, of which fewer than FACTOR_ROW_OWN_MIN, days left out,
+# and months in which the bar fell.
+COMPLETE_WINDOW_MISSING_MAX = 5
+COMPLETE_DAYS_LEFT_OUT_MAX = 21
+FACTOR_ROW_OWN_MIN = 60
+SECTOR_MIN_COMPLETE = 10
+PSD_FAULT_TOLERANCE = 1e-10
+# The benchmark's daily excess return, PCA's first factor: each day, the returns of
+# that month's members weighted by their start-of-month capitalisations, rescaled over
+# the members with a return that day, less French's daily risk-free rate. The weights
+# are held for the month, as the source repository's daily_benchmark_excess does.
+PCA_N_COMPONENTS = 1 + PCA_FURTHER_COMPONENTS   # the copied pca_cov counts the benchmark as the first
 
 # The mandate: the source repository's constraint set C3 at the stock level,
 # cumulative in four sets reported in this order.
@@ -436,12 +574,32 @@ COPIED_FILES = {
     "optimiser.py": ("src/bp/optimiser.py", "8944b967bb5969fe3c4b2ffbc603aa2b75a6fddc0683735fc842ec241e303b93"),
     "covariance.py": ("src/bp/covariance.py", "55cb25bb4aec83d7b1924248518a5b72a87b193263d383e2e93422779fe47534"),
     "attribution.py": ("src/bp/attribution.py", "63a5536c08a0ae25f90c5af954c05856c3ff6ef5b33ee7bf31545194ffeb9f1e"),
+    "rules.py": ("src/bp/rules.py", "4cbfb330a519059042da03cf8ceab5a42cde394275d3ac3ea3fc7bf9305166eb"),
 }
+# Decided 11 November 2026. The copies live in src/slt/source/, not beside the
+# study's own modules: covariance.py imports the source's rules module at its top,
+# so rules.py is copied as well, and the copies read their constants by the source's
+# names, some of which mean something else here (ACTIVE_WEIGHT_BOUND is the source's
+# bound per industry). A copy is never edited. src/slt/source/constants.py holds every
+# name the copies reference and no other, at the source's values from the file whose
+# hash is below; no module outside src/slt/source/ reads it, and the study's modules
+# pass every parameter from this file. Tests: the names in it are exactly the names
+# the copies reference; where a clone of the source repository sits beside this one,
+# each value equals the source's at the commit, read with git; and where this study
+# takes a value from the source unchanged, it equals the source's. covariance.py and
+# rules.py are copied for notebook 07, optimiser.py comes with milestone 3 and
+# attribution.py with milestone 4.
+COPIED_INTO = "src/slt/source/"
+COPIED_FOR_MILESTONE = {"covariance.py": 2, "rules.py": 2, "optimiser.py": 3, "attribution.py": 4}
+SOURCE_CONSTANTS_SHA256 = "40ef2c1de7b02a1695d67270e195b37d2c55c5d45493c3b47f9f8fcc38d18053"   # src/bp/constants.py at the commit, 752 lines
 # Read at the same commit for the rolling evaluation and its measures, and adapted
 # in this repository's own modules; hashed so that the version read is on record.
 SOURCE_ADAPTED_FILES = {
     "evaluation.py": ("src/bp/evaluation.py", "34f0817368cb69e00eee076bdb5c7bccb859eb952a6b0ffbbc5812e21c5d5d0e"),
     "backtest.py": ("src/bp/backtest.py", "6bf73b011560cbf720744e88ec24805159d4e6d9ee6b3818c810e510e2aa14de"),
+    # Added 11 November 2026: French's loader, whose parsing and provenance record
+    # src/slt/french.py keeps unchanged, with this study's file list in place of the source's.
+    "french_loader.py": ("src/bp/french_loader.py", "83e01cb19c5640d81e19fe828b816f5bd115ea15e3b56fdbd63dea8aaabca6b1"),
 }
 
 # ---------------------------------------------------------------------------
@@ -479,6 +637,15 @@ SMALL_CELL_MAX_MEMBER_SHARE = 0.80
 # the sixth decimal in more than 5% of months.
 RECONSTRUCTION_EQUAL_DECIMALS = 6
 RECONSTRUCTION_EQUAL_MONTHS_MAX = 0.05
+# Fixed 11 November 2026, for notebooks 06 and 07: nothing new by month. The sorts and
+# the covariance estimators are committed by year and over the window, and no series
+# of French's is committed in any form.
+# Fixed 11 November 2026, for milestone 3: which series by month the rolling
+# evaluation commits for the paths is settled before the script writes any. The
+# default is each path's active return and nothing else by month, because a path's
+# own return beside its active return gives the benchmark's return back.
+PATH_SERIES_BY_MONTH = ("active return",)
+PATH_SERIES_BY_MONTH_SETTLED_BEFORE_THE_SCRIPT_WRITES = True
 COMPARISON_SUMMARIES = ("tracking error", "mean difference", "correlation", "months outside the tolerance")
 TIMEZONE = "Europe/Amsterdam"
 SEED = 20261109                  # for the tests' made-up data; the design has no random draw
