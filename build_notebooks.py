@@ -1197,8 +1197,369 @@ What could still be wrong. A condition number says how much a matrix amplifies e
 """),
 ]
 
+# ---------------------------------------------------------------------------
+# 08: the mandate
+# ---------------------------------------------------------------------------
+
+MODULES_08 = """
+import hashlib
+
+import numpy as np
+
+from slt import evaluation as V
+from slt import mandate as M
+from slt.source import optimiser as O
+"""
+
+NB08 = [
+    md("""
+# 08. The mandate: the constraints, the copied optimiser and one month worked through
+
+**What this notebook does.** It sets out the four sets of constraints the study runs, written into `src/slt/constants.py` before any path ran. It checks that the optimiser is the source repository's, unchanged, and works one month of the extraction through it under each of the four sets.
+
+**Why it comes here.** Notebook 07 built the month's matrices of variances and covariances. This notebook shows what the optimiser does with one of them before the script runs it 7,344 times, 24 paths over 306 months. Every rule that decides a weight is in this notebook or in the constants, and the script adds nothing to them.
+
+**Terms used in this notebook.**
+
+- *market capitalisation*: price times shares outstanding, at the end of the month before.
+- *benchmark*: the universe weighted by market capitalisation at the start of the month.
+- *active weight*: a stock's weight in the portfolio minus its weight in the benchmark. The *active return* is the portfolio's return minus the benchmark's.
+- *covariance matrix*: the table of the variances of the members' monthly returns on its diagonal and their covariances off it. Notebook 07 built four for each month, each from a *covariance estimator*: a rule that builds the matrix from three years of daily returns.
+- *tracking error*: the standard deviation of the active return, here per year. The *forecast tracking error* is the one the covariance matrix implies for the month's active weights, the square root of 12 times a′Σa, with a the active weights and Σ the month's covariance matrix.
+- *optimiser*: the program that chooses the weights with the smallest forecast tracking error under the constraints. The problem is a convex quadratic program, with one minimum, solved by the Clarabel solver through cvxpy.
+- *basis point*: a hundredth of a percentage point.
+- *turnover*: here one-way turnover, half the sum of the absolute changes in weight, the share of the portfolio sold and bought.
+- *reference portfolio*: last month's portfolio after last month's returns, with the stocks that left the universe sold, the stocks that entered bought at their benchmark weight, and the others rescaled to sum to one. *Forced turnover* is the turnover from last month's portfolio to the reference.
+- *turnover cap*: the limit on the turnover from the reference portfolio to the new weights, 2 per cent a month on the main paths.
+- *tilt*: every stock in GICS sector 10 (Energy) or 55 (Utilities) held at no more than half its benchmark weight.
+- *exclusion*: weight zero for GICS sub-industries 30203010 (Tobacco) and 20101010 (Aerospace and Defense). A sub-industry is wider than a list of controversial weapons.
+- *beta*: the slope of a stock's return on the benchmark's, from the month's covariance matrix. *Beta neutrality* holds the portfolio's beta equal to the benchmark's, one.
+- *constraint set*: the constraints of one run, cumulative in four sets. *C0*: long-only, no negative weight. *C1* adds the bound per stock, which holds each stock within 50 basis points of its benchmark weight, the bound per company, which holds the sum over a company's share classes within the same 50 basis points, and the sector band, which holds each sector within 2 percentage points of its benchmark weight. *C2* adds the turnover cap. *C3*, the *mandate*, adds the tilt, the exclusions and beta neutrality. In a set with the tilt the sector band covers the other sectors only, because half of Energy's weight is above 2 percentage points in 268 of the 306 months, and no portfolio could meet both.
+- *binding*: a constraint is binding when the solution sits on its limit, within one millionth.
+
+**What I expect to see.**
+
+- Under C0, C1 and C2 the portfolio is the benchmark, with a forecast tracking error of zero to within the solver's precision: nothing in those sets pushes it away. The sets are run all the same, because the design names them, and reported by year.
+- Under C3 the tilt and the exclusions push the portfolio off the benchmark, and the optimiser spends the bounds on the stocks that best hedge what the tilt removed. A forecast tracking error inside the range E6 sets for the realised one, 50 to 150 basis points a year, is expected. E6 itself is judged in notebook 09.
+- No company whose share classes differ in sector or in the bound's scope: the count is printed and expected to be zero.
+
+Running time: about three minutes, most of it reading the extraction.
+"""),
+    code(SETUP),
+    code(MODULES_08),
+    md("""
+## 1. The copied optimiser
+
+The optimiser is the source repository's `optimiser.py`, copied into `src/slt/source/` with its first line naming the source file and commit and every other line unchanged. The cell recomputes the SHA-256 of each copy without its first line and compares it with the source file's. The study's own module, `src/slt/mandate.py`, builds the same problem from the copy's own pieces and adds the constraints the copy does not take, all of them sums over groups of weights: the bound per company and the sector band. Its tests in `tests/test_mandate.py` solve the source's own constraint sets on made-up months with both and require the same weights within one millionth, a month in which the cap has to be raised included.
+"""),
+    code("""
+for name, (source, digest) in sorted(C.COPIED_FILES.items()):
+    path = ROOT / C.COPIED_INTO / name
+    if not path.exists():
+        print(f"{name}: copied in milestone {C.COPIED_FOR_MILESTONE[name]}")
+        continue
+    body = path.read_bytes().split(b"\\n", 1)[1]
+    ok = hashlib.sha256(body).hexdigest() == digest
+    print(f"{name}: {'the source file unchanged' if ok else 'DIFFERS from the source file'} ({digest[:12]})")
+"""),
+    md("""
+## 2. One month worked through
+
+The month is July 2008, when Energy was close to its largest share of the benchmark in the window, so the tilt moves close to the most weight it ever moves. The month's matrices are notebook 07's, the Ledoit-Wolf estimator's is used, and the reference portfolio is the benchmark itself, as on a path's first month, so the turnover cap is left out here: the script applies it from the second month on.
+"""),
+    code("""
+t0 = time.time()
+inp = V.inputs(root)
+month = pd.Period("2008-07", "M")
+m, r = V.month_view(inp["members"], month)
+Sigma = V.month_matrices(month, inp, m)["ledoit_wolf"]
+print(f"{time.time() - t0:.0f} s | members with a capitalisation: {len(m.b)} | tilted: {int(m.tilt_mask.sum())}, "
+      f"{100 * m.b[m.tilt_mask].sum():.1f} per cent of the benchmark | excluded: {int(m.exclude_mask.sum())}, "
+      f"{100 * m.b[m.exclude_mask].sum():.1f} per cent")
+worked = {}
+for cs, constraints in C.CONSTRAINT_SETS.items():
+    cons = tuple(c for c in constraints if c != "turnover_cap")
+    res = M.solve(Sigma, m, cons, m.b)
+    a = res.weights - m.b
+    worked[cs] = {"forecast_te_bp": round(res.forecast_te * 1e4, 4), "held": int((res.weights > C.OPT_TOL).sum()),
+                  "names_off_benchmark": int((np.abs(a) > C.OPT_TOL).sum()), "binding": res.binding,
+                  "company_scope_mismatches": M.company_scope_mismatches(m, constraints)}
+    print(f"{cs}: forecast tracking error {res.forecast_te * 1e4:.2f} basis points a year | stocks held {worked[cs]['held']} | "
+          f"off the benchmark {worked[cs]['names_off_benchmark']} | binding {res.binding}")
+"""),
+    md("""
+Under the mandate, the sector active weights of the month, in percentage points (printed here and not committed):
+"""),
+    code("""
+res = M.solve(Sigma, m, tuple(c for c in C.CONSTRAINT_SETS["C3"] if c != "turnover_cap"), m.b)
+a = pd.Series(res.weights - m.b).groupby(m.sector).sum() * 100
+beta = O.benchmark_betas(Sigma, m.b) @ res.weights
+print(a.round(2).to_string())
+print(f"portfolio beta to the benchmark: {beta:.6f}")
+"""),
+    md("""
+## 3. What is committed
+
+One file goes into `results/20260928/`: the worked month's figures under each set, the forecast tracking error, the counts of stocks held and off the benchmark, the binding counts and the company count. No weight and no name.
+"""),
+    code("""
+record = {"written_by": "notebooks/08_mandate.ipynb", "manifest_sha256": C.MANIFEST_SHA256, "month": str(month),
+          "estimator": "ledoit_wolf", "reference": "the benchmark, as on a path's first month; no turnover cap",
+          "members": int(len(m.b)), "tilted": int(m.tilt_mask.sum()), "excluded": int(m.exclude_mask.sum()), "sets": worked}
+print("written:", X.write_results("mandate_worked_month.json", record=record).relative_to(ROOT))
+"""),
+    md("""
+## What was learned, and what could be wrong
+
+What the notebook establishes: that the optimiser is the source's, that the constraint sets do what the constants say on a month of the extraction, and how far the mandate moves the portfolio from the benchmark in one month.
+
+What could still be wrong. One month says nothing about the others: a constraint that does not bind in July 2008 may bind in another month, and the script records every binding count. The worked month starts from the benchmark, so it shows no turnover cap at work. And the forecast tracking error rests on the covariance matrix; whether it is right is the bias statistic of notebook 09.
+"""),
+]
+
+# ---------------------------------------------------------------------------
+# 09: the rolling evaluation
+# ---------------------------------------------------------------------------
+
+MODULES_09 = """
+import numpy as np
+
+from slt import evaluation as V
+
+OUT = ROOT / C.OUTPUTS_DIR / "evaluation"
+"""
+
+NB09 = [
+    md("""
+# 09. The rolling evaluation: the 24 paths, the frontier, E4's second clause, E5 and E6
+
+**What this notebook does.** It reads the records the script `scripts/run_evaluation.py` wrote on this machine, one row per path and month, and computes each path's measures over the evaluation window, July 1999 to December 2024, and by year. It judges E4's second clause, E5 and E6, and writes the tables that are committed.
+
+**Why it comes here.** The script runs the paths, which takes hours. This notebook only reads what it wrote, so it can be run again at once. Nothing by security leaves `outputs/`, which git ignores.
+
+**Terms used in this notebook.**
+
+- *market capitalisation*: price times shares outstanding, at the end of the month before.
+- *benchmark*: the universe weighted by market capitalisation at the start of the month.
+- *active weight*: a stock's weight in the portfolio minus its weight in the benchmark. The *active return* is the portfolio's return minus the benchmark's in the month.
+- *covariance matrix*: the table of the variances of the members' monthly returns on its diagonal and their covariances off it.
+- *factor*: a common source of return, here French's five factors and his momentum factor.
+- *covariance estimator*: a rule that builds the covariance matrix from three years of daily returns. Notebook 07 has four: the sample estimator, the Ledoit-Wolf estimator, the factor estimator, which explains each stock's returns by the factors, and the PCA estimator.
+- *turnover*: here one-way turnover, half the sum of the absolute changes in weight, the share of the portfolio sold and bought.
+- *turnover cap*: the limit on the turnover the optimiser chooses, measured from the reference portfolio, last month's portfolio after its returns with the stocks that left sold and the entrants bought at their benchmark weight. *Forced turnover* is that move. A cap *binds* when the month's chosen turnover is at the cap, and a month is *relaxed* when the cap had to be raised to the smallest feasible turnover.
+- *constraint set*: C0 is long-only. C1 adds bounds per stock, per company and per sector, C2 the turnover cap, and C3, the *mandate*, the *tilt*, which holds every Energy and Utilities stock at no more than half its benchmark weight, the exclusion of two sub-industries and a *beta*, the slope of the portfolio's return on the benchmark's, equal to one. Notebook 08 sets them out.
+- *path*: one specification run month by month over the evaluation window: a covariance estimator under a constraint set at a turnover cap. There are 24: the four estimators under the four sets C0 to C3, at the 2 per cent cap where the set has a cap, and the Ledoit-Wolf and factor estimators under the mandate at caps of 0.5, 1 and 4 per cent and with no cap. Every path starts as the benchmark.
+- *tracking error*: the standard deviation of the monthly active returns, times the square root of 12. The *realised tracking error* is measured on the returns, and the *forecast tracking error* is the one the month's covariance matrix implied when the weights were chosen.
+- *bias statistic*: the standard deviation of each month's active return divided by that month's forecast monthly tracking error. It is one when the forecasts are right on average, above one when they are too low. It is taken over the months whose forecast tracking error is above one millionth a year, and the number of months it rests on is given beside it.
+- *frontier*: the forecast and realised tracking error of one estimator under the mandate at five caps, from the tightest to none.
+- *basis point*: a hundredth of a percentage point.
+- *cost*: 10 basis points per unit of total turnover, forced included, and 20 as the sensitivity.
+- *Newey-West standard error*: the standard error of a mean that allows each month to be correlated with the next twelve.
+- *cell rule*: a cell of the table by month is written when at least three stocks have an active weight above one millionth and no stock's absolute contribution to the active return is more than 80 per cent of the sum of the absolute contributions. A cell that fails is left empty and counted.
+- *provenance*: the record of what a result was built from.
+- *verdict*: the record of whether an expectation fixed before the run is met.
+
+**What I expect to see, fixed in `src/slt/constants.py` before any path ran.**
+
+- *E4, second clause*: under the mandate at the 2 per cent cap, the sample estimator's realised tracking error is above the Ledoit-Wolf estimator's.
+- *E5*: for the Ledoit-Wolf and the factor estimators, the mean forecast tracking error does not rise as the cap loosens from 0.5 per cent to none, and the realised tracking error at the 4 per cent cap is below that at 0.5 per cent.
+- *E6*: under the mandate at the 2 per cent cap, the realised tracking error of the Ledoit-Wolf, factor and PCA estimators each lies between 50 and 150 basis points a year, and each one's bias statistic between 0.8 and 1.25.
+- Under C0, C1 and C2 the portfolio is the benchmark in every month, to within one millionth of a weight.
+
+Running time: under a minute, once the script has run.
+"""),
+    code(SETUP),
+    code(MODULES_09),
+    md("""
+## 1. The script's run
+
+The provenance record the script wrote: when it started and finished, the versions of the solver and its libraries, and the threads of linear algebra in each process. Then the records of every path.
+"""),
+    code("""
+prov = json.loads((OUT / "provenance.json").read_text())
+print(json.dumps(prov, indent=1))
+assert not any(prov["exit_codes"].values()), "a group of the script stopped with an error: run the script again to resume"
+records = V.load_records(OUT)
+missing = [C.PATH_LABELS[p] for p in C.PATHS if C.PATH_LABELS[p] not in records]
+assert not missing, f"no records for {missing}: run the script to its end first"
+for lab, rec in records.items():
+    assert len(rec) == C.EVAL_MONTHS, f"{lab} has {len(rec)} months"
+print(f"{len(records)} paths, {C.EVAL_MONTHS} months each")
+"""),
+    md("""
+## 2. Every path over the window
+"""),
+    code("""
+summaries = {lab: V.summarise(rec) for lab, rec in records.items()}
+show = pd.DataFrame({lab: {"realised TE (bp)": s["realised_te"] * 1e4, "forecast TE (bp)": s["forecast_te_mean"] * 1e4,
+                           "bias": s["bias"], "bias months": s["bias_months"], "active gross (bp)": s["active_return_gross"] * 1e4,
+                           "net at 10 bp (bp)": s["active_return_net_at_10bp"] * 1e4, "turnover / yr": s["turnover_total_per_year"],
+                           "cap binds": s["cap_binding_share"], "relaxed": s["relaxed_months"], "held": s["held_mean"]}
+                     for lab, s in summaries.items()}).T
+print(show.round(3).to_string())
+"""),
+    md("""
+## 3. C0, C1 and C2: the benchmark
+
+Under these sets nothing pushes the portfolio off the benchmark. The months in which it differs from the benchmark by more than one millionth of a weight, and the largest absolute active weight in any month:
+"""),
+    code("""
+for p in C.PATHS:
+    if p[1] != C.MANDATE:
+        s = summaries[C.PATH_LABELS[p]]
+        print(f"{C.PATH_LABELS[p]}: months off the benchmark {s['months_off_benchmark']} | largest absolute active weight {s['largest_abs_active_weight']:.2e}")
+"""),
+    md("""
+## 4. The frontier, E4's second clause, E5 and E6
+"""),
+    code("""
+verdicts = V.judge(summaries)
+for est in C.FRONTIER_ESTIMATORS:
+    v = verdicts[f"E5_{est}"]
+    caps = ["none" if c is None else f"{100 * c:g}%" for c in v["caps"]]
+    print(est, "mean forecast TE (bp) by cap:", dict(zip(caps, [round(x * 1e4, 2) for x in v["forecast_te_mean"]])))
+    print(V_line := f"E5, {est}: {'met' if v['met'] else 'not met'}. The mean forecast tracking error "
+          f"{'does not rise' if v['forecast_nonincreasing'] else 'rises'} as the cap loosens, and the realised tracking error is "
+          f"{v['realised_te_looser'] * 1e4:.1f} basis points a year at the 4 per cent cap against {v['realised_te_tighter'] * 1e4:.1f} at 0.5 per cent.")
+v = verdicts["E4_second_clause"]
+print(f"E4, second clause: {'met' if v['met'] else 'not met'}. Under the mandate at the 2 per cent cap the sample estimator's realised "
+      f"tracking error is {v['sample_realised_te'] * 1e4:.1f} basis points a year against Ledoit-Wolf's {v['ledoit_wolf_realised_te'] * 1e4:.1f}.")
+for est in ("ledoit_wolf", "factor", "pca"):
+    v = verdicts[f"E6_{est}"]
+    print(f"E6, {est}: {'met' if v['met'] else 'not met'}. Realised tracking error {v['realised_te'] * 1e4:.1f} basis points a year "
+          f"against 50 to 150, bias statistic {v['bias']:.3f} over {v['bias_months']} months against 0.8 to 1.25.")
+"""),
+    md("""
+## 5. What is committed
+
+Five files go into `results/20260928/`. The active returns by month of the twelve paths under the mandate, gross of costs, each cell under the cell rule; the measures of every path over the window and by year, with no weight and no name; the verdicts of milestone 3, E7 added by notebook 10; and the provenance of the script's run.
+"""),
+    code("""
+table, empty = V.active_returns_table(records)
+by_year = pd.concat([V.by_year(rec).assign(path=lab) for lab, rec in records.items()], ignore_index=True)
+by_year = by_year[["path"] + [c for c in by_year.columns if c != "path"]]
+withheld = [C.PATH_LABELS[p] for p in C.PATHS if p[1] not in C.LARGEST_ACTIVE_WEIGHT_SETS]   # one stock's weight under C3
+by_year.loc[by_year["path"].isin(withheld), "largest_abs_active_weight"] = float("nan")
+committed = {lab: dict(summaries[lab], **({"largest_abs_active_weight": None} if lab in withheld else {})) for lab in records}
+summary = V.jsonable({"written_by": "notebooks/09_rolling_evaluation.ipynb", "manifest_sha256": C.MANIFEST_SHA256,
+                      "paths": committed, "empty_cells_by_column": empty,
+                      "costs": {"base": C.COST_PER_UNIT_TURNOVER, "sensitivity": C.COST_SENSITIVITY, "on": C.COST_BASE}})
+path = ROOT / C.RESULTS_DIR / "verdicts_milestone3.json"
+record = json.loads(path.read_text()) if path.exists() else {}
+record.update(V.jsonable({k: v for k, v in verdicts.items() if k != "E7"}))
+print("empty cells by column:", empty)
+for p in [X.write_results("active_returns_monthly.csv", frame=table),
+          X.write_results("paths_summary.json", record=summary),
+          X.write_results("paths_by_year.csv", frame=by_year),
+          X.write_results("verdicts_milestone3.json", record=record),
+          X.write_results("provenance_evaluation.json", record=prov)]:
+    print("written:", p.relative_to(ROOT))
+"""),
+    md("""
+## What was learned, and what could be wrong
+
+What the notebook establishes: each path's realised and forecast tracking error, the forecasts' calibration, the cost of the turnover each path chose, and the verdicts of E4's second clause, E5 and E6.
+
+What could still be wrong. A realised tracking error over 306 months has its own sampling error, about 4 per cent of its value. A bias statistic near one over the window can hide periods in which the forecasts were too low and others in which they were too high. The costs are a flat rate per unit of turnover, with no market impact. And every path's active return is measured against this study's benchmark, which weights the members by their full market capitalisation. The published index weights them by the shares available to the public, so the two differ.
+"""),
+]
+
+# ---------------------------------------------------------------------------
+# 10: turnover
+# ---------------------------------------------------------------------------
+
+NB10 = [
+    md("""
+# 10. Turnover: membership, reweighting and rebalancing, and E7
+
+**What this notebook does.** It splits each path's monthly *turnover*, the share of the portfolio sold and bought, into three parts, each measured, sums them by year, and judges E7.
+
+**Terms used in this notebook.**
+
+- *one-way turnover*: half the sum of the absolute changes in weight between two portfolios. Every turnover in this notebook is one-way.
+- *drifted portfolio*: last month's portfolio after last month's returns. The *total turnover* of a month runs from it to the new weights.
+- *market capitalisation*: price times shares outstanding, at the end of the month before.
+- *benchmark*: the universe weighted by market capitalisation at the start of the month.
+- *reference portfolio*: the drifted portfolio with the stocks that left the universe sold, the entrants bought at their benchmark weight, and the others rescaled to sum to one.
+- *membership*, the *forced turnover*: the turnover from the drifted portfolio to the reference portfolio.
+- *restored portfolio*: each continuing stock at last month's chosen weight times the ratio of its benchmark weights this month and last, every entrant at its benchmark weight, rescaled to one. It keeps each stock's weight relative to its benchmark weight where the optimiser left it.
+- *reweighting*: the turnover from the reference portfolio to the restored portfolio, which following the benchmark's own reweighting takes. It comes from changes in share counts, and from dividends, because the drifted portfolio grows by total returns and the benchmark's weights by prices.
+- *rebalancing*: the turnover from the restored portfolio to the new weights, the optimiser's own moves. It is zero for a path that holds the benchmark.
+- *overlap*: the three parts less the total, the trades of one step that the next step undoes. By the triangle inequality it is never below zero.
+- *chosen turnover*: the turnover from the reference portfolio to the new weights, the quantity the cap bounds.
+- *mandate*: constraint set C3, the portfolio the study runs, set out in notebook 08.
+- *verdict*: the record of whether an expectation fixed before the run is met.
+
+**The benchmark's own figures.** On the benchmark alone over the window, July 1999 to December 2024, a path that holds it turns over 5.82 per cent a year: membership 2.84, reweighting 3.73 and an overlap of 0.75. Restoring last month's weights themselves undoes the month's price moves, and on that path it would take 30.64 per cent a year, trading that no path does. A middle part defined that way would leave the rest below zero in every month, so the middle part follows the benchmark's own weights. These figures were computed on 12 November 2026 at 14:46, in a check separate from this study's code and before any path's turnover was read. They describe the benchmark alone and say nothing of the mandate.
+
+**What I expect to see, fixed in `src/slt/constants.py` before any path ran.**
+
+- *E7*: under the mandate at the 2 per cent cap on the Ledoit-Wolf estimator, membership is less than a third of total turnover over the window. The index replaces about four to five per cent of its weight a year, and a cap of 2 per cent a month allows about 24 per cent a year of chosen turnover.
+- With no verdict: under C0 and C1, where the portfolio is the benchmark, rebalancing is zero to the solver's precision, and the other figures are close to the benchmark's own.
+
+Running time: under a minute.
+"""),
+    code(SETUP),
+    code(MODULES_09),
+    md("""
+## 1. The decomposition, per path, over the window and by year
+
+Per year over the window, in per cent: the total, the three parts and the overlap. The table by year is committed in section 3.
+"""),
+    code("""
+records = V.load_records(OUT)
+figures = [f"turnover_{k}" for k in C.TURNOVER_FIGURES]
+table = pd.concat([V.turnover_by_year(rec).assign(path=lab) for lab, rec in records.items()], ignore_index=True)
+table = table[["path"] + [c for c in table.columns if c != "path"]]
+years = pd.Series({lab: len(rec) / 12 for lab, rec in records.items()})
+window = table.groupby("path", sort=False)[figures].sum().div(years, axis=0)
+print((100 * window).round(2).to_string())
+low = min(float(rec["turnover_overlap"].min()) for rec in records.values())
+print(f"smallest overlap in any month of any path: {low:.2e}")
+"""),
+    md("""
+## 2. The paths that hold the benchmark, beside the benchmark's own figures
+"""),
+    code("""
+own = {"turnover_total": 5.82, "turnover_membership": 2.84, "turnover_reweighting": 3.73, "turnover_overlap": 0.75}
+for lab in (V.label("sample", "C0", None), V.label("sample", "C1", None)):
+    row = 100 * window.loc[lab]
+    print(lab + ": " + " | ".join(f"{k[9:]} {row[k]:.2f}" + (f" (benchmark {own[k]:.2f})" if k in own else "") for k in figures))
+"""),
+    md("""
+## 3. E7
+"""),
+    code("""
+summaries = {lab: V.summarise(rec) for lab, rec in records.items()}
+e7 = V.judge(summaries)["E7"]
+print(f"E7: {'met' if e7['met'] else 'not met'}. Under the mandate at the 2 per cent cap on the Ledoit-Wolf estimator, membership is "
+      f"{100 * e7['membership_share_of_total']:.1f} per cent of total one-way turnover over the window, against less than {100 * C.E7_FORCED_SHARE_MAX:.1f}.")
+"""),
+    md("""
+## 4. What is committed
+
+Two files: the decomposition by path and year, the total, the three parts and the overlap, and the verdicts of milestone 3 with E7 added.
+"""),
+    code("""
+path = ROOT / C.RESULTS_DIR / "verdicts_milestone3.json"
+record = json.loads(path.read_text()) if path.exists() else {}
+record["E7"] = V.jsonable(e7)
+for p in [X.write_results("turnover_by_year.csv", frame=table), X.write_results("verdicts_milestone3.json", record=record)]:
+    print("written:", p.relative_to(ROOT))
+"""),
+    md("""
+## What was learned, and what could be wrong
+
+What the notebook establishes: how much of each path's trading the index's own changes force, how much following the benchmark's own reweighting takes, how much the optimiser chooses, and whether the forced part is the small one E7 expects.
+
+What could still be wrong. The parts depend on the order of the steps, membership first, then reweighting, then rebalancing: another order would split the same total another way, and the overlap says how much the steps undo of each other. And the forced part counts only the trades the index's changes require on the day the month begins. A portfolio that anticipated a change would trade earlier, and this study does not.
+"""),
+]
+
+
 if __name__ == "__main__":
     for name, cells in (("01_extraction.ipynb", NB01), ("02_universe.ipynb", NB02), ("03_returns.ipynb", NB03),
                         ("04_reconstruction.ipynb", NB04), ("05_sectors.ipynb", NB05), ("06_answer_key.ipynb", NB06),
-                        ("07_covariance.ipynb", NB07)):
+                        ("07_covariance.ipynb", NB07), ("08_mandate.ipynb", NB08), ("09_rolling_evaluation.ipynb", NB09),
+                        ("10_turnover.ipynb", NB10)):
         print("wrote", write(name, cells).relative_to(ROOT))

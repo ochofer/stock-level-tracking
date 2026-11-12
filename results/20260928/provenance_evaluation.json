@@ -1,0 +1,21 @@
+{
+ "started_utc": "2026-11-12T14:42:57+00:00",
+ "finished_utc": "2026-11-12T15:04:36+00:00",
+ "exit_codes": {
+  "sample": 0,
+  "ledoit_wolf": 0,
+  "factor": 0,
+  "pca": 0
+ },
+ "months_run": "the evaluation window",
+ "cvxpy": "1.7.5",
+ "clarabel": "0.11.1",
+ "python": "3.9.6",
+ "platform": "macOS-27.0.1-arm64-arm-64bit",
+ "pandas": "2.2.3",
+ "numpy": "2.0.2",
+ "pyarrow": "21.0.0",
+ "scipy": "1.13.1",
+ "machine": "arm64",
+ "linear_algebra_threads": 2
+}

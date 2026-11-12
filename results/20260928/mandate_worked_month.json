@@ -1,0 +1,58 @@
+{
+ "written_by": "notebooks/08_mandate.ipynb",
+ "manifest_sha256": "23e96d189f4b095936f47a1ebacb4e987fb260726afab4b6e6400c25ebce8693",
+ "month": "2008-07",
+ "estimator": "ledoit_wolf",
+ "reference": "the benchmark, as on a path's first month; no turnover cap",
+ "members": 500,
+ "tilted": 70,
+ "excluded": 16,
+ "sets": {
+  "C0": {
+   "forecast_te_bp": 0.0001,
+   "held": 500,
+   "names_off_benchmark": 0,
+   "binding": {
+    "long_only": 0
+   },
+   "company_scope_mismatches": 0
+  },
+  "C1": {
+   "forecast_te_bp": 0.0,
+   "held": 500,
+   "names_off_benchmark": 0,
+   "binding": {
+    "long_only": 0,
+    "stock_bound": 0,
+    "company_bound": 0,
+    "sector_band": 0
+   },
+   "company_scope_mismatches": 0
+  },
+  "C2": {
+   "forecast_te_bp": 0.0,
+   "held": 500,
+   "names_off_benchmark": 0,
+   "binding": {
+    "long_only": 0,
+    "stock_bound": 0,
+    "company_bound": 0,
+    "sector_band": 0
+   },
+   "company_scope_mismatches": 0
+  },
+  "C3": {
+   "forecast_te_bp": 113.4035,
+   "held": 315,
+   "names_off_benchmark": 500,
+   "binding": {
+    "long_only": 169,
+    "stock_bound": 21,
+    "tilt": 70,
+    "company_bound": 0,
+    "sector_band": 2
+   },
+   "company_scope_mismatches": 0
+  }
+ }
+}

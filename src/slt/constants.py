@@ -771,6 +771,13 @@ MONTHLY_PATHS = tuple(p for p in PATHS if p[1] == MANDATE)
 # A path's label in every table: estimator, constraint set and cap in basis points.
 PATH_LABELS = {p: f"{p[0]}_{p[1]}_{'nocap' if p[2] is None else 'cap' + str(int(round(p[2] * 1e4))) + 'bp'}" for p in PATHS}
 MONTHLY_ACTIVE_COLUMNS = tuple("active_return_" + PATH_LABELS[p] for p in MONTHLY_PATHS)
+# Decided 12 November 2026, after the run and before any result of it was
+# committed: the largest absolute active weight is committed for the paths under
+# C0, C1 and C2 only, where it measures how far the solver leaves the portfolio from
+# the benchmark, a figure of the order of 1e-6. Under the mandate it is one stock's
+# weight, set by the tilt or an exclusion, and no security's weight is committed,
+# so the paths under C3 leave it empty, by year and over the window.
+LARGEST_ACTIVE_WEIGHT_SETS = ("C0", "C1", "C2")
 # The cell rule on a signed sum, for the table of active returns: a cell is written
 # when at least three stocks have an active weight above OPT_TOL in absolute value
 # and no stock's absolute contribution, |w - b| times |r|, is more than 80% of the

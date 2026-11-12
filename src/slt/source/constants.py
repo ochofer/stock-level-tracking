@@ -32,3 +32,14 @@ EWMA_VARIANT = ("sample", "daily_5y_ewma")                 # line 438
 DGU_RISK_AVERSION = 1.0                                    # line 52
 DGU_GMINC_LOWER_BOUND_FRACTION = 0.5                       # line 55
 DGU_CONSTRAINED_BUDGET_INSIDE = True                       # line 67
+
+# Read by optimiser.py (copied for milestone 3); ACTIVE_WEIGHT_BOUND above is read by it too
+TURNOVER_CAP_MONTHLY_ONE_WAY = 0.02                        # line 291
+TILT_INDUSTRIES = ("Coal", "Oil", "Util")                  # line 292
+TILT_MAX_SHARE_OF_BENCHMARK = 0.5                          # line 293
+OPT_SOLVER = "CLARABEL"                                    # line 390
+OPT_SOLVER_OPTIONS = {"tol_gap_abs": 1e-12, "tol_gap_rel": 1e-12, "tol_feas": 1e-10}   # line 391
+OPT_SOLVER_OPTIONS_ROBUST = {"tol_gap_abs": 1e-9, "tol_gap_rel": 1e-9, "tol_feas": 1e-9}   # line 392
+OPT_TOL = 1e-6                                             # line 393
+FO_E1_BIND_TOL_ANNUAL = 0.0001                             # line 612
+FO_SOLVER_OPTIONS_LOOSE = {"tol_gap_abs": 1e-7, "tol_gap_rel": 1e-7, "tol_feas": 1e-7}   # line 706

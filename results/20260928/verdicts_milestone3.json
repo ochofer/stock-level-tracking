@@ -1,0 +1,76 @@
+{
+ "E4_second_clause": {
+  "sample_realised_te": 0.008063747732970498,
+  "ledoit_wolf_realised_te": 0.007894615132170733,
+  "met": true
+ },
+ "E5_ledoit_wolf": {
+  "caps": [
+   0.005,
+   0.01,
+   0.02,
+   0.04,
+   null
+  ],
+  "forecast_te_mean": [
+   0.006449662070226858,
+   0.005830641653641171,
+   0.005518296530009057,
+   0.00542677221672941,
+   0.005407171976854703
+  ],
+  "forecast_nonincreasing": true,
+  "realised_te_looser": 0.00789678788639787,
+  "realised_te_tighter": 0.007628323201549328,
+  "met": false
+ },
+ "E5_factor": {
+  "caps": [
+   0.005,
+   0.01,
+   0.02,
+   0.04,
+   null
+  ],
+  "forecast_te_mean": [
+   0.004659217461417388,
+   0.004527287832560594,
+   0.004505676658072448,
+   0.004502136991881666,
+   0.0045015892855915585
+  ],
+  "forecast_nonincreasing": true,
+  "realised_te_looser": 0.007958933084600495,
+  "realised_te_tighter": 0.008331107426661388,
+  "met": true
+ },
+ "E6_ledoit_wolf": {
+  "realised_te": 0.007894615132170733,
+  "bias": 1.4750236000790473,
+  "bias_months": 306,
+  "te_in_range": true,
+  "bias_in_range": false,
+  "met": false
+ },
+ "E6_factor": {
+  "realised_te": 0.008049286321496311,
+  "bias": 1.8496277121226534,
+  "bias_months": 306,
+  "te_in_range": true,
+  "bias_in_range": false,
+  "met": false
+ },
+ "E6_pca": {
+  "realised_te": 0.008356197635863618,
+  "bias": 1.7305445036069433,
+  "bias_months": 306,
+  "te_in_range": true,
+  "bias_in_range": false,
+  "met": false
+ },
+ "E7": {
+  "membership_share_of_total": 0.11371441317073111,
+  "max": 0.3333333333333333,
+  "met": true
+ }
+}

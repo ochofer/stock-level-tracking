@@ -106,6 +106,24 @@ def test_tables_by_month_hold_only_what_the_study_computes():
             assert not extra, f"{path.name} holds columns by month outside the committed list: {sorted(extra)}"
 
 
+def test_no_weight_of_a_security_under_the_mandate_is_committed():
+    """The largest absolute active weight is one stock's weight under C3, so it stays empty for those paths
+    (constants.LARGEST_ACTIVE_WEIGHT_SETS)."""
+    withheld = {C.PATH_LABELS[p] for p in C.PATHS if p[1] not in C.LARGEST_ACTIVE_WEIGHT_SETS}
+    for path in committed_results():
+        if path.suffix.lower() == ".csv":
+            import pandas as pd
+            frame = pd.read_csv(path)
+            if {"path", "largest_abs_active_weight"} <= set(frame.columns):
+                held = frame[frame["path"].isin(withheld)]["largest_abs_active_weight"].dropna()
+                assert held.empty, f"{path.name} holds a weight of a security under the mandate"
+        elif path.suffix.lower() == ".json":
+            record = json.loads(path.read_text())
+            for lab, row in (record.get("paths") or {}).items():
+                if lab in withheld and isinstance(row, dict):
+                    assert row.get("largest_abs_active_weight") is None, f"{path.name} holds a weight of a security under the mandate"
+
+
 def test_no_table_is_larger_than_an_aggregate():
     for path in committed_results():
         if path.suffix.lower() == ".csv":
