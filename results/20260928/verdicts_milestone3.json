@@ -44,6 +44,15 @@
   "realised_te_tighter": 0.008331107426661388,
   "met": true
  },
+ "E5": {
+  "met": false,
+  "holds_for": [
+   "factor"
+  ],
+  "fails_for": [
+   "ledoit_wolf"
+  ]
+ },
  "E6_ledoit_wolf": {
   "realised_te": 0.007894615132170733,
   "bias": 1.4750236000790473,
@@ -67,6 +76,15 @@
   "te_in_range": true,
   "bias_in_range": false,
   "met": false
+ },
+ "E6": {
+  "met": false,
+  "holds_for": [],
+  "fails_for": [
+   "ledoit_wolf",
+   "factor",
+   "pca"
+  ]
  },
  "E7": {
   "membership_share_of_total": 0.11371441317073111,

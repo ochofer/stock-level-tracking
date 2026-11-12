@@ -1418,9 +1418,18 @@ for est in C.FRONTIER_ESTIMATORS:
     v = verdicts[f"E5_{est}"]
     caps = ["none" if c is None else f"{100 * c:g}%" for c in v["caps"]]
     print(est, "mean forecast TE (bp) by cap:", dict(zip(caps, [round(x * 1e4, 2) for x in v["forecast_te_mean"]])))
-    print(V_line := f"E5, {est}: {'met' if v['met'] else 'not met'}. The mean forecast tracking error "
+    print(f"E5, {est}: {'met' if v['met'] else 'not met'}. The mean forecast tracking error "
           f"{'does not rise' if v['forecast_nonincreasing'] else 'rises'} as the cap loosens, and the realised tracking error is "
           f"{v['realised_te_looser'] * 1e4:.1f} basis points a year at the 4 per cent cap against {v['realised_te_tighter'] * 1e4:.1f} at 0.5 per cent.")
+NAMES = {"sample": "sample", "ledoit_wolf": "Ledoit-Wolf", "factor": "factor", "pca": "PCA"}
+def the(ests):
+    names = [f"the {NAMES[e]}" for e in ests]
+    return (", ".join(names[:-1]) + " and " + names[-1] if len(names) > 1 else names[0]) + (" estimators" if len(names) > 1 else " estimator")
+def one_line(name):
+    v = verdicts[name]
+    parts = ([f"holds for {the(v['holds_for'])}"] if v["holds_for"] else []) + ([f"fails for {the(v['fails_for'])}"] if v["fails_for"] else [])
+    return f"{name}: {'met' if v['met'] else 'not met'}. It " + " and ".join(parts) + "."
+print(one_line("E5"))
 v = verdicts["E4_second_clause"]
 print(f"E4, second clause: {'met' if v['met'] else 'not met'}. Under the mandate at the 2 per cent cap the sample estimator's realised "
       f"tracking error is {v['sample_realised_te'] * 1e4:.1f} basis points a year against Ledoit-Wolf's {v['ledoit_wolf_realised_te'] * 1e4:.1f}.")
@@ -1428,6 +1437,7 @@ for est in ("ledoit_wolf", "factor", "pca"):
     v = verdicts[f"E6_{est}"]
     print(f"E6, {est}: {'met' if v['met'] else 'not met'}. Realised tracking error {v['realised_te'] * 1e4:.1f} basis points a year "
           f"against 50 to 150, bias statistic {v['bias']:.3f} over {v['bias_months']} months against 0.8 to 1.25.")
+print(one_line("E6"))
 """),
     md("""
 ## 5. What is committed
@@ -1445,8 +1455,10 @@ summary = V.jsonable({"written_by": "notebooks/09_rolling_evaluation.ipynb", "ma
                       "paths": committed, "empty_cells_by_column": empty,
                       "costs": {"base": C.COST_PER_UNIT_TURNOVER, "sensitivity": C.COST_SENSITIVITY, "on": C.COST_BASE}})
 path = ROOT / C.RESULTS_DIR / "verdicts_milestone3.json"
-record = json.loads(path.read_text()) if path.exists() else {}
-record.update(V.jsonable({k: v for k, v in verdicts.items() if k != "E7"}))
+earlier = json.loads(path.read_text()) if path.exists() else {}
+record = V.jsonable({k: v for k, v in verdicts.items() if k != "E7"})
+if "E7" in earlier:
+    record["E7"] = earlier["E7"]                     # written by notebook 10
 print("empty cells by column:", empty)
 for p in [X.write_results("active_returns_monthly.csv", frame=table),
           X.write_results("paths_summary.json", record=summary),
@@ -1490,7 +1502,7 @@ NB10 = [
 - *mandate*: constraint set C3, the portfolio the study runs, set out in notebook 08.
 - *verdict*: the record of whether an expectation fixed before the run is met.
 
-**The benchmark's own figures.** On the benchmark alone over the window, July 1999 to December 2024, a path that holds it turns over 5.82 per cent a year: membership 2.84, reweighting 3.73 and an overlap of 0.75. Restoring last month's weights themselves undoes the month's price moves, and on that path it would take 30.64 per cent a year, trading that no path does. A middle part defined that way would leave the rest below zero in every month, so the middle part follows the benchmark's own weights. These figures were computed on 12 November 2026 at 14:46, in a check separate from this study's code and before any path's turnover was read. They describe the benchmark alone and say nothing of the mandate.
+**The benchmark's own figures.** Counting the change from June to July 1999, the benchmark alone turns over 5.82 per cent a year over the 306 months to December 2024: membership 2.84, reweighting 3.73 and an overlap of 0.75. A path that holds the benchmark starts in July 1999 with no turnover in that month, so section 2 shows it at 5.78, 2.80, 3.71 and 0.73. Restoring last month's weights themselves undoes the month's price moves, and on the benchmark alone it would take 30.64 per cent a year, trading that no path does. A middle part defined that way would leave the rest below zero in every month, so the middle part follows the benchmark's own weights. These figures were computed on 12 November 2026 at 14:46, from this study's panel by code that is not in this repository, before any path's turnover was read. They describe the benchmark alone and say nothing of the mandate.
 
 **What I expect to see, fixed in `src/slt/constants.py` before any path ran.**
 

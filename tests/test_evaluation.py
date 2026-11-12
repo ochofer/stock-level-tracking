@@ -66,3 +66,11 @@ def test_a_summary_is_written_as_json_with_no_nan():
     rec = made_up_records(zero_forecast=36)
     text = json.dumps(V.jsonable(V.summarise(rec)), allow_nan=False)
     assert '"bias": null' in text
+
+
+def test_an_expectation_for_two_or_more_estimators_is_one_verdict():
+    out = {"E5_ledoit_wolf": {"met": False}, "E5_factor": {"met": True}}
+    v = V.one_verdict(out, "E5", ("ledoit_wolf", "factor"))
+    assert v == {"met": False, "holds_for": ["factor"], "fails_for": ["ledoit_wolf"]}
+    out["E5_ledoit_wolf"]["met"] = True
+    assert V.one_verdict(out, "E5", ("ledoit_wolf", "factor"))["met"]

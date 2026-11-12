@@ -327,6 +327,13 @@ def label(est, cs=C.MANDATE, cap=C.MAIN_CAP):
     return C.PATH_LABELS[(est, cs, cap)]
 
 
+def one_verdict(out: dict, name: str, estimators) -> dict:
+    """An expectation stated for each of two or more estimators is one verdict, met only if it holds for every one;
+    the estimators it holds and fails for are kept beside it."""
+    holds = [e for e in estimators if out[f"{name}_{e}"]["met"]]
+    return {"met": len(holds) == len(estimators), "holds_for": holds, "fails_for": [e for e in estimators if e not in holds]}
+
+
 def judge(summaries: dict) -> dict:
     """E4's second clause, E5, E6 and E7 from the paths' summaries."""
     s = summaries
@@ -341,6 +348,7 @@ def judge(summaries: dict) -> dict:
         out[f"E5_{est}"] = {"caps": [None if c is None else c for c in C.FRONTIER_CAPS], "forecast_te_mean": fc,
                             "forecast_nonincreasing": bool(nonincreasing), "realised_te_looser": rl, "realised_te_tighter": rt,
                             "met": bool(nonincreasing and rl < rt)}
+    out["E5"] = one_verdict(out, "E5", C.FRONTIER_ESTIMATORS)
     lo, hi = C.E6_TE_RANGE
     blo, bhi = C.E6_BIAS_RANGE
     for est in ("ledoit_wolf", "factor", "pca"):
@@ -349,6 +357,7 @@ def judge(summaries: dict) -> dict:
         bias_ok = blo <= x["bias"] <= bhi
         out[f"E6_{est}"] = {"realised_te": x["realised_te"], "bias": x["bias"], "bias_months": x["bias_months"], "te_in_range": bool(te_ok),
                             "bias_in_range": bool(bias_ok), "met": bool(te_ok and bias_ok)}
+    out["E6"] = one_verdict(out, "E6", C.STRUCTURED_ESTIMATORS)
     x = s[label("ledoit_wolf")]
     share = x["turnover_membership_per_year"] / x["turnover_total_per_year"] if x["turnover_total_per_year"] > 0 else float("nan")
     out["E7"] = {"membership_share_of_total": share, "max": C.E7_FORCED_SHARE_MAX, "met": bool(share < C.E7_FORCED_SHARE_MAX)}
