@@ -516,13 +516,73 @@ TILT_MAX_SHARE_OF_BENCHMARK = 0.5     # each stock in a tilt sector held at no m
 # that names the exclusion says so.
 EXCLUDED_SUBINDUSTRIES = {"30203010": "Tobacco", "20101010": "Aerospace & Defense"}
 BETA_NEUTRAL_RULE = "beta to the benchmark from the estimator's own covariance over the same window"
-CONSTRAINT_SETS = {
-    "C0": ("long_only",),
-    "C1": ("long_only", "stock_bound", "sector_band"),
-    "C2": ("long_only", "stock_bound", "sector_band", "turnover_cap"),
-    "C3": ("long_only", "stock_bound", "sector_band", "turnover_cap", "tilt", "exclusion", "beta_neutral"),
-}
+# Decided 12 November 2026, before any path ran: the sector band and the tilt. In a
+# set with the tilt the sector band applies to the untilted sectors only,
+# Unclassified included, and the two tilted sectors are held by the tilt alone; in
+# C1 and C2 every sector is banded. The design wrote the band for all twelve sectors
+# and never set it against the tilt: at no more than half each stock's weight, a
+# tilted sector's active weight is at most minus half its benchmark weight, and half
+# of Energy's weight is above 2 percentage points in 268 of the 306 months (Energy
+# peaks at 16.0% in July 2008), so no portfolio would meet C3. The source
+# repository's industry bound applies to the untilted industries only, as the bound
+# per stock here does. Energy and Utilities together are 4.8% to 19.9% of the
+# benchmark, so the tilt moves 2.4 to 9.9 points into the ten banded sectors.
+SECTOR_BAND_SCOPE, SECTOR_BAND_SCOPE_2026_11_09 = (
+    "every sector, Unclassified included; in a set with the tilt, the untilted sectors only",
+    "each of the twelve sectors, Unclassified included",
+)
+# Decided 12 November 2026, before any path ran: the bound per company. For a
+# company (CRSP's PERMCO) with more than one share class among the month's members,
+# the sum of its classes' active weights lies within the bound per stock, 50 basis
+# points and 100 in the sensitivity, and each class stays within the bound per stock. It
+# is one more switchable constraint, in every set that has the bound per stock, and
+# it has the same scope: the sum runs over the company's classes that the bound per
+# stock covers, so a tilted or excluded company is held by the tilt or the exclusion
+# alone. Reason: the benchmark holds both classes, the estimators treat the two
+# either as near-duplicates or as unrelated, and a mandate bounds its active weight
+# in a company. The script counts the company-months in
+# which a company's classes differ in sector or in scope (none is expected).
+COMPANY_BOUND_RULE = "sum of the covered classes' active weights within the bound per stock"
+CONSTRAINT_SETS, CONSTRAINT_SETS_2026_11_09 = (
+    {
+        "C0": ("long_only",),
+        "C1": ("long_only", "stock_bound", "company_bound", "sector_band"),
+        "C2": ("long_only", "stock_bound", "company_bound", "sector_band", "turnover_cap"),
+        "C3": ("long_only", "stock_bound", "company_bound", "sector_band", "turnover_cap", "tilt", "exclusion", "beta_neutral"),
+    },
+    {
+        "C0": ("long_only",),
+        "C1": ("long_only", "stock_bound", "sector_band"),
+        "C2": ("long_only", "stock_bound", "sector_band", "turnover_cap"),
+        "C3": ("long_only", "stock_bound", "sector_band", "turnover_cap", "tilt", "exclusion", "beta_neutral"),
+    },
+)
 MANDATE = "C3"
+# Decided 12 November 2026, before any path ran: the copied optimiser is never
+# edited. src/slt/mandate.py builds the same problem from the copy's own pieces
+# (bounds, cholesky_factor, benchmark_betas, _run, check, the smallest feasible
+# turnover first) and adds the group constraints (the bound per company, the sector
+# bands) and the reference portfolio below as switchable entries. A test solves the
+# source repository's own constraint sets on made-up months with both, one of them a
+# month in which the cap has to be raised to the smallest feasible turnover, and
+# requires the same weights within OPT_TOL. Every returned portfolio is checked
+# against every constraint, the group ones included, whatever the solver reports.
+MANDATE_BUILT_FROM = "the copied optimiser's pieces, with the group constraints added"
+# Decided 12 November 2026, before any path ran: the reference portfolio, forced
+# turnover and costs. The drifted portfolio is last month's weights after last
+# month's returns, delisting returns applied, over last month's members; a held
+# name with no return drifts at a return of zero, and the months are counted. The
+# reference portfolio over this month's members sells every name that has left the
+# universe, or has no capitalisation this month, to zero, buys every entrant at its
+# benchmark weight, and rescales the continuing names so that the weights sum to
+# one. Forced turnover is the one-way turnover from the drifted portfolio to the
+# reference; the cap applies to the one-way turnover from the reference to the new
+# weights, the copied optimiser's previous portfolio. The portfolio's return in a
+# month, as the benchmark's, is taken over the names with a return, the weights
+# rescaled, and counted. Costs apply to total one-way turnover, forced included.
+REFERENCE_PORTFOLIO_RULE = "leavers sold, entrants at their benchmark weight, continuing names rescaled to one"
+MISSING_RETURN_IN_DRIFT = 0.0
+COST_BASE = "total one-way turnover, forced included"
 # The infeasible-month rule of the source repository (OPT_D5_MONTH there): the
 # optimiser finds the smallest feasible turnover first and never poses a capped
 # problem with no solution; every returned portfolio is checked against every
@@ -559,13 +619,42 @@ COST_PER_UNIT_TURNOVER = 0.0010  # 10 basis points per unit of one-way turnover:
 COST_SENSITIVITY = 0.0020        # the one cost sensitivity
 NEWEY_WEST_LAGS = 12
 BIAS_BAND = E6_BIAS_RANGE
+# Decided 12 November 2026, before any path ran: the bias statistic is taken over
+# the months whose forecast tracking error is above the optimiser's tolerance, the
+# number of months it rests on is given beside it, and the months left out are
+# counted. Under C0 and C1 the portfolio is the benchmark
+# and every forecast is zero to the solver's precision, so those paths have no
+# bias statistic; under C2 the months in which the cap leaves the portfolio at the
+# benchmark are left out.
+BIAS_FORECAST_MIN = OPT_TOL
 ROLLING_TE_MONTHS = 36
 
 # Turnover decomposition: one-way turnover each month in three parts that sum to
 # the total. Membership is the weight of names leaving plus the benchmark weight
 # of names entering; drift is what restoring last month's target weights after
 # price moves would take, net of membership; rebalancing is the rest.
-TURNOVER_PARTS = ("membership", "drift", "rebalancing")
+# Decided 12 November 2026, before any path ran, in place of the parts above: three
+# one-way turnovers, each measured. Total turnover runs from the drifted portfolio
+# to the new weights. Membership, the forced turnover, runs from the drifted
+# portfolio to the reference portfolio. Reweighting runs from the reference
+# portfolio to the restored portfolio, which holds each continuing name at last
+# month's target weight times the ratio of its benchmark weights this month and
+# last, and every entrant at its benchmark weight, rescaled to one: it is what
+# following the benchmark's own reweighting takes, share counts and dividends.
+# Rebalancing runs from the restored portfolio to the new weights, the optimiser's
+# own moves. The three sum to the total plus an overlap, the trades of one step
+# that the next undoes, which is never below zero. Each path reports the total, the
+# three parts and the overlap, by year and over the window. Reason: restoring last
+# month's weights themselves undoes the month's price moves, which no path does, so
+# for a path that holds the benchmark the rest after it is below zero in every
+# month. The middle part is not called drift, because it leaves price drift out. E7
+# still compares membership with the total. The decomposition is committed by
+# year only, for every path: the design's "as a time series for the mandate on the
+# Ledoit-Wolf estimator" is withdrawn, because the membership part by month is the
+# benchmark weight of the one to three names that join or leave in a month.
+TURNOVER_PARTS, TURNOVER_PARTS_2026_11_09 = ("membership", "reweighting", "rebalancing"), ("membership", "drift", "rebalancing")
+TURNOVER_FIGURES = ("total",) + TURNOVER_PARTS + ("overlap",)
+TURNOVER_DECOMPOSITION_COMMITTED = "by year and over the window, for every path"
 
 # The Brinson-Fachler attribution (Brinson and Fachler 1985), monthly, by the
 # twelve sectors, for the mandate's four paths at the 2% cap. With w and b the
@@ -665,6 +754,33 @@ RECONSTRUCTION_EQUAL_MONTHS_MAX = 0.05
 # own return beside its active return gives the benchmark's return back.
 PATH_SERIES_BY_MONTH = ("active return",)
 PATH_SERIES_BY_MONTH_SETTLED_BEFORE_THE_SCRIPT_WRITES = True
+# Decided 12 November 2026, before any path ran: one table by month, the active
+# return gross of costs of the twelve paths under the mandate (the four estimators
+# at the 2% cap and the eight of the frontier), and nothing else by month. Under C0,
+# C1 and C2 the optimiser minimises the tracking error and nothing pushes it off the
+# benchmark, so the portfolio is the benchmark (the source repository's forecasts
+# under those sets are of the order of 1e-9): those twelve paths are reported by year
+# and over the window, with the months in which the portfolio differs from the
+# benchmark by more than OPT_TOL and the largest absolute active weight, and have no
+# column by month. Everything else of every path, the forecast tracking error, the
+# turnover and its parts, the cap's state, the bias statistic, costs and net returns,
+# holdings and the worst cumulative fall, is committed by year and over the window;
+# holdings are counts of names, never a weight. The rolling tracking error is drawn
+# from the active returns and not committed.
+MONTHLY_PATHS = tuple(p for p in PATHS if p[1] == MANDATE)
+# A path's label in every table: estimator, constraint set and cap in basis points.
+PATH_LABELS = {p: f"{p[0]}_{p[1]}_{'nocap' if p[2] is None else 'cap' + str(int(round(p[2] * 1e4))) + 'bp'}" for p in PATHS}
+MONTHLY_ACTIVE_COLUMNS = tuple("active_return_" + PATH_LABELS[p] for p in MONTHLY_PATHS)
+# The cell rule on a signed sum, for the table of active returns: a cell is written
+# when at least three stocks have an active weight above OPT_TOL in absolute value
+# and no stock's absolute contribution, |w - b| times |r|, is more than 80% of the
+# sum of the absolute contributions. A cell that fails is left empty and counted.
+SIGNED_CELL_MIN_STOCKS = SMALL_CELL_MIN_MEMBERS
+SIGNED_CELL_MAX_SHARE = SMALL_CELL_MAX_MEMBER_SHARE
+# The script's records by month, weights by security included, stay in OUTPUTS_DIR on
+# the machine that holds the extraction. git ignores the folder, and the
+# reconstruction test fails if any file under it is tracked.
+OUTPUTS_DIR = "outputs"
 COMPARISON_SUMMARIES = ("tracking error", "mean difference", "correlation", "months outside the tolerance")
 TIMEZONE = "Europe/Amsterdam"
 SEED = 20261109                  # for the tests' made-up data; the design has no random draw

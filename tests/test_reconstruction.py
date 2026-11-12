@@ -31,7 +31,10 @@ CRSP_INDEX_FIELDS = {"vwretd", "vwretx", "ewretd", "ewretx", "sprtrn", "spindx",
 # benchmark's weight in each of the twelve sectors (constants.COMMITTED_MONTHLY).
 MONTH_COLUMN = "month"
 # Amended 11 November 2026: the eleven GICS sector weights alone (constants.COMMITTED_MONTHLY).
-MONTHLY_ALLOWED = {MONTH_COLUMN} | {"weight_" + code for code in C.GICS_SECTORS}
+# Amended 12 November 2026: and the active returns of the twelve paths under the mandate
+# (constants.MONTHLY_ACTIVE_COLUMNS), each cell under the rule for a signed sum.
+MONTHLY_ALLOWED = ({MONTH_COLUMN} | {"weight_" + code for code in C.GICS_SECTORS}
+                   | {c.lower() for c in C.MONTHLY_ACTIVE_COLUMNS})
 # Twelve sectors over CRSP's 1,189 index months is 14,268 rows in long form, the largest aggregate the
 # design names; a table of one row per security and month would run to hundreds of thousands.
 ROW_LIMIT = 15000
@@ -59,6 +62,19 @@ def json_keys(obj):
     elif isinstance(obj, list):
         for v in obj:
             yield from json_keys(v)
+
+
+def test_no_file_under_outputs_is_tracked():
+    """The script's records by month stay on the machine that holds the extraction: git ignores the folder,
+    and no file under it may be tracked (constants.OUTPUTS_DIR)."""
+    import subprocess
+    ignored = subprocess.run(["git", "check-ignore", "-q", C.OUTPUTS_DIR + "/probe"], cwd=ROOT)
+    tracked = subprocess.run(["git", "ls-files", "--", C.OUTPUTS_DIR], cwd=ROOT, capture_output=True, text=True)
+    if tracked.returncode != 0:
+        import pytest
+        pytest.skip("not a git checkout")
+    assert ignored.returncode == 0, f"git does not ignore {C.OUTPUTS_DIR}/"
+    assert tracked.stdout.strip() == "", f"files under {C.OUTPUTS_DIR}/ are tracked: {tracked.stdout.split()}"
 
 
 def test_no_data_file_type_is_committed():
