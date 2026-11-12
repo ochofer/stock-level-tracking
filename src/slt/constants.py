@@ -337,6 +337,25 @@ E4_CONDITION_RATIO_MIN = 10.0
 # reported beside them with no verdict. No level of E4 moves. Scaling to monthly
 # leaves the ratio unchanged.
 E4_READ_ON = "the assembled matrices"
+# Decided 12 November 2026, after the run of 12 November and with no verdict: a check
+# on share classes. E4's level and its verdict do not move. The run found the ratio at
+# or above E4's level in 86 of 306 months, all from 2017, and the shrinkage intensity
+# explains the months below the level and not the 86. From 2014 the universe holds up
+# to five companies with two share classes each, and where both classes are complete
+# members their daily returns move almost together, so the difference between them is
+# a portfolio with almost no variance, which sets the sample matrix's smallest
+# eigenvalue. Notebook 07 therefore also reports, with no verdict: the companies, by
+# CRSP's PERMCO in the names file read on the same day as membership, with more than
+# one share class among the month's members; the classes left out when each company
+# keeps the class with the larger capitalisation at the start of the month (ties to
+# the lower PERMNO); the pairs of complete members that are classes of one company,
+# with the correlation of their daily returns over the window, counted from
+# SHARE_CLASS_PAIRS_FROM as well; and the sample and Ledoit-Wolf condition numbers on
+# the complete members of the universe with one class for each company, by the same
+# rules as the main estimate. No weight of these companies is committed, by year or
+# otherwise: before 2005 it would be one company's weight.
+SHARE_CLASS_CHECK_FIXED = "12 November 2026, after the run, with no verdict"
+SHARE_CLASS_PAIRS_FROM = "2014-09"
 
 # E5, the frontier. For each of the two frontier estimators, the mean forecast
 # tracking error does not rise from one cap to the next looser one across the

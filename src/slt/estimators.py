@@ -110,6 +110,49 @@ def _stand_in(values: np.ndarray, sum_sq: np.ndarray, cap: np.ndarray, idx: np.n
 
 
 # ---------------------------------------------------------------------------
+# Share classes of one company (a check fixed on 12 November 2026, after the run, with no verdict)
+# ---------------------------------------------------------------------------
+
+def one_class_per_company(members: pd.DataFrame) -> dict:
+    """For each company (CRSP's PERMCO) with more than one share class among the month's members, the class with
+    the larger capitalisation at the start of the month, ties to the lower PERMNO. A member with no PERMCO is its
+    own company. Returns the PERMNOs kept, the companies with more than one class and the classes left out."""
+    m = members.assign(company=members["permco"].where(members["permco"].notna(), -members["permno"]))
+    sizes = m.groupby("company")["permno"].transform("size")
+    kept = (m.sort_values(["company", "cap", "permno"], ascending=[True, False, True])
+             .drop_duplicates("company", keep="first")["permno"])
+    keep = set(kept)
+    return {"kept": [p for p in members["permno"] if p in keep],
+            "companies_with_more_than_one_class": int(m.loc[sizes > 1, "company"].nunique()),
+            "classes_left_out": int(len(m) - len(kept))}
+
+
+def share_class_pairs(XA: np.ndarray, complete: list, permco: pd.Series) -> list:
+    """The correlation of daily returns, over the days of the complete members' window, of every pair of complete
+    members that are share classes of one company."""
+    company = permco.reindex(complete).to_numpy()
+    out = []
+    for c in pd.unique(company[~pd.isna(company)]):
+        idx = np.flatnonzero(company == c)
+        for i in range(len(idx)):
+            for k in range(i + 1, len(idx)):
+                out.append(float(np.corrcoef(XA[:, idx[i]], XA[:, idx[k]])[0, 1]))
+    return out
+
+
+def one_class_conditioning(X: pd.DataFrame, kept: list) -> dict:
+    """The sample and Ledoit-Wolf condition numbers on the complete members of a universe holding one share class
+    for each company: the same rules as the main estimate, applied to the members kept."""
+    sel = complete_members(X[kept])
+    XA = X.loc[sel["kept"], sel["complete"]].to_numpy()
+    S = K.sample_cov(XA)
+    LW, _ = K.lw_scaled_identity(XA)
+    cs, cl = K.condition_number(S), K.condition_number(LW)
+    return {"condition_sample_one_class": cs, "condition_ledoit_wolf_one_class": cl, "ratio_one_class": cs / cl,
+            "complete_one_class": len(sel["complete"])}
+
+
+# ---------------------------------------------------------------------------
 # One month
 # ---------------------------------------------------------------------------
 
@@ -120,7 +163,8 @@ def month_estimates(month, excess: pd.DataFrame, factors: pd.DataFrame, bench: p
 
     `excess` is daily excess returns, trading days by PERMNO; `factors` the six daily factors in the order of
     FACTOR_MODEL_FACTORS; `bench` the benchmark's daily excess return; `members` the month's members with permno,
-    cap and sector.
+    cap and sector, and permco for the check on share classes. That check's pair correlations come back as a list
+    under "pair_correlations", which the notebook keeps in memory only.
     """
     days = window_days(excess.index, month)
     permnos = list(members["permno"])
@@ -213,6 +257,14 @@ def month_estimates(month, excess: pd.DataFrame, factors: pd.DataFrame, bench: p
         out[f"condition_{name}"] = float(vals.max() / max(vals.min(), 1e-300))
         out[f"condition_complete_{name}"] = K.condition_number(blocks[name])
     out["ratio_sample_to_ledoit_wolf"] = out["condition_sample"] / out["condition_ledoit_wolf"]
+    if "permco" in members.columns:
+        permco = members.set_index("permno")["permco"]
+        oc = one_class_per_company(members)
+        out["companies_with_more_than_one_class"] = oc["companies_with_more_than_one_class"]
+        out["classes_left_out"] = oc["classes_left_out"]
+        out["pair_correlations"] = share_class_pairs(XA, A, permco)
+        out["share_class_pairs"] = len(out["pair_correlations"])
+        out.update(one_class_conditioning(X, oc["kept"]))
     out["matrices"] = {"assembled": mats, "complete": blocks, "order": A + others,
                        "checks": {"factor_loadings_equal": float(np.abs(B_chk.T - B_A).max())}}
     return out
@@ -285,11 +337,40 @@ def by_year(rows: pd.DataFrame) -> pd.DataFrame:
     out["days_without_factors"] = g["days_without_factors"].sum()
     out["window_days_least"] = g["window_days"].min()
     out["window_days_most"] = g["window_days"].max()
+    if "ratio_one_class" in r.columns:
+        out["companies_with_more_than_one_class_mean"] = g["companies_with_more_than_one_class"].mean()
+        out["companies_with_more_than_one_class_most"] = g["companies_with_more_than_one_class"].max()
+        out["classes_left_out_mean"] = g["classes_left_out"].mean()
+        out["months_one_class_at_or_above_level"] = (r["ratio_one_class"] >= C.E4_CONDITION_RATIO_MIN).groupby(r["year"]).sum()
+        out["ratio_one_class_median"] = g["ratio_one_class"].median()
     ints = [c for c in out.columns if c.startswith(("months", "model_rows_most", "model_rows_under_252_most",
                                                      "model_rows_under_60", "days_left_out_most", "days_without",
-                                                     "window_days", "complete_members_least"))]
+                                                     "window_days", "complete_members_least",
+                                                     "companies_with_more_than_one_class_most"))]
     out[ints] = out[ints].astype("int64")
     return out.rename_axis("year").reset_index()
+
+
+def share_class_check(rows: pd.DataFrame, pairs: pd.DataFrame) -> dict:
+    """The check on share classes over the window, with no verdict: the companies with more than one class, the
+    classes left out, the pairs among the complete members and their correlations, and the conditioning with one
+    class for each company. `pairs` holds month and correlation, one row per pair, in memory only."""
+    ratio = rows["ratio_one_class"]
+    at = rows.loc[ratio >= C.E4_CONDITION_RATIO_MIN, "month"]
+    from_ = pairs[pd.PeriodIndex(pairs["month"], freq="M") >= pd.Period(C.SHARE_CLASS_PAIRS_FROM, "M")] if len(pairs) else pairs
+    return {"fixed": C.SHARE_CLASS_CHECK_FIXED, "verdict": "none",
+            "companies_with_more_than_one_class_mean": float(rows["companies_with_more_than_one_class"].mean()),
+            "companies_with_more_than_one_class_most": int(rows["companies_with_more_than_one_class"].max()),
+            "classes_left_out_mean": float(rows["classes_left_out"].mean()),
+            "share_class_pairs_by_month": int(len(pairs)),
+            "share_class_pairs_from": C.SHARE_CLASS_PAIRS_FROM,
+            "share_class_pairs_from_that_month": int(len(from_)),
+            "median_correlation_from_that_month": float(from_["correlation"].median()) if len(from_) else None,
+            "months_one_class_at_or_above_level": int(len(at)),
+            "months_one_class_at_or_above_level_by_year": {str(y): int(n) for y, n in
+                                                          pd.PeriodIndex(at, freq="M").year.value_counts().sort_index().items()},
+            "ratio_one_class_median": float(ratio.median()), "ratio_one_class_least": float(ratio.min()),
+            "ratio_one_class_largest": float(ratio.max())}
 
 
 def judge_e4_first_clause(rows: pd.DataFrame) -> dict:

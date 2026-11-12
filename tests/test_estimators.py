@@ -131,3 +131,26 @@ def test_the_fault_check_stops_the_run():
     with pytest.raises(RuntimeError):
         E.check_positive_semidefinite({"month": "2000-01", **{f"smallest_eigenvalue_ratio_{n}": (-1e-6 if n == "pca" else 1e-3)
                                                               for n in C.COV_ESTIMATORS}})
+
+
+def test_one_class_per_company_keeps_the_larger_capitalisation():
+    members = pd.DataFrame({"permno": [1, 2, 3, 4, 5], "cap": [5.0, 9.0, 3.0, 3.0, 1.0], "permco": [10, 10, 20, 20, np.nan]})
+    oc = E.one_class_per_company(members)
+    assert oc["kept"] == [2, 3, 5]                 # 2 is larger than 1; 3 and 4 tie, so the lower PERMNO
+    assert oc["companies_with_more_than_one_class"] == 2 and oc["classes_left_out"] == 2
+
+
+def test_share_class_pairs_and_the_one_class_check():
+    X, F, bench, members = made_up()
+    twin = X[10003] + RNG.normal(0, 0.001, len(X))           # a second class of the company of 10003
+    X = X.assign(**{"99999": twin}).rename(columns={"99999": 99999})
+    members = pd.concat([members, pd.DataFrame({"permno": [99999], "cap": [1.0], "sector": ["45"]})], ignore_index=True)
+    members["permco"] = members["permno"]
+    members.loc[members["permno"] == 99999, "permco"] = 10003
+    month = pd.Period(X.index[-1], "M") + 1
+    res = E.month_estimates(month, X, F, bench, members)
+    assert res["share_class_pairs"] == 1 and res["pair_correlations"][0] > 0.95
+    assert res["companies_with_more_than_one_class"] == 1 and res["classes_left_out"] == 1
+    assert res["complete_one_class"] == res["complete"] - 1
+    assert res["condition_sample_one_class"] < res["condition_complete_sample"]
+    E.check_positive_semidefinite(res)

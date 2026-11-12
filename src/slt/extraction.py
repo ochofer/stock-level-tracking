@@ -27,7 +27,7 @@ COLUMNS = {
     "crsp_msp500": ("caldt", "vwretd", "vwretx", "sprtrn", "totval", "totcnt"),
     "crsp_msf": ("permno", "date", "prc", "ret", "retx", "shrout"),
     "crsp_msedelist": ("permno", "dlstdt", "dlstcd", "dlret", "dlretx"),
-    "crsp_msenames": ("permno", "namedt", "nameendt", "shrcd"),
+    "crsp_msenames": ("permno", "namedt", "nameendt", "shrcd", "permco"),
     "crsp_dsf": ("permno", "date", "prc", "ret"),
     "crsp_ccm_lnkhist": ("gvkey", "lpermno", "linktype", "linkprim", "linkdt", "linkenddt"),
     "comp_idxcst_his": ("gvkey", "gvkeyx", "from", "thru"),

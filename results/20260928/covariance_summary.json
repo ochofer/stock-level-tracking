@@ -30,6 +30,26 @@
   "met": false
  },
  "read_on": "the assembled matrices",
+ "share_class_check": {
+  "fixed": "12 November 2026, after the run, with no verdict",
+  "verdict": "none",
+  "companies_with_more_than_one_class_mean": 1.8856209150326797,
+  "companies_with_more_than_one_class_most": 5,
+  "classes_left_out_mean": 1.8856209150326797,
+  "share_class_pairs_by_month": 432,
+  "share_class_pairs_from": "2014-09",
+  "share_class_pairs_from_that_month": 403,
+  "median_correlation_from_that_month": 0.9799682454683862,
+  "months_one_class_at_or_above_level": 30,
+  "months_one_class_at_or_above_level_by_year": {
+   "2020": 9,
+   "2021": 12,
+   "2022": 9
+  },
+  "ratio_one_class_median": 4.988026874550883,
+  "ratio_one_class_least": 2.7962266556750945,
+  "ratio_one_class_largest": 24.071754070042147
+ },
  "eigenvalue_check": {
   "tolerance": 1e-10,
   "passed_every_month": true,

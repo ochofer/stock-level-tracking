@@ -225,6 +225,15 @@ def share_codes(ulong: pd.DataFrame, names: pd.DataFrame) -> tuple:
     return out, overlaps
 
 
+def companies(ulong: pd.DataFrame, names: pd.DataFrame) -> pd.DataFrame:
+    """The company of each universe member in each month: CRSP's PERMCO from the names record in force on the
+    last trading day of the month before, the later record where two are in force. Held in memory only."""
+    m = ulong.merge(names[["permno", "namedt", "nameendt", "permco"]], on="permno", how="inner")
+    m = m[(m["namedt"] <= m["date_prev"]) & (m["date_prev"] <= m["nameendt"])]
+    m = m.sort_values(["permno", "month", "namedt"], ascending=[True, True, False]).drop_duplicates(["permno", "month"])
+    return ulong.merge(m[["permno", "month", "permco"]], on=["permno", "month"], how="left")
+
+
 def share_codes_by_year(coded: pd.DataFrame) -> pd.DataFrame:
     """Universe members outside the common share codes, and members with no share code, by year."""
     common = coded["shrcd"].isin(C.SHARE_CODES_COMMON)
