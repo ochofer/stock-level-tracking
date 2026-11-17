@@ -1,0 +1,327 @@
+"""
+Every figure, sentence number and table of the dashboard and the note, read from the committed results only.
+
+build(repo) reads the files in results/<vintage>/ (constants.RESULTS_DIR) and returns two dictionaries: the numbers and
+the tables as HTML, keyed by the names the templates use, and the data the dashboard's charts draw. The dashboard
+(dashboard/build_dashboard.py) and the note (note/build_note.py) both build from it, so that a figure is computed once
+and reads the same on both. Nothing here is by month.
+"""
+from __future__ import annotations
+
+import datetime
+import html
+import json
+import pathlib
+import re
+import zoneinfo
+
+import pandas as pd
+
+from . import constants as C
+from . import figures as F
+
+VINTAGE = pathlib.PurePath(C.RESULTS_DIR).name
+MONTHS_WORDS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+                "November", "December"]
+
+
+def read(name, res):
+    path = pathlib.Path(res) / name
+    if not path.exists():
+        raise SystemExit(f"{C.RESULTS_DIR}/{name} is missing: run the notebook that writes it first")
+    if name.endswith(".json"):
+        return json.loads(path.read_text())
+    return pd.read_csv(path)
+
+
+def num(x, d=1, sign=False):
+    """A number for display: the true minus sign, a plus sign where asked (N3)."""
+    s = f"{abs(x):,.{d}f}"
+    if x < 0 and float(s.replace(",", "")) != 0:
+        return "−" + s
+    if sign and float(s.replace(",", "")) != 0:
+        return "+" + s
+    return s
+
+
+def words(ym):
+    y, m = ym.split("-")
+    return f"{MONTHS_WORDS[int(m) - 1]} {y}"
+
+
+def table(cols, rows, cls=""):
+    """A table as HTML, the first column as row headers (N1, N6)."""
+    longest = max([len(re.sub(r"<[^>]*>", "", str(r[0]))) for r in rows] + [0])
+    classes = " ".join(c for c in [cls, "wrapfirst" if longest > 28 else ""] if c)
+    h = [f'<div class="tscroll"><table{" class=" + chr(34) + classes + chr(34) if classes else ""}><thead><tr>']
+    h += [f"<th>{c}</th>" for c in cols]
+    h.append("</tr></thead><tbody>")
+    for r in rows:
+        h.append("<tr>" + f'<th scope="row">{r[0]}</th>' + "".join(f"<td>{c}</td>" for c in r[1:]) + "</tr>")
+    h.append("</tbody></table></div>")
+    return "".join(h)
+
+
+def lohi(xs, d=1):
+    xs = sorted(xs)
+    return num(xs[0], d), num(xs[-1], d)
+
+
+
+def build(repo, build_date: datetime.date | None = None) -> tuple:
+    """The numbers and tables (P) and the charts' data (D), from the results committed under repo."""
+    res = F.results_dir(repo)
+    # --- inputs, one line per file, with the notebook that writes it ---
+    v1, v2, v3, v4 = (read(f"verdicts_milestone{k}.json", res) for k in (1, 2, 3, 4))   # notebooks 04 and 02, 06 and 07, 09 and 10, 11
+    paths = read("paths_summary.json", res)["paths"]                                    # notebook 09
+    brinson = read("brinson_summary.json", res)["paths"]                                # notebook 11
+    factor = read("factor_attribution_summary.json", res)["paths"]                      # notebook 11
+    recon = read("reconstruction_summary.json", res)                                    # notebook 04
+    answer = read("answer_key_summary.json", res)["comparisons"]                        # notebook 06
+    cov_year = read("covariance_by_year.csv", res)                                      # notebook 07
+    cov = read("covariance_summary.json", res)                                          # notebook 07
+    counts = read("attribution_counts_by_year.csv", res)                               # notebook 11
+    universe = read("universe_summary.json", res)                                       # notebook 02
+
+    EST = F.ORDER
+    LBL = F.LABELS
+    SHORT = {"ledoit_wolf": "Ledoit-Wolf", "sample": "Sample", "factor": "Factor", "pca": "PCA"}
+    MAIN = {e: C.PATH_LABELS[(e, C.MANDATE, C.MAIN_CAP)] for e in EST}
+    BP = 1e4
+    P = {}
+
+    first, last = C.EVAL_START, C.EVAL_END
+    P["first_w"], P["last_w"] = words(first), words(last)
+    P["months"] = str(paths[MAIN["ledoit_wolf"]]["months"])
+    P["vintage"] = VINTAGE
+    P["results"] = C.RESULTS_DIR
+    day = build_date or datetime.datetime.now(zoneinfo.ZoneInfo("Europe/Amsterdam")).date()
+    P["build_date"] = f"{day.day} {MONTHS_WORDS[day.month - 1]} {day.year}"
+
+    # --- the key figures and Key points ---
+    t1 = F.tracking_error_by_estimator(res)
+    P["te_lo"], P["te_hi"] = lohi(t1["realised"])
+    P["bias_lo"], P["bias_hi"] = lohi(t1["bias"], 2)
+    P["recon_te"] = num(BP * recon["with_dividends"]["tracking_error"])
+    P["recon_first_w"], P["recon_last_w"] = words(recon["usable_window"]["first_month"]), words(recon["usable_window"]["last_month"])
+    P["recon_years_first"], P["recon_years_last"] = recon["usable_window"]["first_month"][:4], recon["usable_window"]["last_month"][:4]
+    P["mom_corr"] = f"{answer['momentum']['quintiles']['correlation']:.3f}"
+    P["var_corr"] = f"{answer['variance']['quintiles']['correlation']:.3f}"
+    e8 = v4["E8"]["second_clause"]["by_estimator"]
+    P["kpi_alloc"], P["kpi_sel"], P["kpi_int"] = (num(BP * e8["ledoit_wolf"][k]) for k in ("allocation", "selection", "interaction"))
+    S3 = list(C.STRUCTURED_ESTIMATORS)
+    P["alloc_lo"], P["alloc_hi"] = lohi([BP * e8[e]["allocation"] for e in S3])
+    P["sel_lo"], P["sel_hi"] = lohi([BP * e8[e]["selection"] for e in S3])
+    P["int_lo"], P["int_hi"] = lohi([BP * e8[e]["interaction"] for e in S3])
+    P["share_lo"], P["share_hi"] = lohi([100 * factor[MAIN[e]]["factor share"] for e in EST], 0)
+    lw = paths[MAIN["ledoit_wolf"]]
+    P["forced"] = num(100 * lw["turnover_membership_per_year"], 2)
+    P["total_turn"] = num(100 * lw["turnover_total_per_year"], 2)
+    P["forced_share"] = num(100 * v3["E7"]["membership_share_of_total"])
+    fr = F.frontier(res)
+    fl = fr[fr["estimator"] == "ledoit_wolf"]
+    P["chosen_lo"], P["chosen_hi"] = num(fl["chosen_turnover"].min()), num(fl["chosen_turnover"].max())
+    P["fr_te_lo"], P["fr_te_hi"] = lohi(fl["realised"])
+    ar = [BP * paths[MAIN[e]]["active_return_gross"] for e in EST]
+    se = [BP * paths[MAIN[e]]["active_return_gross_se"] for e in EST]
+    P["ar_lo"], P["ar_hi"] = lohi(ar)
+    P["ar_se_lo"], P["ar_se_hi"] = lohi(se)
+
+    # --- Figure 2: by year, the Ledoit-Wolf path ---
+    t2 = F.tracking_error_by_year(res)
+    peak = t2.loc[t2["realised"].idxmax()]
+    low = t2.loc[t2["realised"].idxmin()]
+    P["peak_year"], P["peak_re"], P["peak_fc"] = str(int(peak.year)), num(peak.realised, 0), num(peak.forecast, 0)
+    P["low_year"], P["low_re"] = str(int(low.year)), num(low.realised, 0)
+    above = t2[t2["forecast"] > t2["realised"]]
+    P["below_years"] = str(len(t2) - len(above))
+    P["years"] = str(len(t2))
+    P["above_list"] = ", ".join(str(int(y)) for y in above["year"][:-1]) + " and " + str(int(above["year"].iloc[-1]))
+
+    # --- E5 ---
+    P["lw_fc_tight"], P["lw_fc_none"] = num(fl.iloc[0]["forecast"]), num(fl.iloc[-1]["forecast"])
+    ff = fr[fr["estimator"] == "factor"]
+    P["fa_fc_tight"], P["fa_fc_none"] = num(ff.iloc[0]["forecast"]), num(ff.iloc[-1]["forecast"])
+    P["lw_re_tight"], P["lw_re_4"] = num(fl.iloc[0]["realised"]), num(fl[fl["cap"] == "4"]["realised"].iloc[0])
+    P["fa_re_tight"], P["fa_re_4"] = num(ff.iloc[0]["realised"]), num(ff[ff["cap"] == "4"]["realised"].iloc[0])
+    P["fa_chosen_hi"] = num(ff["chosen_turnover"].max())
+    P["fa_chosen_lo"] = num(ff["chosen_turnover"].min())
+    P["fa_re_none"] = num(ff[ff["cap"] == "none"]["realised"].iloc[0])
+    P["fa_bind"] = num(100 * paths[MAIN["factor"]]["cap_binding_share"])
+    assert paths[MAIN["ledoit_wolf"]]["cap_binding_share"] == 1.0, "the text says the cap binds in every month on Ledoit-Wolf"
+
+    # --- the attribution ---
+    P["lw_alloc"], P["lw_sel"], P["lw_int"] = (num(BP * brinson[MAIN["ledoit_wolf"]]["total"][f"{k}_per_year"], 1) for k in C.ATTRIBUTION_TERMS)
+    P["lw_alloc_se"], P["lw_sel_se"], P["lw_int_se"] = (num(BP * brinson[MAIN["ledoit_wolf"]]["total"][f"{k}_per_year_se"], 1) for k in C.ATTRIBUTION_TERMS)
+    P["lw_ar"] = num(BP * lw["active_return_gross"])
+    t4 = F.sector_terms(res)
+    beyond = F.terms_beyond_two_se(res)
+    P["beyond_lw"] = str(beyond["ledoit_wolf"]["beyond"])
+    others = [beyond[e]["beyond"] for e in EST if e != "ledoit_wolf"]
+    P["beyond_lo"], P["beyond_hi"] = str(min(others)), str(max(others))
+    P["chance"] = num(0.05 * beyond["ledoit_wolf"]["terms"], 1)
+    en, ut = t4.set_index("sector").loc["10"], t4.set_index("sector").loc["55"]
+    P["en_alloc"], P["en_alloc_se"], P["ut_alloc"], P["ut_alloc_se"] = num(en.allocation), num(en.allocation_se), num(ut.allocation), num(ut.allocation_se)
+    P["fs_lw_total"], P["fs_lw_total_se"] = num(BP * factor[MAIN["ledoit_wolf"]]["factor total (per year)"]), num(BP * factor[MAIN["ledoit_wolf"]]["factor total (standard error)"])
+    P["fs_lw_resid"], P["fs_lw_resid_se"] = num(BP * factor[MAIN["ledoit_wolf"]]["residual (per year)"]), num(BP * factor[MAIN["ledoit_wolf"]]["residual (standard error)"])
+    P["mkt_exp_lo"], P["mkt_exp_hi"] = (num(x, 4, True) for x in sorted(factor[MAIN[e]]["exposure Mkt-RF"] for e in EST)[::3])
+    tilt = read("tilt_cap.csv", res).set_index("path")                                 # notebook 11
+    P["cap_lw_at"], P["cap_tilted"] = f"{int(tilt.loc[MAIN['ledoit_wolf'], 'at_cap']):,}", f"{int(tilt.loc[MAIN['ledoit_wolf'], 'tilted_stock_months']):,}"
+    not_held = {e: int(brinson[MAIN[e]]["sector_months_not_held"]) for e in EST}
+    P["nh_sample"], P["nh_lw"] = str(not_held["sample"]), str(not_held["ledoit_wolf"])
+    P["no_return"] = str(int(counts["name_months_without_return"].sum()))
+
+    # --- the data layer ---
+    P["recon_te_px"] = num(BP * recon["price_only"]["tracking_error"])
+    P["recon_eval_te"] = num(BP * recon["evaluation_window"]["with_dividends"]["tracking_error"])
+    P["idx_to_2004"] = num(BP * recon["against_index_price_return"]["to_december_2004"]["tracking_error"])
+    P["idx_from_2005"] = num(BP * recon["against_index_price_return"]["from_january_2005"]["tracking_error"])
+    P["e4_months"] = str(cov["e4_first_clause"]["months_at_or_above_level"])
+    P["e4_one_class"] = str(cov["share_class_check"]["months_one_class_at_or_above_level"])
+    P["member_months"] = f"{universe['member_months']:,}"
+
+    # --- Table 1: the gates and expectations, each with its figure and verdict ---
+    def verdict(met):
+        return "Met" if met else "Not met"
+
+
+    rows1 = [
+        ["G1", "Tracking error of the benchmark against CRSP's own return of the same list, at most 50 bp a year", f"{num(BP * v1['G1']['tracking_error'])} bp a year", verdict(v1["G1"]["met"])],
+        ["G2", "Usable window at least 15 years", f"{v1['G2']['years']:.0f} years", verdict(v1["G2"]["met"])],
+        ["G3", "At least 90 per cent of removals with a CRSP price within 10 trading days", f"{v1['G3']['share'] * 100:.0f} per cent of {v1['G3']['removals']:,}", verdict(v1["G3"]["met"])],
+        ["G4", "Capitalisation in at least 90 per cent of membership months for at least 90 per cent of names", f"{v1['G4']['share_of_names'] * 100:.1f} per cent of {v1['G4']['names']:,} names", verdict(v1["G4"]["met"])],
+        ["E1", "That tracking error at most 20 bp a year and the mean difference within 2 bp, with dividends and price-only", f"{num(BP * v1['E1']['with_dividends']['tracking_error'])} and {num(BP * v1['E1']['price_only']['tracking_error'])} bp a year, {num(BP * v1['E1']['with_dividends']['mean_difference'], 2)} and {num(BP * v1['E1']['price_only']['mean_difference'], 2)} bp", verdict(v1["E1"]["met"])],
+        ["E2", "Count within 10 names of CRSP's in every month, value within 2 per cent in at least 95 per cent of months", f"{v1['E2']['months'] - v1['E2']['months_count_outside']:,} and {v1['E2']['months_value_within']:,} of {v1['E2']['months']:,} months", verdict(v1["E2"]["met"])],
+        ["E3", "Momentum and variance spreads: correlation at least 0.80 with French's, mean difference within two standard errors", f"{P['mom_corr']} and {P['var_corr']}, {num(abs(answer['momentum']['quintiles']['difference_in_standard_errors']), 2)} and {num(abs(answer['variance']['quintiles']['mean_difference'] / answer['variance']['quintiles']['standard_error']), 2)} standard errors", verdict(v2["E3_momentum"]["met"] and v2["E3_variance"]["met"])],
+        ["E4, first clause", "Sample condition number at least 10 times the Ledoit-Wolf one in every month", f"{v2['E4_first_clause']['months_at_or_above_level']} of {v2['E4_first_clause']['months']} months", verdict(v2["E4_first_clause"]["met"])],
+        ["E4, second clause", "Under the mandate, the sample estimator's realised tracking error above the Ledoit-Wolf one", f"{num(BP * v3['E4_second_clause']['sample_realised_te'])} against {num(BP * v3['E4_second_clause']['ledoit_wolf_realised_te'])} bp a year", verdict(v3["E4_second_clause"]["met"])],
+        ["E5", "On the frontier, the mean forecast does not rise as the cap loosens, and the realised tracking error is lower at 4 per cent than at 0.5", f"holds for the factor estimator, fails for Ledoit-Wolf ({P['lw_re_4']} against {P['lw_re_tight']} bp a year)", verdict(v3["E5"]["met"])],
+        ["E6", "Realised tracking error 50 to 150 bp a year and bias statistic 0.8 to 1.25, each structured estimator", f"tracking error {num(BP * v3['E6_ledoit_wolf']['realised_te'])} to {num(BP * v3['E6_pca']['realised_te'])}, bias {v3['E6_ledoit_wolf']['bias']:.2f} to {v3['E6_factor']['bias']:.2f}", verdict(v3["E6"]["met"])],
+        ["E7", "Forced turnover less than a third of the total, Ledoit-Wolf path", f"{P['forced']} of {P['total_turn']} per cent a year, {P['forced_share']} per cent", verdict(v3["E7"].get("met", v3["E7"]["membership_share_of_total"] < 1 / 3))],
+        ["E8", "The three terms sum to the active return, and allocation is the largest in absolute value and interaction the smallest, each structured estimator", f"largest gap {v4['E8']['identity']['largest_error']:.1e}, allocation {P['alloc_lo']} to {P['alloc_hi']}, selection {P['sel_lo']} to {P['sel_hi']}, interaction {P['int_lo']} to {P['int_hi']} bp a month", verdict(v4["E8"]["met"])],
+        ["E9", "Contributions and residual sum to the active return, and the mean exposure to the market within 0.05 of zero on every path", f"largest gap {v4['E9']['identity']['largest_error']:.1e}, exposure {P['mkt_exp_lo']} to {P['mkt_exp_hi']}", verdict(v4["E9"]["met"])],
+    ]
+    P["table1"] = table(["", "Fixed before the run", "What the run found", "Verdict"], rows1, "verdicts")
+
+    # --- Table 2: the twelve paths under the mandate ---
+    rows2 = []
+    for p in C.MONTHLY_PATHS:
+        s = paths[C.PATH_LABELS[p]]
+        cap = F.CAP_LABELS[p[2]]
+        rows2.append([f"{LBL[p[0]]}, cap {cap}{'' if cap == 'none' else ' per cent'}",
+                      num(BP * s["realised_te"]), num(BP * s["forecast_te_mean"]), f"{s['bias']:.2f}",
+                      num(BP * s["active_return_gross"], 1, True), num(BP * s["active_return_gross_se"]),
+                      num(BP * s["active_return_net_at_10bp"], 1, True), num(100 * s["turnover_total_per_year"]),
+                      num(100 * s["turnover_chosen_per_year"]), f"{s['held_mean']:.0f}"])
+    P["table2"] = table(["Path", "Realised tracking error", "Mean forecast", "Bias statistic", "Active return, gross",
+                         "Newey-West standard error", "Active return, net at 10 bp", "Total turnover, % a year",
+                         "Chosen turnover, % a year", "Names held, mean"], rows2)
+
+    # --- Table 3: the turnover's parts ---
+    held = paths[C.PATH_LABELS[("ledoit_wolf", "C0", None)]]
+    rows3 = [["The benchmark held (Ledoit-Wolf under C0)"] + [num(100 * held[f"turnover_{k}_per_year"], 2) for k in ("total", "membership", "reweighting", "rebalancing", "overlap")]]
+    for e in EST:
+        s = paths[MAIN[e]]
+        rows3.append([f"{LBL[e]}, mandate at 2 per cent"] + [num(100 * s[f"turnover_{k}_per_year"], 2) for k in ("total", "membership", "reweighting", "rebalancing", "overlap")])
+    P["table3"] = table(["Path", "Total", "Forced", "Reweighting", "Rebalancing", "Overlap"], rows3)
+    P["held_total"], P["held_forced"], P["held_rew"] = (num(100 * held[f"turnover_{k}_per_year"], 2) for k in ("total", "membership", "reweighting"))
+
+    # --- Table 4: the three terms by path ---
+    rows4 = []
+    for e in EST:
+        t = brinson[MAIN[e]]["total"]
+        cells = []
+        for k in C.ATTRIBUTION_TERMS:
+            cells += [num(BP * t[f"{k}_per_year"], 1, True), num(BP * t[f"{k}_per_year_se"])]
+        cells += [num(BP * t[f"{k}_mean_abs_monthly"], 2) for k in C.ATTRIBUTION_TERMS]
+        rows4.append([LBL[e] + ("" if e in S3 else ", no verdict")] + cells + [str(not_held[e])])
+    P["table4"] = table(["Path", "Allocation, bp a year", "Standard error", "Selection, bp a year", "Standard error",
+                         "Interaction, bp a year", "Standard error", "Allocation, mean absolute, bp a month",
+                         "Selection, mean absolute, bp a month", "Interaction, mean absolute, bp a month",
+                         "Sector-months not held"], rows4)
+
+    # --- Table 5: the factor attribution by path ---
+    FACT = list(C.FACTOR_ATTRIBUTION_FACTORS)
+    FNAME = {"Mkt-RF": "Market", "SMB": "Size", "HML": "Value", "RMW": "Profitability", "CMA": "Investment", "Mom": "Momentum"}
+    rows5 = []
+    for f in FACT:
+        rows5.append([f"{FNAME[f]}, contribution"] + [f"{num(BP * factor[MAIN[e]][f'contribution {f} (per year)'], 1, True)} ({num(BP * factor[MAIN[e]][f'contribution {f} (standard error)'])})" for e in EST])
+    rows5.append(["The six together"] + [f"{num(BP * factor[MAIN[e]]['factor total (per year)'], 1, True)} ({num(BP * factor[MAIN[e]]['factor total (standard error)'])})" for e in EST])
+    rows5.append(["Residual"] + [f"{num(BP * factor[MAIN[e]]['residual (per year)'], 1, True)} ({num(BP * factor[MAIN[e]]['residual (standard error)'])})" for e in EST])
+    rows5.append(["Active return"] + [f"{num(BP * factor[MAIN[e]]['active return (per year)'], 1, True)} ({num(BP * factor[MAIN[e]]['active return (standard error)'])})" for e in EST])
+    rows5.append(["Factor share, per cent"] + [num(100 * factor[MAIN[e]]["factor share"], 1) for e in EST])
+    for f in FACT:
+        rows5.append([f"{FNAME[f]}, mean active exposure"] + [num(factor[MAIN[e]][f"exposure {f}"], 4, True) for e in EST])
+    P["table5"] = table(["", *[LBL[e] for e in EST]], rows5)
+
+    # --- Table 6: the data layer ---
+    mq, vq = answer["momentum"]["quintiles"], answer["variance"]["quintiles"]
+    rows6 = [
+        ["Benchmark against CRSP's value-weighted return, with dividends", f"{P['recon_te']} bp a year", f"{P['recon_first_w']} to {P['recon_last_w']}"],
+        ["The same, price-only", f"{P['recon_te_px']} bp a year", f"{P['recon_first_w']} to {P['recon_last_w']}"],
+        ["The same, with dividends, over the mandate's window", f"{P['recon_eval_te']} bp a year", f"{P['first_w']} to {P['last_w']}"],
+        ["Benchmark's price return against the index's own, no verdict", f"{P['idx_to_2004']} bp a year", "to December 2004"],
+        ["The same, from January 2005, when the index weights by float", f"{P['idx_from_2005']} bp a year", f"January 2005 to {P['recon_last_w']}"],
+        ["Member-months in the universe", P["member_months"], f"{P['recon_first_w']} to {P['recon_last_w']}"],
+        ["Momentum spread against French's: correlation", f"{mq['correlation']:.3f}", f"{mq['months']:,} months from {words(mq['first_month'])}"],
+        ["Momentum: mean monthly difference (standard error)", f"{num(BP * mq['mean_difference'])} ({num(BP * mq['standard_error'])}) bp", ""],
+        ["Variance spread against French's: correlation", f"{vq['correlation']:.3f}", f"{vq['months']:,} months from {words(vq['first_month'])}"],
+        ["Variance: mean monthly difference (standard error)", f"{num(BP * vq['mean_difference'])} ({num(BP * vq['standard_error'])}) bp", ""],
+        ["Months with the sample condition number at least 10 times the Ledoit-Wolf one", f"{P['e4_months']} of {P['months']}", "all from 2017"],
+        ["The same with one share class for each company, no verdict", f"{P['e4_one_class']} of {P['months']}", "all from 2020 to 2022"],
+    ]
+    P["table6"] = table(["Measure", "Figure", "Period"], rows6)
+
+    # --- Table 7: conditioning by year ---
+    rows7 = []
+    for r in cov_year.itertuples():
+        rows7.append([str(r.year), f"{r.condition_sample_median:,.0f}", f"{r.condition_ledoit_wolf_median:,.0f}",
+                      f"{r.condition_factor_median:,.0f}", f"{r.condition_pca_median:,.0f}",
+                      num(r.condition_sample_median / r.condition_ledoit_wolf_median, 1)])
+    P["table7"] = table(["Year", "Sample", "Ledoit-Wolf", "Factor", "Principal-component", "Sample over Ledoit-Wolf"], rows7)
+
+    # --- the figures' own tables (C11) ---
+    P["t_f1"] = table(["Estimator", "Mean forecast, bp a year", "Realised, bp a year", "Bias statistic", "Months"],
+                      [[r.label, num(r.forecast), num(r.realised), f"{r.bias:.2f}", str(r.bias_months)] for r in t1.itertuples()])
+    P["t_f2"] = table(["Year", "Months", "Realised, bp a year", "Mean forecast, bp a year"],
+                      [[str(int(r.year)), str(int(r.months)), num(r.realised), num(r.forecast)] for r in t2.itertuples()])
+    P["t_f3"] = table(["Estimator and cap", "Chosen turnover, % a year", "Total turnover, % a year", "Realised, bp a year", "Mean forecast, bp a year"],
+                      [[f"{r.label}, {r.cap}", num(r.chosen_turnover), num(r.total_turnover), num(r.realised), num(r.forecast)] for r in fr.itertuples()])
+    P["t_f4"] = table(["Sector", "Allocation", "Standard error", "Selection", "Standard error", "Interaction", "Standard error"],
+                      [[r.label, num(r.allocation, 2, True), num(r.allocation_se, 2), num(r.selection, 2, True), num(r.selection_se, 2),
+                        num(r.interaction, 2, True), num(r.interaction_se, 2)] for r in t4.itertuples()])
+
+    # --- Other projects (C14): the README's block, word for word, its links on the short words ---
+    readme = (pathlib.Path(repo) / "README.md").read_text(encoding="utf-8")
+    block = readme.split("## Other projects", 1)[1].strip().split("\n## ", 1)[0]
+    paras = []
+    for para in [x.strip() for x in block.split("\n\n") if x.strip()]:
+        para = html.escape(para, quote=False)
+        para = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", para)
+        para = re.sub(r"\[([^\]]+)\]\((https?://[^)]+)\)", r'<a href="\2">\1</a>', para)
+        paras.append(f"<p>{para}</p>")
+    P["other_projects"] = "\n".join(paras)
+
+    # --- the data the charts draw, with two decimals more than the page shows ---
+    D = {
+        "est": list(EST), "label": LBL, "short": SHORT, "colour": F.COLOURS,
+        "f1": {r.estimator: {"forecast": round(r.forecast, 3), "realised": round(r.realised, 3), "bias": round(r.bias, 4)} for r in t1.itertuples()},
+        "f2": {"year": [int(y) for y in t2["year"]], "months": [int(m) for m in t2["months"]],
+               "realised": [round(x, 3) for x in t2["realised"]], "forecast": [round(x, 3) for x in t2["forecast"]]},
+        "f3": {e: {"cap": list(g["cap"]), "chosen": [round(x, 3) for x in g["chosen_turnover"]],
+                   "realised": [round(x, 3) for x in g["realised"]], "forecast": [round(x, 3) for x in g["forecast"]]}
+               for e, g in fr.groupby("estimator", sort=False)},
+        "f4": {"sector": list(t4["label"]), **{k: [round(x, 4) for x in t4[k]] for k in ("allocation", "allocation_se", "selection", "selection_se")}},
+    }
+
+    # --- the four Key points: one wording for the dashboard, the note and the README (W1) ---
+    KEY_POINTS = [
+        "Under the mandate the four covariance estimators realise {{te_lo}} to {{te_hi}} basis points a year of tracking error, and each one's forecast understates it. The bias statistic, realised over forecast, is {{bias_lo}} to {{bias_hi}}, above the band of 0.8 to 1.25 fixed before the run.",
+        "Index changes force {{forced}} per cent a year of the Ledoit-Wolf path's {{total_turn}} per cent of one-way turnover, or {{forced_share}} per cent. On the Ledoit-Wolf estimator, loosening the cap on chosen turnover from 0.5 per cent a month to none raises it from {{chosen_lo}} to {{chosen_hi}} per cent a year, while the realised tracking error stays between {{fr_te_lo}} and {{fr_te_hi}} basis points a year. On the factor estimator chosen turnover rises from {{fa_chosen_lo}} to {{fa_chosen_hi}} per cent a year and the tracking error falls from {{fa_re_tight}} to {{fa_re_none}}.",
+        'Month by month, allocation is the largest of the three Brinson-Fachler terms on the Ledoit-Wolf, factor and principal-component estimators: {{alloc_lo}} to {{alloc_hi}} basis points a month in absolute value on average, against {{sel_lo}} to {{sel_hi}} for selection and {{int_lo}} to {{int_hi}} for interaction. Over the {{months}} months the active return is {{ar_lo}} to {{ar_hi}} basis points a year before costs, within one Newey-West standard error of zero on every path, as is each of its three terms, and the six factors explain {{share_lo}} to {{share_hi}} per cent of its variance.',
+        "The benchmark rebuilt from CRSP's list of index members reproduces CRSP's own value-weighted return of the same list with a tracking error of {{recon_te}} basis points a year from {{recon_years_first}} to {{recon_years_last}}. Its momentum and variance spreads have correlations of {{mom_corr}} and {{var_corr}} with Kenneth R. French's large-cap spreads.",
+    ]
+    for k, text in enumerate(KEY_POINTS, 1):
+        P[f"kp{k}"] = re.sub(r"\{\{(\w+)\}\}", lambda m: P[m.group(1)], text)
+
+    return P, D

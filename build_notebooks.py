@@ -1752,9 +1752,147 @@ What could still be wrong. The terms are summed over months arithmetically, with
 ]
 
 
+# ---------------------------------------------------------------------------
+# 12: the figures
+# ---------------------------------------------------------------------------
+
+SETUP_12 = """
+import hashlib
+import io
+import pathlib
+import sys
+
+ROOT = pathlib.Path.cwd().parent if pathlib.Path.cwd().name == "notebooks" else pathlib.Path.cwd()
+sys.path.insert(0, str(ROOT / "src"))
+
+import matplotlib
+from IPython.display import SVG, display
+
+from slt import constants as C
+from slt import figures as F
+
+RES = F.results_dir(ROOT)
+FIG = ROOT / "dashboard" / "figures"
+print("results:", RES.relative_to(ROOT), "| matplotlib", matplotlib.__version__)
+
+
+def show(fig):
+    # shows a figure as the SVG file it is written to
+    buf = io.BytesIO()
+    F.save(fig, buf)
+    display(SVG(buf.getvalue()))
+"""
+
+NB12 = [
+    md("""
+# 12. The figures
+
+**What this notebook does.** It plots the four figures that the dashboard, the README and the note show, from the tables committed in `results/20260928/` and from nothing else, and writes them to `dashboard/figures/`. It needs no extraction and runs on any machine with a clone of the repository.
+
+**Why it comes here.** Notebooks 09 to 11 wrote every figure the study reports. This notebook only plots four of them, so a reader can check each picture against a table they can open.
+
+**Terms used in this notebook.**
+
+- *market capitalisation*: price times shares outstanding, at the end of the month before.
+- *benchmark*: the universe of notebook 02, each stock weighted by its market capitalisation at the start of the month.
+- *active weight*: a stock's weight in the portfolio minus its weight in the benchmark. The *active return* is the portfolio's return minus the benchmark's.
+- *basis point*: a hundredth of a percentage point. The *tracking error* is the standard deviation of the monthly active return, times the square root of 12, here in basis points a year.
+- *factor*: a common source of return, here one of French's five factors or his momentum factor.
+- *covariance matrix*: the table of the stocks' variances and of their covariances with each other. A *covariance estimator* is one way of estimating it from three years of daily returns: the sample covariance, the Ledoit-Wolf estimator, the factor estimator, built on the six factors, and the principal-component estimator.
+- *forecast tracking error*: the tracking error that the month's covariance matrix implies for the month's active weights. The *bias statistic* is the standard deviation of each month's active return divided by that month's forecast, one when the forecasts are right on average.
+- *turnover*: the month's one-way trading as a share of the portfolio. *Chosen turnover* is the part the optimiser chooses and a cap limits, as notebook 10 measured it.
+- *mandate*: constraint set C3 of notebook 08. Its *tilt*: every Energy and Utilities stock capped at half its benchmark weight. A *path* is one covariance estimator under one constraint set at one cap on chosen turnover, run month by month from July 1999 to December 2024.
+- *attribution*: a split of the active return into parts that sum to it. *Allocation* and *selection* are two of the three parts of the attribution by sector of notebook 11, from holding sectors at other weights than the benchmark's and from holding other stocks within a sector.
+- *Newey-West standard error*: the standard error of a mean that allows each month to be correlated with the next twelve.
+
+**What I expect to see.** This notebook judges nothing: every expectation was judged in notebooks 01 to 11. It reproduces committed figures, and each section prints the table behind its figure.
+
+Running time: under a minute.
+"""),
+    code(SETUP_12),
+    md("""
+## 1. The inputs
+
+The four committed files the figures read, with the notebook that wrote each and the first twelve characters of its SHA-256.
+"""),
+    code("""
+for name in ["paths_summary.json", "paths_by_year.csv", "brinson_summary.json"]:
+    data = (RES / name).read_bytes()
+    print(f"{name:24s} {hashlib.sha256(data).hexdigest()[:12]}")
+"""),
+    md("""
+## 2. Figure 1: forecast and realised tracking error under the mandate
+
+For each of the four covariance estimators under the mandate at the 2 per cent cap: the mean forecast tracking error, the realised tracking error and the bias statistic, over the 306 months.
+"""),
+    code("""
+t1 = F.tracking_error_by_estimator(RES)
+print(t1.round(2).to_string(index=False))
+show(F.draw_tracking_error(t1))
+"""),
+    md("""
+## 3. Figure 2: tracking error by year, the Ledoit-Wolf path
+
+The realised tracking error of each calendar year and the mean of that year's forecasts, on the Ledoit-Wolf estimator under the mandate at the 2 per cent cap. The year 1999 holds six months.
+"""),
+    code("""
+t2 = F.tracking_error_by_year(RES)
+print(t2.round(1).to_string(index=False))
+show(F.draw_by_year(t2))
+"""),
+    md("""
+## 4. Figure 3: tracking error against chosen turnover at five caps
+
+The Ledoit-Wolf and factor estimators under the mandate at caps of 0.5, 1, 2 and 4 per cent a month and with no cap: chosen turnover in per cent a year, and the realised and mean forecast tracking error in basis points a year. Where two caps give almost the same turnover, one label names both.
+"""),
+    code("""
+t3 = F.frontier(RES)
+print(t3.round(1).to_string(index=False))
+show(F.draw_frontier(t3))
+"""),
+    md("""
+## 5. Figure 4: allocation and selection by sector, the Ledoit-Wolf path
+
+Each sector's allocation and selection over the window, as annual averages, each with a bar of two Newey-West standard errors on each side. Interaction is printed in the table and not drawn. In Energy and Utilities selection is close to zero because the tilt's cap at half the benchmark weight binds on almost every stock there, as the README says with its count. The last line counts, on each path, the sector terms that lie two standard errors or more from zero, out of 36.
+"""),
+    code("""
+t4 = F.sector_terms(RES)
+print(t4.round(2).to_string(index=False))
+print("terms two standard errors or more from zero:", F.terms_beyond_two_se(RES))
+show(F.draw_sector_terms(t4))
+"""),
+    md("""
+## 6. The files
+
+The four figures are written as SVG files with their text drawn as outlines, so they look the same on every machine. Each is drawn a second time from the same tables and compared byte for byte with the first, so that a rebuild from the committed tables gives the same file.
+"""),
+    code("""
+FIG.mkdir(parents=True, exist_ok=True)
+drawings = {"fig1_tracking_error.svg": (F.draw_tracking_error, t1), "fig2_tracking_error_by_year.svg": (F.draw_by_year, t2),
+            "fig3_frontier.svg": (F.draw_frontier, t3), "fig4_sector_terms.svg": (F.draw_sector_terms, t4)}
+for name, (draw, table) in drawings.items():
+    first, second = io.BytesIO(), io.BytesIO()
+    F.save(draw(table), first)
+    F.save(draw(table), second)
+    assert first.getvalue() == second.getvalue(), name
+    (FIG / name).write_bytes(first.getvalue())
+    print("written:", (FIG / name).relative_to(ROOT), len(first.getvalue()), "bytes")
+matplotlib.pyplot.close("all")
+"""),
+    md("""
+## What was learned, and what could be wrong
+
+What the notebook establishes: the four figures are drawn from the committed tables alone, and a second drawing from the same tables gives the same bytes.
+
+What could still be wrong. The figures inherit every limit of the tables they draw, which notebooks 09 to 11 set out. A figure shows four of the many figures the study reports and leaves out the rest, which the README and the dashboard's tables give. And the same tables drawn with another version of matplotlib can give a file that looks the same with other bytes, so the version is printed at the top.
+"""),
+]
+
+
 if __name__ == "__main__":
     for name, cells in (("01_extraction.ipynb", NB01), ("02_universe.ipynb", NB02), ("03_returns.ipynb", NB03),
                         ("04_reconstruction.ipynb", NB04), ("05_sectors.ipynb", NB05), ("06_answer_key.ipynb", NB06),
                         ("07_covariance.ipynb", NB07), ("08_mandate.ipynb", NB08), ("09_rolling_evaluation.ipynb", NB09),
-                        ("10_turnover.ipynb", NB10), ("11_attribution.ipynb", NB11)):
+                        ("10_turnover.ipynb", NB10), ("11_attribution.ipynb", NB11),
+                        ("12_figures.ipynb", NB12)):
         print("wrote", write(name, cells).relative_to(ROOT))

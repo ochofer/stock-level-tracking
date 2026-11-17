@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stock-level index tracking: a point-in-time benchmark, a long-only mandate and its attribution by sector</title>
+<meta name="description" content="The note of the study: a benchmark rebuilt from CRSP's list of S&amp;P 500 members and checked three ways, a long-only mandate under four covariance estimators from {{first_w}} to {{last_w}}, its turnover by cause and its active return attributed by sector and by factor, with the four gates, the nine expectations and the tables in full.">
+<link rel="icon" href="https://www.carlohofer.com/images/favicon.svg" type="image/svg+xml">
+<style>
+@page { size: A4; margin: 20mm 20mm 20mm 20mm; }
+body { font-family: Georgia, "Times New Roman", serif; font-size: 10pt; line-height: 1.38; color: #262b33; margin: 0; background: #ffffff; }
+.sheet { max-width: 170mm; margin: 0 auto; padding: 0 16px; }
+@font-face { font-family: "EB Garamond"; src: url("https://www.carlohofer.com/assets/fonts/EBGaramond-var-latin.woff2") format("woff2"); font-weight: 400 800; font-display: swap; }
+.ch-band { background: linear-gradient(90deg, #121a2c 0%, #172238 60%, #1a263b 100%); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+.ch-band__in { max-width: 1180px; margin: 0 auto; padding: 0 16px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+.ch-word { font-family: "EB Garamond", Garamond, Georgia, serif; font-weight: 500; text-transform: uppercase; letter-spacing: .22em; color: #ece6d9; text-decoration: none; font-size: 17px; }
+.ch-nav a { color: rgba(236,230,217,.78); text-decoration: none; font-size: 15px; margin-left: 20px; }
+.ch-nav a:hover { color: #ece6d9; }
+.ch-back { max-width: 170mm; margin: 14px auto 18px; padding: 0 16px; font-size: 14px; color: #5d6470; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+.ch-back a { color: #1f3a60; }
+.ch-foot { background: #f5f5f5; border-top: 1px solid #dddddd; color: #5d6470; font-size: 14px; margin-top: 40px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+.ch-foot > div { max-width: 1180px; margin: 0 auto; padding: 20px 16px 32px; }
+.ch-foot a { color: #1f3a60; }
+@media (max-width: 600px) { .ch-band__in { height: 48px; } .ch-nav a:not(:first-child) { display: none; } }
+.ch-word, .ch-nav a { white-space: nowrap; }
+@media (max-width: 359px) { .ch-word { font-size: 15px; letter-spacing: .12em; } .ch-nav a { font-size: 13px; margin-left: 12px; } }
+@media screen { .sheet { font-size: 11.5pt; } }
+@media print { .ch-band, .ch-back, .ch-foot { display: none; } .sheet { max-width: 170mm; padding: 0; } h2 { margin-top: 13pt; } .refs p { margin-bottom: 1.5pt; } }
+h1 { font-size: 15.5pt; font-weight: normal; margin: 0 0 4pt 0; line-height: 1.25; }
+.byline { font-size: 10pt; margin: 0 0 14pt 0; color: #5d6470; }
+h2 { font-size: 11.5pt; margin: 16pt 0 5pt 0; font-weight: bold; break-after: avoid; }
+h3 { font-size: 10.5pt; margin: 10pt 0 3pt 0; font-weight: bold; font-style: italic; break-after: avoid; }
+p { margin: 0 0 7pt 0; text-align: justify; orphans: 3; widows: 3; }
+.abstract { font-size: 9.5pt; margin: 0 8mm 10pt 8mm; }
+ul.summary { font-size: 9.5pt; margin: 0 0 12pt 0; padding-left: 5mm; text-align: justify; }
+ul.summary li { margin: 0 0 4pt 0; }
+.tblock, figure { break-inside: avoid; page-break-inside: avoid; margin: 8pt 0 10pt 0; }
+.tcap, figcaption { font-size: 8.8pt; font-weight: bold; margin: 0 0 3pt 0; text-align: left; }
+figure img { width: 100%; height: auto; display: block; }
+.tscroll { overflow-x: auto; }
+.tscroll table { border-collapse: collapse; width: 100%; font-size: 8pt; margin: 2pt 0 2pt 0; font-variant-numeric: tabular-nums; }
+.tscroll th, .tscroll td { padding: 1.6pt 3pt; text-align: right; white-space: nowrap; vertical-align: top; }
+.tscroll thead th { border-top: 1px solid #000; border-bottom: 1px solid #000; font-weight: normal; font-style: italic; vertical-align: bottom; white-space: normal; }
+.tscroll thead th:first-child, .tscroll tbody th { text-align: left; font-weight: normal; }
+.tscroll tbody tr:last-child th, .tscroll tbody tr:last-child td { border-bottom: 1px solid #000; }
+.verdicts td:nth-child(2), .verdicts td:nth-child(3) { white-space: normal; text-align: left; min-width: 14em; }
+.verdicts thead th:nth-child(2), .verdicts thead th:nth-child(3) { text-align: left; }
+p.tn { font-size: 8pt; text-align: left; margin: 2pt 0 10pt 0; line-height: 1.3; }
+.termshead { font-size: 8.8pt; margin: 0 0 2pt 0; font-weight: bold; }
+dl.terms { font-size: 8.4pt; line-height: 1.32; margin: 0 0 12pt 0; text-align: justify; }
+dl.terms dt { display: inline; font-weight: bold; }
+dl.terms dt::after { content: ": "; font-weight: normal; }
+dl.terms dd { display: inline; margin: 0; }
+dl.terms dd::after { content: " "; }
+.refs p { font-size: 9pt; text-indent: -6mm; padding-left: 6mm; text-align: left; margin-bottom: 2pt; line-height: 1.3; overflow-wrap: anywhere; }
+.other p { font-size: 9pt; text-align: left; }
+@media screen { .tscroll table { font-size: 12px; } .tcap, figcaption { font-size: 13px; } p.tn { font-size: 12px; } }
+</style>
+</head>
+<body>
+<header class="ch-band"><div class="ch-band__in">
+  <a class="ch-word" href="https://www.carlohofer.com/">Carlo Hofer</a>
+  <nav class="ch-nav"><a href="https://www.carlohofer.com/projects/">Investment research</a><a href="https://www.carlohofer.com/projects/rules-based-portfolio/">Portfolio</a><a href="https://www.carlohofer.com/publications/">Publications</a><a href="https://www.carlohofer.com/cv/">Academic CV</a></nav>
+</div></header>
+<p class="ch-back"><a href="https://www.carlohofer.com/projects/stock-level-tracking/">&larr; Stock-level index tracking</a> &middot; <a href="https://www.carlohofer.com/projects/">Investment research</a></p>
+<div class="sheet">
+<h1>Stock-level index tracking: a point-in-time benchmark, a long-only mandate and its attribution by sector</h1>
+<p class="byline">Carlo Hofer. November 2026. Code, notebooks and the tables every figure is drawn from: github.com/ochofer/stock-level-tracking. The dashboard: carlohofer.com/stock-level-tracking/dashboard/.</p>
+
+<p class="termshead">Summary</p>
+<ul class="summary">
+<li>{{kp1}}</li>
+<li>{{kp2}}</li>
+<li>{{kp3}}</li>
+<li>{{kp4}}</li>
+</ul>
+
+<p class="termshead">Terms used in this note, each with the one meaning it carries throughout.</p>
+<dl class="terms">
+<dt>universe</dt><dd>the point-in-time S&amp;P 500, the stocks on CRSP's list of index members on the last trading day of the month before.</dd>
+<dt>market capitalisation</dt><dd>price times shares outstanding, at the end of the month before.</dd>
+<dt>cap-weighted</dt><dd>weighted by market capitalisation. CRSP's value-weighted return of the list is the cap-weighted return as CRSP computes it.</dd>
+<dt>value-weighted</dt><dd>cap-weighted.</dd>
+<dt>benchmark</dt><dd>the cap-weighted universe, each stock's weight its market capitalisation over the universe's total.</dd>
+<dt>active weight</dt><dd>a weight in the portfolio minus the same weight in the benchmark.</dd>
+<dt>active return</dt><dd>the portfolio's return minus the benchmark's, each over the month's names with a return.</dd>
+<dt>basis point</dt><dd>a hundredth of a percentage point.</dd>
+<dt>tracking error</dt><dd>the standard deviation of the monthly active return, times the square root of 12. The forecast is the tracking error the month's covariance matrix implies for the month's active weights, and the realised is the one measured afterwards.</dd>
+<dt>excess return</dt><dd>a return minus the one-month Treasury bill rate.</dd>
+<dt>covariance matrix</dt><dd>the table of the stocks' variances and of their covariances with each other.</dd>
+<dt>eigenvalue</dt><dd>the variance of one of the uncorrelated portfolios a covariance matrix splits into. The condition number is the largest eigenvalue over the smallest.</dd>
+<dt>singular</dt><dd>said of a matrix whose smallest eigenvalue is zero.</dd>
+<dt>covariance estimator</dt><dd>a way of estimating the covariance matrix from three years of daily returns: the sample covariance, the Ledoit-Wolf estimator, which shrinks the sample covariance towards a scaled identity matrix, a factor model on French's five factors and momentum, and a principal-component model with the benchmark as its first factor. The last three are the structured estimators.</dd>
+<dt>band</dt><dd>the range of the bias statistic within which a forecast counts as right, 0.8 to 1.25, fixed before the run.</dd>
+<dt>shrinkage intensity</dt><dd>the weight, from zero to one, that the Ledoit-Wolf estimator puts on the scaled identity matrix, set by the data.</dd>
+<dt>estimation error</dt><dd>the difference between an estimate and the quantity it estimates, here between a covariance matrix estimated from three years of returns and the one that holds in the month.</dd>
+<dt>bias statistic</dt><dd>the standard deviation of each month's active return divided by that month's forecast, over the months with a forecast above one millionth. It is one when the forecasts are right on average.</dd>
+<dt>mandate</dt><dd>the full set of constraints the portfolio obeys, constraint set C3 below.</dd>
+<dt>tilt</dt><dd>every Energy and Utilities stock capped at half its benchmark weight.</dd>
+<dt>beta</dt><dd>the slope of a return on the benchmark's return.</dd>
+<dt>path</dt><dd>one covariance estimator under one constraint set at one turnover cap, run month by month from the benchmark.</dd>
+<dt>turnover</dt><dd>a month's one-way trading as a share of the portfolio. Forced turnover is what index changes require, and chosen turnover the rest. Reweighting is the turnover that following the benchmark's own changes in share counts and its dividends takes, rebalancing the optimiser's own moves, and the overlap the trades of one step that the next undoes.</dd>
+<dt>turnover cap</dt><dd>the limit on chosen turnover, 2 per cent of the portfolio a month in the mandate.</dd>
+<dt>Newey-West standard error</dt><dd>the standard error of a mean that allows each month to be correlated with the next twelve. A plain standard error makes no such allowance.</dd>
+<dt>autocorrelation</dt><dd>the correlation of a series with its own past values.</dd>
+<dt>attribution</dt><dd>a split of the active return into parts that sum to it.</dd>
+<dt>allocation</dt><dd>the part from holding a sector at another weight than the benchmark's, the sector's active weight times the benchmark sector's return less the benchmark's.</dd>
+<dt>selection</dt><dd>the part from holding other stocks within a sector, the sector's benchmark weight times the portfolio sector's return less the benchmark sector's.</dd>
+<dt>interaction</dt><dd>the sector's active weight times that same difference.</dd>
+<dt>Unclassified</dt><dd>the twelfth sector, the members with no GICS sector, one to three securities a month.</dd>
+<dt>factor</dt><dd>a common source of return: the market, size, value, profitability and investment factors of Fama and French (2015), and momentum.</dd>
+<dt>loading</dt><dd>a stock's sensitivity to a factor, from a regression of its daily returns on the six factors over the three years before the month.</dd>
+<dt>active exposure</dt><dd>the members' loadings on a factor weighted by the active weights. A factor's contribution is its active exposure times its return, the residual is the active return less the contributions, and the factor share is one minus the residual's variance over the active return's.</dd>
+<dt>look-ahead</dt><dd>the use, in a decision dated at one time, of data published only later, named in the Other projects below.</dd>
+<dt>Sharpe ratio</dt><dd>a portfolio's mean excess return over its standard deviation, named in the Other projects below.</dd>
+<dt>gate</dt><dd>a test of the data fixed in advance, which stops the study if it is not met.</dd>
+<dt>expectation</dt><dd>a test of a result fixed in advance, reported as a finding whether it is met or not. An expectation named for two or more estimators has one verdict, met only if it holds for each.</dd>
+</dl>
+
+<h2>1. Introduction</h2>
+
+<p>An index-tracking mandate is judged by how far its portfolio strays from a cap-weighted benchmark, and the manager who runs it states that distance in advance as a forecast tracking error, computed from a covariance matrix of the benchmark's stocks. Yet the benchmark changes its members every month, a covariance matrix of about 500 stocks estimated from about 755 days of returns carries estimation error (Ledoit and Wolf, 2004) that an optimiser exploits (DeMiguel et al., 2009), and the client's constraints, bounds on single names and sectors, a cap on turnover, exclusions and tilts, decide how much the optimiser can do with the forecast. The question this note asks is therefore a practical one: under such a mandate, how close does the portfolio stay to the benchmark, how well does each of four common covariance estimators forecast the distance it realises, what is the turnover made of, and where does the active return come from by sector.</p>
+
+<p>The closest evidence comes from a companion study that ran the same mandate on Kenneth R. French's 49 industry portfolios and found that five covariance estimators understate their own tracking error, by 22 to 61 per cent (Hofer, 2026). But an industry portfolio does not behave like a stock in the ways a mandate depends on. Industries do not enter or leave the benchmark, are never delisted, carry no single-name concentration and sit in no GICS sector, so the industry evidence leaves open whether the understatement, and the structure of the active return, carry over to the level at which a mandate is run. At the stock level the benchmark itself has to be built: a list of members as it stood at each date, their capitalisations at the start of each month, their returns with the returns of delisted stocks applied (Shumway, 1997), and their sectors as they were classified at the time.</p>
+
+<p>This study builds that benchmark and runs the mandate on it. I take the members of the S&amp;P 500 from CRSP's list, month by month from {{recon_first_w}} to {{recon_last_w}}, weight each by its market capitalisation at the start of the month, and check the result three ways: against CRSP's own value-weighted return of the same list, against CRSP's count of members and their total value, and against French's large-cap portfolios sorted on momentum and on variance. From {{first_w}}, when Compustat's GICS history begins, a long-only mandate minimises the forecast tracking error each month under four covariance estimators, with bounds per stock, company and sector, a cap on chosen turnover, the tilt, two excluded GICS sub-industries and a beta of one. Twenty-four paths run over the {{months}} months to {{last_w}}. The turnover of each is split into the part that index changes force, the part that follows the benchmark's own reweighting and the part the optimiser chooses, and the active return of the four paths at a 2 per cent cap is attributed by sector with the method of Brinson and Fachler (1985) and by the five factors of Fama and French (2015) and momentum. Four gates on the data and nine expectations on the results were written into the code's constants, each dated before the run that judges it. The design measures the mandate's tracking error, its forecast and its parts, and only that: it does not estimate a return the mandate earns, since a portfolio built to minimise its tracking error is not built to earn one.</p>
+
+<p>The S&amp;P 500 between 1999 and 2024 is an informative setting for this question for three reasons. First, CRSP's list dates each membership by day, so the benchmark can be rebuilt with nothing unknown when each month begins, and CRSP's own file of the index supplies an answer key against which the rebuilt return can be checked. Second, the window holds the fall of 2000 to 2002, the financial crisis of 2008 and the shock of 2020, months in which volatilities and correlations moved far from their values over the three years before, which is where a forecast drawn from those three years is most likely to miss. Third, from 2014 the list holds companies with two share classes whose daily returns move almost together, a feature that tests a covariance estimator in a way that industry portfolios cannot.</p>
+
+<p>Empirically, the rebuilt benchmark reproduces CRSP's value-weighted return of the same list with a tracking error of {{recon_te}} basis points a year over 99 years, and the mandate's realised tracking error, {{te_lo}} to {{te_hi}} basis points a year on the four estimators, lies above every estimator's forecast. The bias statistics of {{bias_lo}} to {{bias_hi}} lie above the band of 0.8 to 1.25 fixed before the run, and the understatement is largest in {{peak_year}}, when the Ledoit-Wolf path realised {{peak_re}} basis points against a mean forecast of {{peak_fc}}. Index changes force {{forced}} of the {{total_turn}} per cent a year that the Ledoit-Wolf path turns over. By sector, allocation is the largest of the three terms month by month on each structured estimator, as expected, while over the window the three terms are small beside their standard errors: on the Ledoit-Wolf path allocation and selection average {{lw_alloc}} and {{lw_sel}} basis points a year, on Newey-West standard errors of {{lw_alloc_se}} and {{lw_sel_se}}. The estimates therefore indicate where the mandate's tracking error comes from without identifying a return it earns.</p>
+
+<p>The note is structured as follows. Section 2 sets out the data layer, the covariance estimators, the mandate, the measures and the two attributions, with the expectations fixed for each. Section 3 reports the verdicts and the results in the order the design runs. Section 4 sets the results against the industry evidence and states the limits of the design.</p>
+
+<h2>2. Data and design</h2>
+
+<h3>2.1 The universe and the benchmark</h3>
+
+<p>The universe in month <i>t</i> is the set of stocks on CRSP's list of index members on the last trading day of month <i>t</i> minus 1, so that nothing unknown when the month begins decides membership. Each member's monthly return comes from CRSP's monthly stock file. A delisting in the month is applied as Shumway (1997) proposes: CRSP's delisting return where it gives one, and where it does not, minus 30 per cent for a delisting for poor performance and zero for any other reason. A member's market capitalisation at the start of month <i>t</i> is its price times its shares outstanding at the end of month <i>t</i> minus 1, and the benchmark weights each member by it. A member's sector is the GICS sector in force on the last trading day of month <i>t</i> minus 1, found through CRSP's link to Compustat, and a member with no sector on that day is counted in a twelfth sector, Unclassified. The data are CRSP and Compustat via Wharton Research Data Services, accessed through Queen Mary University of London, from an extraction of 28 September 2026. CRSP ends on 31 December 2024 on this subscription, and so does the sample.</p>
+
+<p>The index as S&amp;P publishes it is not the benchmark, for two reasons that the data impose. Its total return is not in the extraction, and since 2005 the index weights each stock by the shares available to the public, its float, which cannot be rebuilt from CRSP's share counts. The benchmark is therefore the full-capitalisation universe of CRSP's list, and every tracking error in this note is measured against it.</p>
+
+<h3>2.2 The checks on the data</h3>
+
+<p>Three checks say whether the rebuilt benchmark is what it claims to be. First, its return, with dividends and price-only, is set beside CRSP's own value-weighted return of the same list. Second, its count of members and their total value are set beside CRSP's count and total value. Third, the universe is sorted each month into quintiles on momentum, the return compounded from month <i>t</i> minus 12 to month <i>t</i> minus 2, and on variance, the variance of daily returns over the 60 trading days before the month, both as French defines them, and the cap-weighted spread of the highest quintile less the lowest is set beside French's spread within his largest size quintile. French's quintile is cut at NYSE breakpoints and holds between about 100 and 530 names a month, so the two sets overlap without coinciding and a correlation near one is not expected.</p>
+
+<p>Four gates and three expectations judge the data layer. The gates are that the benchmark's tracking error against CRSP's value-weighted return of the same list is at most 50 basis points a year (G1), that the usable window is at least 15 years (G2), that at least 90 per cent of the stocks removed from the universe from 1990 have a CRSP price within 10 trading days of their removal (G3), and that the market capitalisation is present in at least 90 per cent of membership months for at least 90 per cent of names (G4). A gate that is not met stops the study. The expectations are a tracking error of at most 20 basis points a year with a mean monthly difference within 2 basis points of zero, with dividends and price-only (E1), a count within 10 names of CRSP's in every month and a total value within 2 per cent in at least 95 per cent of months (E2), and, for each sort, a correlation of at least 0.80 with French's spread and a mean monthly difference within two standard errors of zero (E3).</p>
+
+<h3>2.3 The covariance estimators</h3>
+
+<p>For each month of the evaluation window, the covariance matrix of the members' daily excess returns over the three years before the month is estimated in four ways: the sample covariance, the Ledoit-Wolf estimator (Ledoit and Wolf, 2004), a factor model on French's five factors and momentum, and a principal-component model with the benchmark as its first factor and four further components. The four estimators are copied unchanged from the companion study's code, and a test checks each copied file's SHA-256. A member that lacks a return on more than five days of the window takes a row from a model fitted on its own days, so that each matrix is positive semi-definite by construction. With about 490 members on about 755 days the sample matrix exists and is poorly conditioned, and the first clause of E4 expects that in every month its condition number is at least 10 times that of the Ledoit-Wolf matrix.</p>
+
+<h3>2.4 The mandate</h3>
+
+<p>The mandate holds the universe close to the benchmark under constraints a long-only client would set, and its constraints come in four cumulative sets. C0 is long-only. C1 adds a bound per stock, each within 50 basis points of its benchmark weight, the same bound on the sum of a company's share classes, and a band per GICS sector, each within 2 percentage points of its benchmark weight. C2 adds a cap of 2 per cent a month on chosen turnover. C3, the mandate, adds the tilt, a weight of zero in two GICS sub-industries, Tobacco and Aerospace and Defense, and a beta of one to the benchmark. In a set with the tilt the sector band applies to the other sectors only, because half of Energy's benchmark weight is above 2 percentage points in 268 of the 306 months, and a sub-industry is wider than a list of controversial weapons. Each month the optimiser chooses the weights that make the forecast tracking error as small as the constraints allow, starting from a reference portfolio: last month's portfolio after last month's returns, with the stocks that left the universe sold and the entrants bought at their benchmark weight. Forced turnover runs to the reference portfolio and chosen turnover from it, so the cap limits only what the optimiser chooses.</p>
+
+<p>Twenty-four paths run month by month over the evaluation window, each starting as the benchmark: the four estimators under the four sets at the 2 per cent cap, and the Ledoit-Wolf and factor estimators under the mandate at caps of 0.5, 1 and 4 per cent and with no cap, which trace the frontier of tracking error against turnover. Costs are 10 basis points per unit of total one-way turnover, forced turnover included, with 20 as the sensitivity, and returns are gross of fees. The expectations on the mandate are that the sample estimator's realised tracking error is above the Ledoit-Wolf estimator's (E4, second clause), that for the Ledoit-Wolf and factor estimators the mean forecast does not rise as the cap loosens and the realised tracking error at the 4 per cent cap is below that at 0.5 (E5), that each structured estimator realises 50 to 150 basis points a year with a bias statistic between 0.8 and 1.25 (E6), and that forced turnover is less than a third of the Ledoit-Wolf path's total (E7).</p>
+
+<h3>2.5 The two attributions</h3>
+
+<p>The active return of the four paths at the 2 per cent cap is split each month in two ways. By sector, with the method of Brinson and Fachler (1985), allocation, selection and interaction are computed for each of the twelve sectors, and summed over the sectors the three equal the month's active return. Both sides are taken over the month's names with a return, each rescaled to one, as the committed active return is. A sector that the portfolio does not hold, none of its stocks with a return above a weight of one millionth, has a selection of zero and keeps the rest of its part as interaction, so that the identity holds exactly. The monthly terms are summed over months arithmetically, with no geometric linking, and reported as annual averages with Newey-West standard errors at 12 lags (Newey and West, 1987). By factor, the attribution of the companion study, copied unchanged, multiplies each month's active exposures to the six factors, from the factor estimator's loadings of the month, by French's monthly factor returns, and leaves a residual that closes the sum.</p>
+
+<p>Two expectations judge the attributions. E8 expects the three terms to sum to the active return within 1e-9 in every month of the four paths, and, on each of the Ledoit-Wolf, factor and principal-component paths, the mean absolute monthly allocation to exceed the mean absolute monthly selection, with the interaction's the smallest of the three, each month's figure being the sum over the twelve sectors. The reason fixed before the run is that the mandate's active return comes from the tilt, an underweight of two sectors, while the stocks within sectors are chosen to keep the tracking error small. E9 expects contributions and residual to sum to the active return within 1e-9 in every month, and the mean active exposure to the market factor to lie within 0.05 of zero on each of the four paths, because the mandate holds its beta at one.</p>
+
+<h2>3. Results</h2>
+
+<h3>3.1 The verdicts</h3>
+
+<p>Table 1 reports the four gates and the nine expectations with the figure each verdict rests on. The four gates are met, so the study runs on the full design. Of the expectations, E1, E2, E3, E7, E8 and E9 are met, E5 and E6 are not, and E4 is met in its second clause and not in its first. Each is reported below in the order the design runs, in the same words whether it is met or not.</p>
+
+<div class="tblock">
+<p class="tcap">Table 1. The four gates and nine expectations, fixed before each run, and what the run found</p>
+{{table1}}
+<p class="tn">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. {{results}}/verdicts_milestone1.json to verdicts_milestone4.json.</p>
+</div>
+
+<h3>3.2 The data layer</h3>
+
+<p>The rebuilt benchmark reproduces CRSP's own figures closely. The universe holds 1,936 securities over 2,064 membership spells, {{member_months}} member-months from {{recon_first_w}} to {{recon_last_w}}, and its count is within 10 names of CRSP's own count on the same day in all 1,188 months, so the usable window is the whole 99 years (G2, E2). Its tracking error against CRSP's value-weighted return of the same list is {{recon_te}} basis points a year with dividends and {{recon_te_px}} price-only, with mean monthly differences of minus 0.18 and minus 0.16 basis points (G1, E1), and over the evaluation window the tracking error with dividends is {{recon_eval_te}}. Its total value is within 2 per cent of CRSP's in 1,186 of the 1,188 months. All 836 removals from 2 January 1990 have a CRSP price within 10 trading days (G3), and 1,902 of 1,912 names have a market capitalisation in at least 90 per cent of their membership months (G4). Of the 799 delisting months of members, CRSP gives the delisting return in 798, and the minus 30 per cent of Shumway (1997) is used once.</p>
+
+<p>Two comparisons with no verdict bear on how the list was assembled. The benchmark's price-only return against the index's own price return has a tracking error of {{idx_to_2004}} basis points a year over the months to December 2004, when the index weighted each stock by its full capitalisation, and {{idx_from_2005}} from January 2005, when it weights by float. The gap before 2005 is therefore evidence on membership independent of CRSP's list, removals included. From July 1999 at least 99.4 per cent of the universe's members and at least 99.0 per cent of its capitalisation have a GICS sector in every month, which is why the evaluation window runs the 306 months from July 1999.</p>
+
+<p>Against French's portfolios, the universe's spreads track his large-cap spreads without coinciding with them (E3). Over the 1,172 months from January 1927 to December 2024 with a value in both, the momentum spread has a correlation of {{mom_corr}} with French's, and their mean monthly difference is minus 10.4 basis points on a standard error of 9.0, or 1.15 standard errors. Over the 417 months from April 1990 the variance spread has a correlation of {{var_corr}} and a mean difference of plus 2.7 basis points on 9.4, or 0.29 standard errors. With no verdict, the momentum correlation is 0.846 over the 359 months to March 1957, when the universe held about 90 names, and 0.927 over the 813 months from April 1957, consistent with the two sets overlapping more once the universe holds about 500 names.</p>
+
+<h3>3.3 The covariance estimators</h3>
+
+<p>The first clause of E4 is not met. The sample matrix's condition number is at least 10 times the Ledoit-Wolf matrix's in {{e4_months}} of the 306 months, all of them from 2017, and the ratio is 5.4 at the median and 2.8 at the least. With about 490 members on about 755 days the sample matrix is not singular, and the Ledoit-Wolf shrinkage intensity lies between 1.1 and 7.1 per cent, so the shrunk matrix stays close to the sample one. The months that reach the level have a cause found after the run. From 2014 the universe holds up to five companies with two share classes each, and where both classes are complete members their daily returns have a correlation of 0.98 at the median, so the difference between the two is a portfolio with almost no variance and sets the smallest eigenvalue of the sample matrix. With one share class for each company the level is reached in {{e4_one_class}} of the 306 months, all from 2020 to 2022, and the median ratio is 5.0. This check carries no verdict, and the basis of E4 stays as it was written before the run.</p>
+
+<h3>3.4 Tracking error under the mandate</h3>
+
+<p>Figure 1 and Table 2 report the tracking error the mandate forecast and realised. Under the first three constraint sets nothing pushes the portfolio off the benchmark, and it stays there in every month: the largest absolute active weight of the twelve paths is 2.4e-6. Under the mandate at the 2 per cent cap the realised tracking error is 78.9 basis points a year on the Ledoit-Wolf estimator, 80.6 on the sample estimator, 80.5 on the factor estimator and 83.6 on the principal-component estimator, against mean forecasts of 55.2, 52.8, 45.1 and 48.0. The sample estimator's realised figure lies above the Ledoit-Wolf estimator's, as the second clause of E4 expects, but the difference of 1.7 basis points is smaller than the sampling error of either figure over 306 months, about 3, so the clause is met without separating the two estimators.</p>
+
+<figure>
+<figcaption>Figure 1. Forecast and realised tracking error under the mandate, four covariance estimators, {{first_w}} to {{last_w}}</figcaption>
+<img src="../dashboard/figures/fig1_tracking_error.svg" alt="Forecast and realised tracking error of the four estimators under the mandate" width="100%">
+<p class="tn">Basis points a year. Hollow: the mean of the monthly forecasts. Filled: the realised tracking error. Simulated, monthly rebalancing, before fees. Source: {{results}}/paths_summary.json, notebook 12.</p>
+</figure>
+
+<p>E6 is not met for any of the three structured estimators. Their realised tracking error lies inside the range of 50 to 150 basis points a year, at 78.9, 80.5 and 83.6, but the bias statistic, 1.48 on the Ledoit-Wolf estimator, 1.85 on the factor estimator and 1.73 on the principal-component estimator, lies above the band's upper end of 1.25 for all three, and the sample estimator's, with no verdict, is 1.60. Every estimator's forecast therefore understates the mandate's realised tracking error, and the understatement varies over time. On the Ledoit-Wolf path the realised tracking error by year runs from {{low_re}} basis points in {{low_year}} to {{peak_re}} in {{peak_year}}, when the mean forecast was {{peak_fc}}, and the forecast lies below the realised figure in {{below_years}} of the {{years}} years, above it only in {{above_list}}, as Figure 2 shows, so the understatement is not confined to one crisis.</p>
+
+<figure>
+<figcaption>Figure 2. Realised and forecast tracking error by year, the Ledoit-Wolf estimator under the mandate, 1999 to 2024</figcaption>
+<img src="../dashboard/figures/fig2_tracking_error_by_year.svg" alt="Realised and mean forecast tracking error by year, Ledoit-Wolf estimator" width="100%">
+<p class="tn">Basis points a year. The realised tracking error of each calendar year and the mean of its monthly forecasts. The year 1999 holds six months. Simulated, before fees. Source: {{results}}/paths_by_year.csv, notebook 12.</p>
+</figure>
+
+<div class="tblock">
+<p class="tcap">Table 2. The twelve paths under the mandate, {{first_w}} to {{last_w}}</p>
+{{table2}}
+<p class="tn">Tracking error, active return and its standard error in basis points a year, turnover one-way in per cent a year. Simulated, monthly rebalancing, gross of fees. The net active return is the gross less 10 basis points per unit of one-way turnover, forced turnover included. Source: {{results}}/paths_summary.json.</p>
+</div>
+
+<p>The active return is small beside its standard error on every path. The mean active return is 12.7, 13.7, 8.7 and 0.2 basis points a year gross of costs on the Ledoit-Wolf, sample, factor and principal-component estimators, each within one Newey-West standard error of zero ({{ar_se_lo}} to {{ar_se_hi}}), and 10.1, 11.1, 7.1 and minus 1.7 net of costs at 10 basis points. On the Ledoit-Wolf estimator the cap on chosen turnover binds in every month, and the portfolio holds 388 names on average and 333 at the least.</p>
+
+<h3>3.5 The cap on turnover</h3>
+
+<p>Figure 3 reports the frontier of tracking error against chosen turnover, and E5 is not met. For both estimators the mean forecast falls as the cap loosens, from {{lw_fc_tight}} basis points a year at 0.5 per cent to {{lw_fc_none}} with no cap on the Ledoit-Wolf estimator and from {{fa_fc_tight}} to {{fa_fc_none}} on the factor estimator, so the first part holds. The realised tracking error at the 4 per cent cap is {{fa_re_4}} on the factor estimator, below its {{fa_re_tight}} at 0.5 per cent, and {{lw_re_4}} on the Ledoit-Wolf estimator, above its {{lw_re_tight}}, so the second part fails for Ledoit-Wolf, and E5, one verdict over the two, is not met.</p>
+
+<figure>
+<figcaption>Figure 3. Tracking error against chosen turnover at five caps, the Ledoit-Wolf and factor estimators under the mandate, {{first_w}} to {{last_w}}</figcaption>
+<img src="../dashboard/figures/fig3_frontier.svg" alt="Realised and forecast tracking error against chosen turnover at five caps" width="100%">
+<p class="tn">Realised (filled) and mean forecast (hollow) tracking error in basis points a year, against chosen turnover in per cent a year. The labels give the cap in per cent a month, and caps whose turnovers lie within 2 per cent a year of each other share a label. Simulated, before fees. Source: {{results}}/paths_summary.json, notebook 12.</p>
+</figure>
+
+<p>The frontier is close to flat in what the mandate realises. Across the five caps the Ledoit-Wolf estimator's realised tracking error lies between {{fr_te_lo}} and {{fr_te_hi}} basis points a year, while its chosen turnover runs from {{chosen_lo}} to {{chosen_hi}} per cent a year. The factor estimator chooses at most {{fa_chosen_hi}} per cent a year, and the 2 per cent cap binds on it in {{fa_bind}} per cent of months, against every month on Ledoit-Wolf. The extra turnover therefore buys a lower forecast and no lower realised tracking error, which is consistent with the optimiser trading on the estimation error in the forecast.</p>
+
+<h3>3.6 What the turnover is made of</h3>
+
+<p>E7 is met. On the Ledoit-Wolf path at the 2 per cent cap forced turnover is {{forced}} per cent a year of a total of {{total_turn}}, or {{forced_share}} per cent, below the third fixed before the run. Reweighting is 3.67, rebalancing 24.94 and the overlap 5.34. A portfolio that holds the benchmark turns over {{held_total}} per cent a year, forced turnover {{held_forced}}, reweighting {{held_rew}} and no rebalancing, so nearly all of what the mandate trades beyond the benchmark's own turnover is the optimiser's choice.</p>
+
+<h3>3.7 The attribution by sector</h3>
+
+<p>E8 is met. The largest gap between the sum of the three terms and the active return, in any month of the four paths, is 9.6e-17. The mean absolute monthly allocation, selection and interaction are 16.6, 13.8 and 1.8 basis points on the Ledoit-Wolf path, 16.7, 10.6 and 1.5 on the factor path and 16.4, 12.3 and 2.2 on the principal-component path, and, with no verdict, 16.6, 14.4 and 1.9 on the sample estimator's path. Month by month, then, the mandate's sector weights move its return as much as or more than the stocks it holds within a sector, as the reasoning behind E8 expected.</p>
+
+<div class="tblock">
+<p class="tcap">Table 3. The three terms over the window, four paths under the mandate at the 2 per cent cap, {{first_w}} to {{last_w}}</p>
+{{table4}}
+<p class="tn">Annual averages with Newey-West standard errors in basis points a year, and E8's mean absolute monthly terms in basis points a month, each month's figure the sum over the twelve sectors. Source: {{results}}/brinson_summary.json and verdicts_milestone4.json.</p>
+</div>
+
+<p>Over the window the three terms are small beside their standard errors. Table 3 shows that on the Ledoit-Wolf path the active return of {{lw_ar}} basis points a year splits into allocation {{lw_alloc}}, selection {{lw_sel}} and interaction {{lw_int}}, with Newey-West standard errors of {{lw_alloc_se}}, {{lw_sel_se}} and {{lw_int_se}}, so none is distinguishable from zero. Allocation is 1.3, 5.5 and 3.5 on the sample, factor and principal-component paths, and selection 12.3, 4.0 and minus 3.9, and no total on any path lies one standard error from zero. Figure 4 breaks the Ledoit-Wolf path's allocation and selection down by sector. On this path {{beyond_lw}} of the 36 sector terms, interaction included, which the figure does not show, lie two standard errors or more from zero, and {{beyond_lo}} to {{beyond_hi}} on the other paths, against, at the 5 per cent level, {{chance}} on average if the tests were independent.</p>
+
+<figure>
+<figcaption>Figure 4. Allocation and selection by sector over the window, the Ledoit-Wolf path under the mandate, {{first_w}} to {{last_w}}</figcaption>
+<img src="../dashboard/figures/fig4_sector_terms.svg" alt="Allocation and selection by sector over the window, Ledoit-Wolf path" width="100%">
+<p class="tn">Annual averages in basis points a year, each with a bar of two Newey-West standard errors on each side. Interaction is in Table 3's source file. Simulated, gross of fees. Source: {{results}}/brinson_summary.json, notebook 12.</p>
+</figure>
+
+<p>The two tilted sectors show how the attribution reads the tilt. In Energy and Utilities selection is within a tenth of a basis point a year of zero on all four paths, because a sector whose stocks all sit at the same fraction of their benchmark weights earns the benchmark sector's return, and the tilt's cap at half binds on almost every stock: on the Ledoit-Wolf path the stock sits at half its benchmark weight, within one millionth, in {{cap_lw_at}} of the {{cap_tilted}} stock-months in the two sectors. Their whole effect is therefore allocation, {{en_alloc}} basis points a year for Energy and {{ut_alloc}} for Utilities on the Ledoit-Wolf path, on standard errors of {{en_alloc_se}} and {{ut_alloc_se}}, so over the window the tilt neither cost nor earned a return that the data can distinguish from zero. A sector is not held in {{nh_sample}} months on the sample estimator's path and in {{nh_lw}} on the Ledoit-Wolf path, all of them from 2022, and {{no_return}} member-months have no return and are left out of both sides.</p>
+
+<h3>3.8 The attribution by factor</h3>
+
+<p>E9 is met. Contributions and residual sum to the active return within 8.7e-19 in every month, and the mean active exposure to the market factor lies between {{mkt_exp_lo}} and {{mkt_exp_hi}} on the four paths. Table 4 reports the six contributions, their sum, the residual and the active return, each with the plain standard error the copied attribution computes, with no allowance for correlation from one month to the next. On the Ledoit-Wolf path the six contributions sum to {{fs_lw_total}} basis points a year and the residual to {{fs_lw_resid}}, on plain standard errors of {{fs_lw_total_se}} and {{fs_lw_resid_se}}. The six factors explain {{share_lo}} to {{share_hi}} per cent of the variance of the active return on the four paths, so the mandate's active risk is mostly sector and stock risk that these factors do not describe.</p>
+
+<div class="tblock">
+<p class="tcap">Table 4. The factor attribution, four paths under the mandate at the 2 per cent cap, {{first_w}} to {{last_w}}</p>
+{{table5}}
+<p class="tn">Contributions, their sum, the residual and the active return in basis points a year with plain standard errors in brackets, the factor share in per cent, and the mean active exposures. Source: Kenneth R. French Data Library, {{results}}/factor_attribution_summary.json.</p>
+</div>
+
+<h3>3.9 What the estimates exclude</h3>
+
+<p>Taken together, the estimates bound the mandate's active return without locating one. The active return of every path under the mandate lies within one Newey-West standard error of zero, and with standard errors of {{ar_se_lo}} to {{ar_se_hi}} basis points a year over 306 months, a mean active return smaller than about twice that in absolute value cannot be told apart from none. The terms of the attribution over the window are of the same order and carry the same bound. What the estimates do establish is the size and the source of the tracking error: about 80 basis points a year, understated by every forecast, moved month by month mostly by sector weights, and almost none of it forced by changes in the index.</p>
+
+<h2>4. Discussion</h2>
+
+<p>The natural comparison is with the companion study on French's 49 industries, which ran the same mandate with the same estimators and found realised tracking errors of 84.7 to 93.4 basis points a year on its four estimators from daily returns and bias statistics of 1.22 to 1.61 on its five estimators (Hofer, 2026). At the stock level the realised figures are of the same order, {{te_lo}} to {{te_hi}}, and the forecasts understate them by more, with bias statistics of {{bias_lo}} to {{bias_hi}}. The finding that the forecast falls short of the realised tracking error therefore carries over from industries to stocks, and on these estimates it widens, plausibly because a stock-level matrix has more dimensions in which the optimiser can find an estimation error to trade on, as the frontier of Figure 3 suggests.</p>
+
+<p>For a manager who runs such a mandate, the forecast is the figure reported to the client before the month, and the realised the one measured afterwards. The evidence therefore indicates that a risk budget set on a three-year covariance forecast of this kind would have been exceeded on average, with bias statistics of {{bias_lo}} to {{bias_hi}}, and by most in the months when volatilities rose, as in 2008. It also indicates that a looser turnover cap lowers the forecast without lowering what is realised, so the turnover a looser cap allows lowers the forecast and leaves the realised tracking error where it was. The attribution adds that the mandate's month-to-month deviation comes mostly from sector weights, the tilt's underweight above all, and that over 25 years neither the sector weights nor the stocks held within them leave a result that the data distinguish from zero.</p>
+
+<p>At the same time, the design has limits, each set by a feature of the data or the method. First, every figure of the mandate is a simulation, with costs proportional to turnover and no market impact, since the extraction holds no trading data. Second, the benchmark weights CRSP's list by full capitalisation, and the index has weighted by float since 2005, which CRSP's share counts cannot rebuild, so the tracking errors are measured against the full-capitalisation benchmark and would differ against the index itself. Third, the evaluation window starts in July 1999 because Compustat's GICS history begins on 30 June 1999, so the mandate is not observed before then. Fourth, the attribution sums its monthly terms arithmetically, so a year's terms add to the sum of its monthly active returns, which differs from the active return compounded over the year, and another ordering of the definitions would move part of the interaction into allocation or selection. Finally, the factor attribution reads every path through loadings estimated on daily returns over the three years before the month, applied to monthly factor returns, so a loading measured with error moves part of a contribution into the residual.</p>
+
+<p>What would narrow these limits is clear from their causes. Measuring the tracking error against the index as published would require its float-adjusted weights, which are not in this extraction. Testing whether a calibrated forecast removes the understatement would require a calibration fixed before the run, such as the companion study's scaling of each forecast by the path's own realised-to-forecast ratio over the previous 60 months, and run on these paths. And separating the optimiser's trading on estimation error from its trading on genuine changes in risk would require a forecast built from data the optimiser does not see.</p>
+
+<p>Against this evidence, the narrow claim of this note is that a long-only mandate held close to a cap-weighted benchmark of US large caps, under a client's bounds, a tilt and a turnover cap, realised about 80 basis points a year of tracking error from 1999 to 2024 under each of four common covariance estimators, that each estimator's forecast understated it, with bias statistics of {{bias_lo}} to {{bias_hi}}, and that its month-to-month deviation came mostly from sector weights, while none of its active return over the period can be distinguished from zero. The evidence therefore suggests that the forecast tracking error of such a mandate is worth reporting beside a measure of its own past accuracy, which is what the bias statistic supplies.</p>
+
+<h2>References</h2>
+<div class="refs">
+<p>Brinson, G. P. and Fachler, N. (1985). Measuring non-U.S. equity portfolio performance. <i>Journal of Portfolio Management</i> 11(3), 73 to 76. https://doi.org/10.3905/jpm.1985.409005</p>
+<p>DeMiguel, V., Garlappi, L. and Uppal, R. (2009). Optimal versus naive diversification: How inefficient is the 1/<i>N</i> portfolio strategy? <i>Review of Financial Studies</i> 22(5), 1915 to 1953. https://doi.org/10.1093/rfs/hhm075</p>
+<p>Fama, E. F. and French, K. R. (2015). A five-factor asset pricing model. <i>Journal of Financial Economics</i> 116(1), 1 to 22. https://doi.org/10.1016/j.jfineco.2014.10.010</p>
+<p>Hofer, C. (2026). Optimal versus naive diversification: a replication, and what a tracking-error mandate changes. Note, October 2026. https://www.carlohofer.com/optimal-vs-naive-diversification/note/B-P_note_2026-10.pdf</p>
+<p>Ledoit, O. and Wolf, M. (2004). A well-conditioned estimator for large-dimensional covariance matrices. <i>Journal of Multivariate Analysis</i> 88(2), 365 to 411. https://doi.org/10.1016/S0047-259X(03)00096-4</p>
+<p>Newey, W. K. and West, K. D. (1987). A simple, positive semi-definite, heteroskedasticity and autocorrelation consistent covariance matrix. <i>Econometrica</i> 55(3), 703 to 708. https://doi.org/10.2307/1913610</p>
+<p>Shumway, T. (1997). The delisting bias in CRSP data. <i>Journal of Finance</i> 52(1), 327 to 340. https://doi.org/10.1111/j.1540-6261.1997.tb03818.x</p>
+</div>
+
+<div class="other">
+<h2>Other projects</h2>
+{{other_projects}}
+</div>
+</div>
+<footer class="ch-foot"><div>Carlo Hofer &middot; Data: CRSP and Compustat via Wharton Research Data Services, and Kenneth R. French Data Library &middot; <a href="https://github.com/ochofer/stock-level-tracking">Code on GitHub</a> &middot; Last build: {{build_date}}</div></footer>
+</body>
+</html>

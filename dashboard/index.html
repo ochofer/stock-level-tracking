@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stock-level index tracking: the results</title>
+<meta name="description" content="A benchmark rebuilt from CRSP's list of S&amp;P 500 members, a long-only mandate held close to it under four covariance estimators from July 1999 to December 2024, its turnover and its active return attributed by sector and by factor: key figures, four figures, seven tables and the method, each drawn from a committed table.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Stock-level index tracking: the results">
+<meta property="og:description" content="A benchmark rebuilt from CRSP's list of S&amp;P 500 members, a long-only mandate held close to it under four covariance estimators from July 1999 to December 2024, its turnover and its active return attributed by sector and by factor: key figures, four figures, seven tables and the method, each drawn from a committed table.">
+<meta property="og:url" content="https://www.carlohofer.com/stock-level-tracking/dashboard/">
+<meta property="og:image" content="https://www.carlohofer.com/stock-level-tracking/og-stock-level-tracking.png">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1260">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="https://www.carlohofer.com/images/favicon.svg" type="image/svg+xml">
+<style>
+@font-face { font-family: "EB Garamond"; src: url("https://www.carlohofer.com/assets/fonts/EBGaramond-var-latin.woff2") format("woff2"); font-weight: 400 800; font-display: swap; }
+:root { color-scheme: light; --ground: #ffffff; --tint: #f5f5f5; --rule: #dddddd; --frame: #cfcfcf; --grid: #e5e5e5;
+  --ink: #262b33; --navy: #16213a; --ink2: #5d6470; --meta: #6b7280; --link: #1f3a60; }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+h1, h2 { font-family: "EB Garamond", Garamond, Georgia, serif; font-weight: 500; color: var(--navy); }
+h3, h4 { color: var(--navy); font-weight: 600; }
+a { color: var(--link); text-underline-offset: .18em; text-decoration-color: rgba(31,58,96,.35); }
+.ch-band { background: linear-gradient(90deg, #121a2c 0%, #172238 60%, #1a263b 100%); }
+.ch-band__in { max-width: 1180px; margin: 0 auto; padding: 0 32px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+.ch-word { font-family: "EB Garamond", Garamond, Georgia, serif; font-weight: 500; text-transform: uppercase; letter-spacing: .22em; color: #ece6d9; text-decoration: none; font-size: 17px; }
+.ch-nav a { color: rgba(236,230,217,.78); text-decoration: none; font-size: 15px; margin-left: 20px; }
+.ch-nav a:hover { color: #ece6d9; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 32px; }
+.ch-hero { background: linear-gradient(90deg, #121a2c 0%, #172238 60%, #1a263b 100%); border-top: 1px solid rgba(255,255,255,.07); padding: 6px 0 34px; color: #c9ced8; }
+.ch-hero .ch-back { margin: 16px 0 0; font-size: 13px; color: #c9ced8; }
+.ch-hero .ch-back a { color: #c9ced8; text-decoration-color: rgba(201,206,216,.5); }
+.ch-over { margin: 26px 0 0; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; font-weight: 600; color: #aab2c0; }
+.ch-hero h1 { margin: 8px 0 0; font-size: 46px; line-height: 1.08; color: #f4f1ea; }
+.ch-lead { max-width: 720px; margin: 14px 0 0; font-size: 17px; line-height: 1.55; color: #d3d8e0; }
+.ch-meta { margin: 18px 0 0; font-size: 13.5px; color: #aab2c0; display: flex; flex-wrap: wrap; gap: 6px 22px; }
+.ch-docs { margin: 10px 0 0; font-size: 13.5px; display: flex; flex-wrap: wrap; gap: 6px 20px; }
+.ch-docs a { color: #f4f1ea; text-decoration-color: rgba(244,241,234,.45); }
+.tabs { position: sticky; top: 0; z-index: 5; background: #ffffff; border-bottom: 1px solid var(--frame); }
+.tabs .wrap { display: flex; gap: 40px; overflow-x: auto; }
+.tabs button { font: inherit; font-size: 16.5px; color: #3a4150; background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px; padding: 22px 0 19px; white-space: nowrap; min-height: 44px; cursor: pointer; }
+.tabs button:hover { color: var(--navy); border-bottom-color: #c5ccd8; }
+.tabs button[aria-selected="true"] { color: var(--navy); font-weight: 600; border-bottom-color: var(--navy); }
+.tabs .sh { display: none; }
+.tabs.more::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 28px; background: linear-gradient(90deg, rgba(255,255,255,0), #ffffff); pointer-events: none; }
+[id] { scroll-margin-top: 80px; }
+.ch-view-lead { margin: 26px 0 0; font-size: 15px; color: var(--ink2); }
+.ch-top { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 36px; margin: 18px 0 0; align-items: start; }
+.ch-kpis { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 2px solid var(--navy); border-bottom: 1px solid var(--rule); }
+.ch-kpi { padding: 16px 18px 16px 0; min-width: 0; }
+.ch-kpi + .ch-kpi { padding-left: 18px; border-left: 1px solid var(--rule); }
+.ch-kpi__label { font-size: 12.5px; color: var(--ink2); font-weight: 500; }
+.ch-kpi__value { margin: 8px 0 2px; font-size: 27px; font-weight: 500; color: var(--navy); letter-spacing: -.01em; font-variant-numeric: tabular-nums lining-nums; white-space: nowrap; }
+.ch-kpi__ref { font-size: 12.5px; color: var(--meta); }
+.ch-facts { background: var(--tint); border-top: 2px solid var(--navy); padding: 18px 20px 8px; }
+.ch-facts h3 { margin: 0 0 6px; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink2); font-weight: 600; }
+.ch-facts dl { margin: 0; }
+.ch-fact { display: grid; grid-template-columns: 118px 1fr; gap: 10px; padding: 8px 0; border-top: 1px solid var(--rule); font-size: 13px; line-height: 1.45; }
+.ch-fact:first-of-type { border-top: 0; }
+.ch-fact dt { color: var(--ink2); }
+.ch-fact dd { margin: 0; color: var(--ink); }
+.ch-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.pairctl { margin-top: 34px; padding-top: 14px; border-top: 1px solid var(--rule); }
+.ch-pair .fig { margin-top: 20px; border-top: 0; padding-top: 0; }
+.ch-pair .fig { min-width: 0; }
+main { padding-bottom: 8px; }
+.view { display: none; }
+.view.on { display: block; }
+.lead { max-width: 75ch; margin: 14px 0 6px; }
+.kp { margin: 22px 0 8px; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 28px; max-width: 1000px; }
+.ch-top .kp { grid-template-columns: 1fr; margin: 22px 0 0; max-width: none; }
+.ch-top .kp li:last-child:nth-child(odd) { grid-column: auto; }
+.kp li { border-left: 3px solid var(--navy); padding: 2px 0 2px 12px; }
+.kp li:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.verdicts td:nth-child(2), .verdicts td:nth-child(3) { white-space: normal; min-width: 16em; text-align: left; }
+.verdicts tbody th { white-space: nowrap; }
+.verdicts thead th:nth-child(2), .verdicts thead th:nth-child(3) { text-align: left; }
+.verdicts td:last-child { font-weight: 600; }
+h2 { font-size: 1.45rem; margin: 30px 0 4px; }
+h3 { font-size: 1.05rem; margin: 30px 0 4px; }
+h4 { font-size: 14px; margin: 10px 0 2px; }
+.fig { margin: 34px 0 0; border-top: 1px solid var(--rule); padding-top: 14px; }
+.fig h2 { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14.5px; font-weight: 600; color: var(--navy); line-height: 1.4; }
+.fig p { max-width: 75ch; }
+.cap { font-size: 12.5px; color: var(--meta); margin: 3px 0 10px; }
+.text { margin: 0 0 10px; }
+.panels { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
+.panels.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.panels.stack { grid-template-columns: 1fr; }
+.panel { min-width: 0; }
+.chart { width: 100%; height: 380px; }
+.chart.tall { height: 480px; }
+.chart.short { height: 320px; }
+.tw { position: relative; }
+.tw.more::after { content: ""; position: absolute; top: 1px; right: 1px; bottom: 1px; width: 28px; background: linear-gradient(90deg, rgba(255,255,255,0), #ffffff); pointer-events: none; }
+.tscroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 4px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+th, td { padding: 8px 10px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+thead th { background: var(--tint); color: var(--ink2); font-weight: 600; text-align: right; vertical-align: bottom; white-space: normal; min-width: 84px; font-size: 13px; }
+thead th:first-child, tbody th { text-align: left; position: sticky; left: 0; background: #ffffff; }
+thead th:first-child { background: var(--tint); }
+@media (max-width: 700px) { table.wrapfirst tbody th { white-space: normal; min-width: 9em; } }
+tbody th { font-weight: 500; }
+td { text-align: right; }
+tbody tr:last-child th, tbody tr:last-child td { border-bottom: 0; }
+.src { font-size: 12px; color: var(--meta); margin: 4px 0 0; overflow-wrap: anywhere; }
+code { overflow-wrap: anywhere; }
+.basis { font-size: 12.5px; color: var(--ink2); margin: 6px 0 0; }
+.ctl { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 4px 0 8px; font-size: 14px; }
+.ctl .lab { color: var(--ink2); }
+.ctl button { font: inherit; font-size: 14px; padding: 8px 12px; min-height: 44px; border: 1px solid var(--rule); background: #ffffff; color: var(--ink); border-radius: 4px; cursor: pointer; }
+.ctl button[aria-pressed="true"] { border-color: var(--navy); color: var(--navy); font-weight: 600; }
+.tbtn { font: inherit; font-size: 14px; padding: 8px 12px; min-height: 44px; border: 1px solid var(--rule); background: #ffffff; color: var(--link); border-radius: 4px; cursor: pointer; margin: 8px 0 0; }
+.tbtn[aria-pressed="true"] { border-color: var(--navy); color: var(--navy); font-weight: 600; }
+.tbl { margin: 10px 0 0; }
+.tbl[hidden] { display: none; }
+.method p { max-width: 75ch; }
+.other { margin-top: 36px; padding-top: 4px; border-top: 1px solid var(--rule); }
+.other p { max-width: 75ch; margin: 0 0 10px; }
+dl.terms { font-size: 14px; max-width: 75ch; }
+ol.notes { font-size: 14px; max-width: 75ch; padding-left: 1.4rem; }
+ol.notes li { margin: 0 0 6px; }
+ol.notes a { overflow-wrap: anywhere; }
+sup a { text-decoration: none; }
+dl.terms dt { font-weight: 600; margin-top: 8px; }
+dl.terms dd { margin: 0 0 0 1rem; }
+.ch-foot { background: var(--tint); border-top: 1px solid var(--rule); color: var(--ink2); font-size: 14px; margin-top: 48px; }
+.ch-foot > div { max-width: 1180px; margin: 0 auto; padding: 20px 32px 32px; }
+.ch-foot p { max-width: 90ch; margin: 0 0 8px; }
+@media (max-width: 1000px) { .panels.four { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 860px) {
+  [id] { scroll-margin-top: 64px; }
+  .wrap, .ch-foot > div, .ch-band__in { padding-left: 16px; padding-right: 16px; }
+  .ch-hero h1 { font-size: 34px; }
+  .ch-lead { font-size: 16px; }
+  .tabs .wrap { gap: 15px; }
+  .tabs button { font-size: 14px; padding: 17px 0 14px; }
+  .ch-top { grid-template-columns: 1fr; gap: 24px; }
+  .ch-kpis { grid-template-columns: 1fr 1fr; }
+  .ch-kpi__value { font-size: 24px; }
+  .ch-kpi:nth-child(3) { border-left: 0; padding-left: 0; border-top: 1px solid var(--rule); }
+  .ch-kpi:nth-child(4) { border-top: 1px solid var(--rule); }
+  .ch-pair { grid-template-columns: 1fr; gap: 0; }
+  .ch-pair .fig + .fig { margin-top: 34px; border-top: 1px solid var(--rule); padding-top: 14px; }
+  .ch-fact { grid-template-columns: 104px 1fr; }
+}
+@media (max-width: 700px) {
+  .panels, .panels.four { grid-template-columns: 1fr; }
+  .chart, .chart.tall, .chart.short { height: 340px; }
+  .chart.legendy { height: 440px; }
+  .kp { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) { .ch-band__in { height: 48px; } .ch-nav a:not(:first-child) { display: none; } }
+@media (max-width: 560px) { .tabs .lg { display: none; } .tabs .sh { display: inline; } .tabs .wrap { gap: 12px; } }
+@media (max-width: 385px) { .tabs .wrap { gap: 9px; } .tabs button { font-size: 13.5px; } }
+@media (max-width: 368px) { .tabs .wrap { gap: 8px; } .tabs button { font-size: 13px; } }
+.ch-word, .ch-nav a { white-space: nowrap; }
+@media (max-width: 359px) { .ch-word { font-size: 15px; letter-spacing: .12em; } .ch-nav a { font-size: 13px; margin-left: 12px; } }
+@media print { .tabs, .tw::after, .tabs::after { display: none; } .view { display: block; } .fig { break-inside: avoid; } }
+</style>
+<script src="https://cdn.plot.ly/plotly-cartesian-2.35.2.min.js" charset="utf-8"></script>
+<script data-goatcounter="https://carlohofer.goatcounter.com/count" async src="https://gc.zgo.at/count.v5.js" crossorigin="anonymous" integrity="sha384-atnOLvQb9t+jTSipvd75X2yginT4PjVbqDdlJAmxMm+wYElFmeR6EmLP5bYeoRVQ"></script>
+<script>
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href]') : null;
+    if (!a || !window.goatcounter || !window.goatcounter.count) return;
+    var u = new URL(a.href, location.href);
+    var pdf = /\.pdf$/i.test(u.pathname);
+    if (!pdf && u.hostname === location.hostname) return;
+    window.goatcounter.count({
+      path: pdf ? 'PDF ' + u.hostname + u.pathname : 'Link ' + (u.hostname || u.protocol) + u.pathname,
+      title: a.textContent.trim(),
+      event: true
+    });
+  });
+</script>
+</head>
+<body>
+<header class="ch-band"><div class="ch-band__in">
+  <a class="ch-word" href="https://www.carlohofer.com/">Carlo Hofer</a>
+  <nav class="ch-nav"><a href="https://www.carlohofer.com/projects/">Investment research</a><a href="https://www.carlohofer.com/projects/rules-based-portfolio/">Portfolio</a><a href="https://www.carlohofer.com/publications/">Publications</a><a href="https://www.carlohofer.com/cv/">Academic CV</a></nav>
+</div></header>
+<section class="ch-hero"><div class="wrap">
+<p class="ch-back"><a href="https://www.carlohofer.com/projects/stock-level-tracking/">&larr; Stock-level index tracking</a> &middot; <a href="https://www.carlohofer.com/projects/">Investment research</a></p>
+<p class="ch-over">Investment research</p>
+<h1>Stock-level index tracking: the results</h1>
+<p class="ch-lead">A benchmark rebuilt month by month from CRSP's list of S&amp;P 500 members, and a long-only mandate held close to it under four covariance estimators from July 1999 to December 2024: its tracking error, what its turnover is made of, and its active return by sector and by factor. Every figure of the mandate is a simulation drawn from the tables committed with the code.</p>
+<div class="ch-meta"><span>Simulated on CRSP and Compustat data to 31 December 2024, extraction of 28 September 2026</span><span>Last build: 17 November 2026</span></div>
+<div class="ch-docs"><a href="../note/stock-level-tracking_note_2026-11.pdf">Note (PDF)</a><a href="https://github.com/ochofer/stock-level-tracking">Code on GitHub</a></div>
+</div></section>
+<nav class="tabs" aria-label="Views"><div class="wrap">
+<button type="button" data-view="summary" aria-selected="true">Summary</button><button type="button" data-view="mandate" aria-selected="false"><span class="lg">The mandate</span><span class="sh">Mandate</span></button><button type="button" data-view="attribution" aria-selected="false">Attribution</button><button type="button" data-view="data" aria-selected="false"><span class="lg">The data layer</span><span class="sh">Data</span></button><button type="button" data-view="method" aria-selected="false"><span class="lg">Method and terms</span><span class="sh">Method</span></button>
+</div></nav>
+<main class="wrap">
+
+<section id="summary" class="view on">
+<p class="ch-view-lead">What was tested, the main results and where every number comes from.</p>
+<div class="ch-top">
+<div>
+<div class="ch-kpis">
+<div class="ch-kpi"><div class="ch-kpi__label">Realised tracking error</div><div class="ch-kpi__value">78.9 to 83.6</div><div class="ch-kpi__ref">bp a year, the four estimators under the mandate, July 1999 to December 2024, simulated, before fees</div></div>
+<div class="ch-kpi"><div class="ch-kpi__label">Forecast bias</div><div class="ch-kpi__value">1.48 to 1.85</div><div class="ch-kpi__ref">realised over forecast on the four estimators, 1 for a calibrated forecast</div></div>
+<div class="ch-kpi"><div class="ch-kpi__label">Forced turnover</div><div class="ch-kpi__value">11.4%</div><div class="ch-kpi__ref">of one-way turnover is forced by index changes, 2.99 of 26.26 per cent a year, Ledoit-Wolf estimator under the mandate, simulated</div></div>
+<div class="ch-kpi"><div class="ch-kpi__label">Benchmark rebuilt</div><div class="ch-kpi__value">11.5</div><div class="ch-kpi__ref">bp a year of tracking error against CRSP's value-weighted return of the same list, January 1926 to December 2024, with dividends</div></div>
+</div>
+<ul class="kp">
+<li>Under the mandate the four covariance estimators realise 78.9 to 83.6 basis points a year of tracking error, and each one's forecast understates it. The bias statistic, realised over forecast, is 1.48 to 1.85, above the band of 0.8 to 1.25 fixed before the run.</li>
+<li>Index changes force 2.99 per cent a year of the Ledoit-Wolf path's 26.26 per cent of one-way turnover, or 11.4 per cent. On the Ledoit-Wolf estimator, loosening the cap on chosen turnover from 0.5 per cent a month to none raises it from 6.3 to 59.4 per cent a year, while the realised tracking error stays between 76.3 and 79.4 basis points a year. On the factor estimator chosen turnover rises from 6.2 to 14.9 per cent a year and the tracking error falls from 83.3 to 79.6.</li>
+<li>Month by month, allocation is the largest of the three Brinson-Fachler terms on the Ledoit-Wolf, factor and principal-component estimators: 16.4 to 16.7 basis points a month in absolute value on average, against 10.6 to 13.8 for selection and 1.5 to 2.2 for interaction. Over the 306 months the active return is 0.2 to 13.7 basis points a year before costs, within one Newey-West standard error of zero on every path, as is each of its three terms, and the six factors explain 2 to 13 per cent of its variance.</li>
+<li>The benchmark rebuilt from CRSP's list of index members reproduces CRSP's own value-weighted return of the same list with a tracking error of 11.5 basis points a year from 1926 to 2024. Its momentum and variance spreads have correlations of 0.888 and 0.954 with Kenneth R. French's large-cap spreads.<sup id="ref-1"><a href="#note-1">1</a></sup></li>
+</ul>
+</div>
+<aside class="ch-facts"><h3>Key facts</h3><dl>
+<div class="ch-fact"><dt>Data</dt><dd>CRSP and Compustat via Wharton Research Data Services, accessed through Queen Mary University of London, extraction of 28 September 2026. Kenneth R. French Data Library, downloaded at run time.</dd></div>
+<div class="ch-fact"><dt>Period</dt><dd>The benchmark January 1926 to December 2024. The mandate July 1999 to December 2024, 306 months.</dd></div>
+<div class="ch-fact"><dt>Universe</dt><dd>The point-in-time S&amp;P 500 from CRSP's list of index members, about 500 stocks a month.</dd></div>
+<div class="ch-fact"><dt>Benchmark</dt><dd>The cap-weighted universe, at start-of-month market capitalisations.</dd></div>
+<div class="ch-fact"><dt>Mandate</dt><dd>Long-only, each stock and each company within 50 basis points of its benchmark weight, each untilted sector within 2 percentage points, chosen turnover at most 2 per cent a month, Energy and Utilities stocks at no more than half their benchmark weight, Tobacco and Aerospace and Defense excluded, a beta of one to the benchmark.</dd></div>
+<div class="ch-fact"><dt>Estimators compared</dt><dd>Sample, Ledoit-Wolf, six-factor and principal-component covariances from three years of daily returns.</dd></div>
+<div class="ch-fact"><dt>Rebalancing</dt><dd>Monthly. The turnover that index changes force lies outside the cap.</dd></div>
+<div class="ch-fact"><dt>Costs</dt><dd>Gross of fees. Trading cost at 10 basis points per unit of one-way turnover where stated.</dd></div>
+<div class="ch-fact"><dt>Attribution</dt><dd>By the eleven GICS sectors and Unclassified after Brinson and Fachler (1985)<sup id="ref-2"><a href="#note-2">2</a></sup>, and by the five factors of Fama and French (2015)<sup id="ref-3"><a href="#note-3">3</a></sup> and momentum, monthly, summed without linking.</dd></div>
+<div class="ch-fact"><dt>Specification written</dt><dd>9 November 2026, with every later change dated in the constants.</dd></div>
+</dl></aside>
+</div>
+
+<figure class="fig" id="figure-1">
+<h2>Figure 1 | Forecast and realised tracking error under the mandate, four covariance estimators, July 1999 to December 2024</h2>
+<p class="cap">Each estimator's mean forecast (hollow) beside the tracking error it realised (filled), in basis points a year, with the bias statistic.</p>
+<p class="text">Every realised value lies to the right of its forecast. The four estimators realise 78.9 to 83.6 basis points a year, and the bias statistic, 1.48 to 1.85, lies above the band of 0.8 to 1.25 on all four. The forecast is the tracking error the month's own covariance matrix implies for the weights the optimiser chose.</p>
+<div id="f1" class="chart short"></div>
+<button type="button" class="tbtn" data-table="f1" aria-pressed="false">Table</button><div class="tbl tw" id="t-f1" hidden><div class="tscroll"><table><thead><tr><th>Estimator</th><th>Mean forecast, bp a year</th><th>Realised, bp a year</th><th>Bias statistic</th><th>Months</th></tr></thead><tbody><tr><th scope="row">Ledoit-Wolf</th><td>55.2</td><td>78.9</td><td>1.48</td><td>306</td></tr><tr><th scope="row">Sample</th><td>52.8</td><td>80.6</td><td>1.60</td><td>306</td></tr><tr><th scope="row">Factor</th><td>45.1</td><td>80.5</td><td>1.85</td><td>306</td></tr><tr><th scope="row">Principal-component</th><td>48.0</td><td>83.6</td><td>1.73</td><td>306</td></tr></tbody></table></div></div>
+<p class="basis">Simulated. Monthly rebalancing. Before fees. Bias statistic: the standard deviation of each month's active return divided by that month's forecast, over the months with a forecast, 1 for a calibrated forecast.</p>
+<p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, July 1999 to December 2024, US large caps, USD. results/20260928/paths_summary.json, notebook 09.</p>
+</figure>
+
+<div class="fig" id="table-1-block">
+<h2 id="table-1">Table 1 | The four gates and nine expectations, fixed before each run, and what the run found</h2>
+<p class="cap">A gate not met stops the study. An expectation not met is reported as a finding, in the same words as one met. An expectation named for two or more estimators has one verdict, met only if it holds for each.</p>
+<div class="tw"><div class="tscroll"><table class="verdicts"><thead><tr><th></th><th>Fixed before the run</th><th>What the run found</th><th>Verdict</th></tr></thead><tbody><tr><th scope="row">G1</th><td>Tracking error of the benchmark against CRSP's own return of the same list, at most 50 bp a year</td><td>11.5 bp a year</td><td>Met</td></tr><tr><th scope="row">G2</th><td>Usable window at least 15 years</td><td>99 years</td><td>Met</td></tr><tr><th scope="row">G3</th><td>At least 90 per cent of removals with a CRSP price within 10 trading days</td><td>100 per cent of 836</td><td>Met</td></tr><tr><th scope="row">G4</th><td>Capitalisation in at least 90 per cent of membership months for at least 90 per cent of names</td><td>99.5 per cent of 1,912 names</td><td>Met</td></tr><tr><th scope="row">E1</th><td>That tracking error at most 20 bp a year and the mean difference within 2 bp, with dividends and price-only</td><td>11.5 and 11.6 bp a year, −0.18 and −0.16 bp</td><td>Met</td></tr><tr><th scope="row">E2</th><td>Count within 10 names of CRSP's in every month, value within 2 per cent in at least 95 per cent of months</td><td>1,188 and 1,186 of 1,188 months</td><td>Met</td></tr><tr><th scope="row">E3</th><td>Momentum and variance spreads: correlation at least 0.80 with French's, mean difference within two standard errors</td><td>0.888 and 0.954, 1.15 and 0.29 standard errors</td><td>Met</td></tr><tr><th scope="row">E4, first clause</th><td>Sample condition number at least 10 times the Ledoit-Wolf one in every month</td><td>86 of 306 months</td><td>Not met</td></tr><tr><th scope="row">E4, second clause</th><td>Under the mandate, the sample estimator's realised tracking error above the Ledoit-Wolf one</td><td>80.6 against 78.9 bp a year</td><td>Met</td></tr><tr><th scope="row">E5</th><td>On the frontier, the mean forecast does not rise as the cap loosens, and the realised tracking error is lower at 4 per cent than at 0.5</td><td>holds for the factor estimator, fails for Ledoit-Wolf (79.0 against 76.3 bp a year)</td><td>Not met</td></tr><tr><th scope="row">E6</th><td>Realised tracking error 50 to 150 bp a year and bias statistic 0.8 to 1.25, each structured estimator</td><td>tracking error 78.9 to 83.6, bias 1.48 to 1.85</td><td>Not met</td></tr><tr><th scope="row">E7</th><td>Forced turnover less than a third of the total, Ledoit-Wolf path</td><td>2.99 of 26.26 per cent a year, 11.4 per cent</td><td>Met</td></tr><tr><th scope="row">E8</th><td>The three terms sum to the active return, and allocation is the largest in absolute value and interaction the smallest, each structured estimator</td><td>largest gap 9.6e-17, allocation 16.4 to 16.7, selection 10.6 to 13.8, interaction 1.5 to 2.2 bp a month</td><td>Met</td></tr><tr><th scope="row">E9</th><td>Contributions and residual sum to the active return, and the mean exposure to the market within 0.05 of zero on every path</td><td>largest gap 8.7e-19, exposure −0.0006 to +0.0001</td><td>Met</td></tr></tbody></table></div></div>
+<p class="src">results/20260928/verdicts_milestone1.json to verdicts_milestone4.json, notebooks 02 to 11. The levels and their reasons are in src/slt/constants.py, each dated before the run that judged it.</p>
+</div>
+</section>
+
+<section id="mandate" class="view">
+<p class="ch-view-lead">How much tracking error each estimator forecast and realised under the mandate, what the turnover cap buys and what the turnover is made of.</p>
+<p class="lead">Each month the mandate chooses the weights that make the forecast tracking error as small as its constraints allow. Twenty-four paths run from the benchmark over the 306 months: the four estimators under four cumulative constraint sets at the 2 per cent cap, and the Ledoit-Wolf and factor estimators under the mandate at four further caps. Under the first three sets nothing pushes the portfolio off the benchmark, and it stays there in every month. The figures below are the twelve paths under the mandate.</p>
+
+<figure class="fig" id="figure-2">
+<h2>Figure 2 | Realised and forecast tracking error by year, the Ledoit-Wolf estimator under the mandate, 1999 to 2024</h2>
+<p class="cap">The tracking error realised in each calendar year and the mean of that year's monthly forecasts, in basis points a year. The year 1999 holds six months.</p>
+<p class="text">The realised tracking error runs from 33 basis points a year in 2013 to 176 in 2008, when the mean forecast was 101. The realised tracking error is above the mean forecast in 22 of the 26 calendar years, and not in 2009, 2010, 2011 and 2013, so the understatement is not confined to one crisis.</p>
+<div id="f2" class="chart short"></div>
+<button type="button" class="tbtn" data-table="f2" aria-pressed="false">Table</button><div class="tbl tw" id="t-f2" hidden><div class="tscroll"><table><thead><tr><th>Year</th><th>Months</th><th>Realised, bp a year</th><th>Mean forecast, bp a year</th></tr></thead><tbody><tr><th scope="row">1999</th><td>6</td><td>86.3</td><td>46.3</td></tr><tr><th scope="row">2000</th><td>12</td><td>82.1</td><td>48.9</td></tr><tr><th scope="row">2001</th><td>12</td><td>87.6</td><td>72.4</td></tr><tr><th scope="row">2002</th><td>12</td><td>76.9</td><td>74.3</td></tr><tr><th scope="row">2003</th><td>12</td><td>85.0</td><td>67.8</td></tr><tr><th scope="row">2004</th><td>12</td><td>78.2</td><td>59.3</td></tr><tr><th scope="row">2005</th><td>12</td><td>100.2</td><td>66.1</td></tr><tr><th scope="row">2006</th><td>12</td><td>92.9</td><td>71.7</td></tr><tr><th scope="row">2007</th><td>12</td><td>92.5</td><td>75.5</td></tr><tr><th scope="row">2008</th><td>12</td><td>176.3</td><td>101.3</td></tr><tr><th scope="row">2009</th><td>12</td><td>90.4</td><td>103.3</td></tr><tr><th scope="row">2010</th><td>12</td><td>65.7</td><td>81.8</td></tr><tr><th scope="row">2011</th><td>12</td><td>72.7</td><td>81.1</td></tr><tr><th scope="row">2012</th><td>12</td><td>60.6</td><td>52.8</td></tr><tr><th scope="row">2013</th><td>12</td><td>33.3</td><td>44.6</td></tr><tr><th scope="row">2014</th><td>12</td><td>55.3</td><td>40.1</td></tr><tr><th scope="row">2015</th><td>12</td><td>62.4</td><td>33.0</td></tr><tr><th scope="row">2016</th><td>12</td><td>65.2</td><td>36.4</td></tr><tr><th scope="row">2017</th><td>12</td><td>46.5</td><td>34.8</td></tr><tr><th scope="row">2018</th><td>12</td><td>58.2</td><td>34.0</td></tr><tr><th scope="row">2019</th><td>12</td><td>48.3</td><td>33.4</td></tr><tr><th scope="row">2020</th><td>12</td><td>70.3</td><td>28.4</td></tr><tr><th scope="row">2021</th><td>12</td><td>38.0</td><td>27.6</td></tr><tr><th scope="row">2022</th><td>12</td><td>68.2</td><td>41.3</td></tr><tr><th scope="row">2023</th><td>12</td><td>47.2</td><td>42.6</td></tr><tr><th scope="row">2024</th><td>12</td><td>33.5</td><td>31.5</td></tr></tbody></table></div></div>
+<p class="basis">Simulated. Monthly rebalancing. Before fees. The realised figure of a year is the standard deviation of its monthly active returns, times the square root of 12.</p>
+<p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, July 1999 to December 2024, US large caps, USD. results/20260928/paths_by_year.csv, notebook 09.</p>
+</figure>
+
+<figure class="fig" id="figure-3">
+<h2>Figure 3 | Tracking error against chosen turnover at five caps, the Ledoit-Wolf and factor estimators under the mandate, July 1999 to December 2024</h2>
+<p class="cap">For each estimator and each cap on chosen turnover (0.5, 1, 2 and 4 per cent a month, and none): the realised (filled) and mean forecast (hollow) tracking error in basis points a year, against the chosen turnover in per cent a year.</p>
+<p class="text">E5 is not met. On both estimators the mean forecast falls as the cap loosens, from 64.5 to 54.1 basis points a year on Ledoit-Wolf and from 46.6 to 45.0 on the factor estimator. The realised tracking error at the 4 per cent cap is 79.6 on the factor estimator, below its 83.3 at 0.5 per cent, and 79.0 on Ledoit-Wolf, above its 76.3. On Ledoit-Wolf chosen turnover runs from 6.3 to 59.4 per cent a year across the caps while the realised tracking error stays between 76.3 and 79.4. The factor estimator chooses at most 14.9 per cent a year, and the 2 per cent cap binds on it in 13.7 per cent of months, against every month on Ledoit-Wolf.</p>
+<div id="f3" class="chart"></div>
+<button type="button" class="tbtn" data-table="f3" aria-pressed="false">Table</button><div class="tbl tw" id="t-f3" hidden><div class="tscroll"><table><thead><tr><th>Estimator and cap</th><th>Chosen turnover, % a year</th><th>Total turnover, % a year</th><th>Realised, bp a year</th><th>Mean forecast, bp a year</th></tr></thead><tbody><tr><th scope="row">Ledoit-Wolf, 0.5</th><td>6.3</td><td>8.8</td><td>76.3</td><td>64.5</td></tr><tr><th scope="row">Ledoit-Wolf, 1</th><td>12.2</td><td>14.6</td><td>78.4</td><td>58.3</td></tr><tr><th scope="row">Ledoit-Wolf, 2</th><td>24.2</td><td>26.3</td><td>78.9</td><td>55.2</td></tr><tr><th scope="row">Ledoit-Wolf, 4</th><td>45.7</td><td>47.4</td><td>79.0</td><td>54.3</td></tr><tr><th scope="row">Ledoit-Wolf, none</th><td>59.4</td><td>61.0</td><td>79.4</td><td>54.1</td></tr><tr><th scope="row">Factor, 0.5</th><td>6.2</td><td>8.6</td><td>83.3</td><td>46.6</td></tr><tr><th scope="row">Factor, 1</th><td>10.5</td><td>12.6</td><td>82.3</td><td>45.3</td></tr><tr><th scope="row">Factor, 2</th><td>13.2</td><td>15.1</td><td>80.5</td><td>45.1</td></tr><tr><th scope="row">Factor, 4</th><td>14.6</td><td>16.5</td><td>79.6</td><td>45.0</td></tr><tr><th scope="row">Factor, none</th><td>14.9</td><td>16.7</td><td>79.6</td><td>45.0</td></tr></tbody></table></div></div>
+<p class="basis">Simulated. Monthly rebalancing. Before fees. Chosen turnover is one-way and excludes the turnover that index changes force.</p>
+<p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, July 1999 to December 2024, US large caps, USD. results/20260928/paths_summary.json, notebooks 09 and 10.</p>
+</figure>
+
+<div class="fig" id="table-2-block">
+<h2 id="table-2">Table 2 | The twelve paths under the mandate, July 1999 to December 2024</h2>
+<p class="cap">Tracking error, active return and its standard error in basis points a year. Turnover one-way, in per cent a year.</p>
+<div class="tw"><div class="tscroll"><table class="wrapfirst"><thead><tr><th>Path</th><th>Realised tracking error</th><th>Mean forecast</th><th>Bias statistic</th><th>Active return, gross</th><th>Newey-West standard error</th><th>Active return, net at 10 bp</th><th>Total turnover, % a year</th><th>Chosen turnover, % a year</th><th>Names held, mean</th></tr></thead><tbody><tr><th scope="row">Sample, cap 2 per cent</th><td>80.6</td><td>52.8</td><td>1.60</td><td>+13.7</td><td>18.6</td><td>+11.1</td><td>26.3</td><td>24.2</td><td>375</td></tr><tr><th scope="row">Ledoit-Wolf, cap 2 per cent</th><td>78.9</td><td>55.2</td><td>1.48</td><td>+12.7</td><td>18.2</td><td>+10.1</td><td>26.3</td><td>24.2</td><td>388</td></tr><tr><th scope="row">Factor, cap 2 per cent</th><td>80.5</td><td>45.1</td><td>1.85</td><td>+8.7</td><td>17.5</td><td>+7.1</td><td>15.1</td><td>13.2</td><td>473</td></tr><tr><th scope="row">Principal-component, cap 2 per cent</th><td>83.6</td><td>48.0</td><td>1.73</td><td>+0.2</td><td>17.4</td><td>−1.7</td><td>19.3</td><td>17.3</td><td>459</td></tr><tr><th scope="row">Ledoit-Wolf, cap 0.5 per cent</th><td>76.3</td><td>64.5</td><td>1.26</td><td>+7.2</td><td>17.2</td><td>+6.3</td><td>8.8</td><td>6.3</td><td>427</td></tr><tr><th scope="row">Ledoit-Wolf, cap 1 per cent</th><td>78.4</td><td>58.3</td><td>1.39</td><td>+13.4</td><td>18.2</td><td>+11.9</td><td>14.6</td><td>12.2</td><td>404</td></tr><tr><th scope="row">Ledoit-Wolf, cap 4 per cent</th><td>79.0</td><td>54.3</td><td>1.52</td><td>+10.1</td><td>18.3</td><td>+5.4</td><td>47.4</td><td>45.7</td><td>383</td></tr><tr><th scope="row">Ledoit-Wolf, cap none</th><td>79.4</td><td>54.1</td><td>1.53</td><td>+11.3</td><td>18.9</td><td>+5.2</td><td>61.0</td><td>59.4</td><td>381</td></tr><tr><th scope="row">Factor, cap 0.5 per cent</th><td>83.3</td><td>46.6</td><td>1.82</td><td>+7.2</td><td>17.5</td><td>+6.3</td><td>8.6</td><td>6.2</td><td>474</td></tr><tr><th scope="row">Factor, cap 1 per cent</th><td>82.3</td><td>45.3</td><td>1.85</td><td>+8.7</td><td>17.6</td><td>+7.4</td><td>12.6</td><td>10.5</td><td>474</td></tr><tr><th scope="row">Factor, cap 4 per cent</th><td>79.6</td><td>45.0</td><td>1.85</td><td>+8.4</td><td>17.5</td><td>+6.7</td><td>16.5</td><td>14.6</td><td>473</td></tr><tr><th scope="row">Factor, cap none</th><td>79.6</td><td>45.0</td><td>1.85</td><td>+8.5</td><td>17.5</td><td>+6.8</td><td>16.7</td><td>14.9</td><td>473</td></tr></tbody></table></div></div>
+<p class="basis">Simulated. Monthly rebalancing. Gross of fees. The net active return is the gross less a trading cost of 10 basis points per unit of one-way turnover, forced turnover included. No active return is beyond one Newey-West standard error of zero.</p>
+<p class="src">results/20260928/paths_summary.json, notebooks 09 and 10.</p>
+</div>
+
+<div class="fig" id="table-3-block">
+<h2 id="table-3">Table 3 | What the turnover is made of, July 1999 to December 2024</h2>
+<p class="cap">One-way turnover in per cent a year, split into the part index changes force, the part that follows the benchmark's own reweighting and the part the optimiser chooses. The three parts less their overlap equal the total.</p>
+<div class="tw"><div class="tscroll"><table class="wrapfirst"><thead><tr><th>Path</th><th>Total</th><th>Forced</th><th>Reweighting</th><th>Rebalancing</th><th>Overlap</th></tr></thead><tbody><tr><th scope="row">The benchmark held (Ledoit-Wolf under C0)</th><td>5.78</td><td>2.80</td><td>3.71</td><td>0.00</td><td>0.73</td></tr><tr><th scope="row">Ledoit-Wolf, mandate at 2 per cent</th><td>26.26</td><td>2.99</td><td>3.67</td><td>24.94</td><td>5.34</td></tr><tr><th scope="row">Sample, mandate at 2 per cent</th><td>26.29</td><td>3.00</td><td>3.67</td><td>25.13</td><td>5.51</td></tr><tr><th scope="row">Factor, mandate at 2 per cent</th><td>15.14</td><td>2.88</td><td>3.65</td><td>11.91</td><td>3.31</td></tr><tr><th scope="row">Principal-component, mandate at 2 per cent</th><td>19.29</td><td>2.93</td><td>3.69</td><td>16.48</td><td>3.82</td></tr></tbody></table></div></div>
+<p class="text">E7 is met. On the Ledoit-Wolf path forced turnover is 2.99 per cent a year of a total of 26.26, or 11.4 per cent, below the third fixed before the run. A portfolio that holds the benchmark turns over 5.78 per cent a year: forced turnover 2.80, reweighting 3.71 and no rebalancing.</p>
+<p class="src">results/20260928/paths_summary.json, notebook 10.</p>
+</div>
+</section>
+
+<section id="attribution" class="view">
+<p class="ch-view-lead">Where the mandate's active return came from, by sector and by factor.</p>
+<p class="lead">Each month the active return of the four paths at the 2 per cent cap is split by the twelve sectors with the method of Brinson and Fachler (1985)<sup><a href="#note-2">2</a></sup> into allocation, selection and interaction, which sum to it exactly, and by six factors into contributions and a residual. Both sides are taken over the month's names with a return. A sector with no stock above a weight of one millionth has a selection of zero and keeps the rest of its part as interaction. The monthly terms are summed over months with no geometric linking.</p>
+
+<figure class="fig" id="figure-4">
+<h2>Figure 4 | Allocation and selection by sector over the window, the Ledoit-Wolf path under the mandate, July 1999 to December 2024</h2>
+<p class="cap">Each sector's allocation and selection as annual averages, in basis points a year, each with a bar of two Newey-West standard errors on each side.</p>
+<p class="text">On this path the active return of 12.7 basis points a year splits into allocation 1.4, selection 11.3 and interaction 0.0, with Newey-West standard errors of 15.9, 14.0 and 2.0. In Energy and Utilities, the two tilted sectors, selection is within a tenth of a basis point a year of zero: the tilt caps each stock at half its benchmark weight, the cap binds on 19,431 of the 19,433 stock-months in the two sectors on this path, and a sector whose stocks all sit at the same fraction of their benchmark weights earns the benchmark sector's return. Their allocation is 1.0 and 2.9 basis points a year, on standard errors of 13.4 and 4.2. On this path 3 of the 36 sector terms, interaction included, which the figure does not show, lie two standard errors or more from zero, and 1 to 4 on the other paths, against, at the 5 per cent level, 1.8 on average if the tests were independent.</p>
+<div class="panels"><div class="panel"><div id="f4a" class="chart tall"></div></div><div class="panel"><div id="f4b" class="chart tall"></div></div></div>
+<button type="button" class="tbtn" data-table="f4" aria-pressed="false">Table</button><div class="tbl tw" id="t-f4" hidden><div class="tscroll"><table><thead><tr><th>Sector</th><th>Allocation</th><th>Standard error</th><th>Selection</th><th>Standard error</th><th>Interaction</th><th>Standard error</th></tr></thead><tbody><tr><th scope="row">Energy</th><td>+0.98</td><td>13.42</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td></tr><tr><th scope="row">Materials</th><td>+1.03</td><td>2.83</td><td>−0.19</td><td>3.01</td><td>+0.32</td><td>1.58</td></tr><tr><th scope="row">Industrials</th><td>−0.09</td><td>0.63</td><td>+1.87</td><td>6.00</td><td>−0.64</td><td>0.28</td></tr><tr><th scope="row">Consumer Discretionary</th><td>+0.32</td><td>1.07</td><td>+0.16</td><td>3.99</td><td>−0.02</td><td>0.19</td></tr><tr><th scope="row">Consumer Staples</th><td>+0.26</td><td>1.98</td><td>−5.13</td><td>4.56</td><td>−0.87</td><td>0.37</td></tr><tr><th scope="row">Health Care</th><td>−0.47</td><td>2.18</td><td>+3.67</td><td>2.98</td><td>+0.31</td><td>0.34</td></tr><tr><th scope="row">Financials</th><td>−1.60</td><td>2.41</td><td>+6.92</td><td>4.52</td><td>+0.40</td><td>0.31</td></tr><tr><th scope="row">Information Technology</th><td>+1.85</td><td>1.17</td><td>+3.40</td><td>4.44</td><td>−0.05</td><td>0.18</td></tr><tr><th scope="row">Communication Services</th><td>−1.16</td><td>1.24</td><td>+0.10</td><td>1.39</td><td>+0.04</td><td>0.17</td></tr><tr><th scope="row">Utilities</th><td>+2.87</td><td>4.23</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td></tr><tr><th scope="row">Real Estate</th><td>−2.13</td><td>1.03</td><td>−0.40</td><td>0.68</td><td>−0.12</td><td>0.16</td></tr><tr><th scope="row">Unclassified</th><td>−0.45</td><td>1.36</td><td>+0.92</td><td>0.85</td><td>+0.61</td><td>0.63</td></tr></tbody></table></div></div>
+<p class="basis">Simulated. Monthly, summed arithmetically. Gross of fees. Interaction is in the table.</p>
+<p class="src">Source: CRSP and Compustat via Wharton Research Data Services and author's calculations. Monthly, July 1999 to December 2024, US large caps, USD. results/20260928/brinson_summary.json and tilt_cap.csv, notebook 11.</p>
+</figure>
+
+<div class="fig" id="table-4-block">
+<h2 id="table-4">Table 4 | The three terms over the window, four paths under the mandate at the 2 per cent cap, July 1999 to December 2024</h2>
+<p class="cap">Annual averages with Newey-West standard errors, and E8's mean absolute monthly terms, each month's figure the sum over the twelve sectors.</p>
+<div class="tw"><div class="tscroll"><table><thead><tr><th>Path</th><th>Allocation, bp a year</th><th>Standard error</th><th>Selection, bp a year</th><th>Standard error</th><th>Interaction, bp a year</th><th>Standard error</th><th>Allocation, mean absolute, bp a month</th><th>Selection, mean absolute, bp a month</th><th>Interaction, mean absolute, bp a month</th><th>Sector-months not held</th></tr></thead><tbody><tr><th scope="row">Ledoit-Wolf</th><td>+1.4</td><td>15.9</td><td>+11.3</td><td>14.0</td><td>0.0</td><td>2.0</td><td>16.56</td><td>13.81</td><td>1.76</td><td>16</td></tr><tr><th scope="row">Sample, no verdict</th><td>+1.3</td><td>16.1</td><td>+12.3</td><td>14.7</td><td>+0.1</td><td>2.2</td><td>16.63</td><td>14.37</td><td>1.86</td><td>22</td></tr><tr><th scope="row">Factor</th><td>+5.5</td><td>16.3</td><td>+4.0</td><td>9.3</td><td>−0.8</td><td>1.5</td><td>16.74</td><td>10.63</td><td>1.50</td><td>0</td></tr><tr><th scope="row">Principal-component</th><td>+3.5</td><td>15.4</td><td>−3.9</td><td>9.6</td><td>+0.6</td><td>2.5</td><td>16.41</td><td>12.33</td><td>2.21</td><td>0</td></tr></tbody></table></div></div>
+<p class="text">E8 is met. The three terms sum to the active return in every month of the four paths, and on the three structured estimators allocation is the largest in absolute value and interaction the smallest. A sector is not held in 22 months on the sample estimator's path and in 16 on the Ledoit-Wolf path, all of them from 2022, and 66 member-months have no return and are left out of both sides.</p>
+<p class="src">results/20260928/brinson_summary.json, verdicts_milestone4.json and attribution_counts_by_year.csv, notebook 11.</p>
+</div>
+
+<div class="fig" id="table-5-block">
+<h2 id="table-5">Table 5 | The factor attribution, four paths under the mandate at the 2 per cent cap, July 1999 to December 2024</h2>
+<p class="cap">Contributions, their sum, the residual and the active return in basis points a year, each with its plain standard error in brackets, the factor share in per cent and the mean active exposures.</p>
+<div class="tw"><div class="tscroll"><table class="wrapfirst"><thead><tr><th></th><th>Ledoit-Wolf</th><th>Sample</th><th>Factor</th><th>Principal-component</th></tr></thead><tbody><tr><th scope="row">Market, contribution</th><td>−1.7 (0.5)</td><td>−1.6 (0.5)</td><td>−1.4 (0.5)</td><td>−1.2 (0.7)</td></tr><tr><th scope="row">Size, contribution</th><td>+0.7 (1.2)</td><td>+0.6 (1.2)</td><td>+0.9 (1.2)</td><td>+2.1 (1.9)</td></tr><tr><th scope="row">Value, contribution</th><td>−2.0 (2.5)</td><td>−1.9 (2.5)</td><td>−1.8 (1.5)</td><td>−5.4 (4.6)</td></tr><tr><th scope="row">Profitability, contribution</th><td>−4.7 (3.5)</td><td>−4.9 (3.4)</td><td>−2.3 (2.4)</td><td>−6.5 (5.5)</td></tr><tr><th scope="row">Investment, contribution</th><td>−1.3 (1.5)</td><td>−1.1 (1.5)</td><td>−0.8 (1.3)</td><td>−1.7 (2.5)</td></tr><tr><th scope="row">Momentum, contribution</th><td>−0.8 (2.2)</td><td>−0.7 (2.1)</td><td>0.0 (1.7)</td><td>+0.7 (1.8)</td></tr><tr><th scope="row">The six together</th><td>−9.7 (4.4)</td><td>−9.6 (4.4)</td><td>−5.4 (3.3)</td><td>−12.0 (5.7)</td></tr><tr><th scope="row">Residual</th><td>+22.4 (14.9)</td><td>+23.4 (15.3)</td><td>+14.1 (15.8)</td><td>+12.3 (15.4)</td></tr><tr><th scope="row">Active return</th><td>+12.7 (15.6)</td><td>+13.7 (16.0)</td><td>+8.7 (15.9)</td><td>+0.2 (16.5)</td></tr><tr><th scope="row">Factor share, per cent</th><td>8.9</td><td>8.6</td><td>2.1</td><td>12.9</td></tr><tr><th scope="row">Market, mean active exposure</th><td>−0.0006</td><td>−0.0006</td><td>+0.0001</td><td>−0.0002</td></tr><tr><th scope="row">Size, mean active exposure</th><td>+0.0055</td><td>+0.0053</td><td>+0.0054</td><td>+0.0056</td></tr><tr><th scope="row">Value, mean active exposure</th><td>−0.0068</td><td>−0.0067</td><td>−0.0019</td><td>−0.0100</td></tr><tr><th scope="row">Profitability, mean active exposure</th><td>−0.0071</td><td>−0.0071</td><td>−0.0041</td><td>−0.0162</td></tr><tr><th scope="row">Investment, mean active exposure</th><td>+0.0045</td><td>+0.0047</td><td>+0.0006</td><td>+0.0002</td></tr><tr><th scope="row">Momentum, mean active exposure</th><td>−0.0028</td><td>−0.0028</td><td>−0.0023</td><td>−0.0018</td></tr></tbody></table></div></div>
+<p class="text">E9 is met. Contributions and residual sum to the active return in every month, and the mean active exposure to the market factor lies between −0.0006 and +0.0001 on the four paths. On the Ledoit-Wolf path the six contributions sum to −9.7 basis points a year and the residual to 22.4. The standard errors of this table are the plain ones the copied attribution computes, with no allowance for correlation from one month to the next.</p>
+<p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. results/20260928/factor_attribution_summary.json, notebook 11.</p>
+</div>
+</section>
+
+<section id="data" class="view">
+<p class="ch-view-lead">Whether the rebuilt benchmark and the four covariance matrices are what they claim to be.</p>
+<p class="lead">The universe in a month is the stocks on CRSP's list of index members on the last trading day of the month before, each weighted by its market capitalisation at the start of the month. A delisting is applied as Shumway (1997)<sup id="ref-4"><a href="#note-4">4</a></sup> proposes, and a member's sector is the GICS sector in force on the same day, through CRSP's link to Compustat. The index as S&amp;P publishes it is not the benchmark: its total return is not in the extraction, and its float adjustment cannot be rebuilt from CRSP's share counts.</p>
+
+<div class="fig" id="table-6-block">
+<h2 id="table-6">Table 6 | The data layer's checks, January 1926 to December 2024</h2>
+<p class="cap">The benchmark against CRSP's own figures and the universe's sorts against French's, with the conditioning of the covariance matrices.</p>
+<div class="tw"><div class="tscroll"><table class="wrapfirst"><thead><tr><th>Measure</th><th>Figure</th><th>Period</th></tr></thead><tbody><tr><th scope="row">Benchmark against CRSP's value-weighted return, with dividends</th><td>11.5 bp a year</td><td>January 1926 to December 2024</td></tr><tr><th scope="row">The same, price-only</th><td>11.6 bp a year</td><td>January 1926 to December 2024</td></tr><tr><th scope="row">The same, with dividends, over the mandate's window</th><td>15.2 bp a year</td><td>July 1999 to December 2024</td></tr><tr><th scope="row">Benchmark's price return against the index's own, no verdict</th><td>93.6 bp a year</td><td>to December 2004</td></tr><tr><th scope="row">The same, from January 2005, when the index weights by float</th><td>22.4 bp a year</td><td>January 2005 to December 2024</td></tr><tr><th scope="row">Member-months in the universe</th><td>440,724</td><td>January 1926 to December 2024</td></tr><tr><th scope="row">Momentum spread against French's: correlation</th><td>0.888</td><td>1,172 months from January 1927</td></tr><tr><th scope="row">Momentum: mean monthly difference (standard error)</th><td>−10.4 (9.0) bp</td><td></td></tr><tr><th scope="row">Variance spread against French's: correlation</th><td>0.954</td><td>417 months from April 1990</td></tr><tr><th scope="row">Variance: mean monthly difference (standard error)</th><td>2.7 (9.4) bp</td><td></td></tr><tr><th scope="row">Months with the sample condition number at least 10 times the Ledoit-Wolf one</th><td>86 of 306</td><td>all from 2017</td></tr><tr><th scope="row">The same with one share class for each company, no verdict</th><td>30 of 306</td><td>all from 2020 to 2022</td></tr></tbody></table></div></div>
+<p class="text">The months in which the sample matrix's condition number reaches ten times the Ledoit-Wolf one have a cause found after the run: from 2014 the universe holds up to five companies with two share classes each, whose daily returns move almost together, and the difference between two such classes sets the sample matrix's smallest eigenvalue.</p>
+<p class="src">results/20260928/reconstruction_summary.json, universe_summary.json, answer_key_summary.json and covariance_summary.json, notebooks 02, 04, 06 and 07.</p>
+</div>
+
+<div class="fig" id="table-7-block">
+<h2 id="table-7">Table 7 | The condition numbers of the four covariance matrices by year, July 1999 to December 2024</h2>
+<p class="cap">The median over each year's months. A larger number means small errors in the matrix become larger errors in the weights an optimiser builds on it.</p>
+<div class="tw"><div class="tscroll"><table><thead><tr><th>Year</th><th>Sample</th><th>Ledoit-Wolf</th><th>Factor</th><th>Principal-component</th><th>Sample over Ledoit-Wolf</th></tr></thead><tbody><tr><th scope="row">1999</th><td>8,176</td><td>1,700</td><td>714</td><td>756</td><td>4.8</td></tr><tr><th scope="row">2000</th><td>8,609</td><td>1,626</td><td>658</td><td>723</td><td>5.3</td></tr><tr><th scope="row">2001</th><td>10,806</td><td>2,142</td><td>789</td><td>847</td><td>5.0</td></tr><tr><th scope="row">2002</th><td>14,485</td><td>2,826</td><td>1,151</td><td>1,174</td><td>5.1</td></tr><tr><th scope="row">2003</th><td>21,580</td><td>4,482</td><td>1,421</td><td>1,438</td><td>4.8</td></tr><tr><th scope="row">2004</th><td>26,928</td><td>5,054</td><td>1,722</td><td>1,777</td><td>5.3</td></tr><tr><th scope="row">2005</th><td>23,212</td><td>4,341</td><td>1,611</td><td>1,641</td><td>5.3</td></tr><tr><th scope="row">2006</th><td>11,496</td><td>3,066</td><td>1,008</td><td>1,088</td><td>3.7</td></tr><tr><th scope="row">2007</th><td>11,387</td><td>2,888</td><td>909</td><td>1,038</td><td>3.9</td></tr><tr><th scope="row">2008</th><td>16,719</td><td>3,737</td><td>1,241</td><td>1,374</td><td>4.5</td></tr><tr><th scope="row">2009</th><td>53,536</td><td>8,537</td><td>3,511</td><td>4,337</td><td>6.3</td></tr><tr><th scope="row">2010</th><td>55,505</td><td>10,177</td><td>3,708</td><td>4,655</td><td>5.5</td></tr><tr><th scope="row">2011</th><td>71,000</td><td>10,633</td><td>3,844</td><td>4,718</td><td>6.7</td></tr><tr><th scope="row">2012</th><td>47,285</td><td>13,388</td><td>2,955</td><td>3,397</td><td>3.5</td></tr><tr><th scope="row">2013</th><td>36,142</td><td>11,167</td><td>2,510</td><td>2,744</td><td>3.2</td></tr><tr><th scope="row">2014</th><td>31,841</td><td>9,292</td><td>2,203</td><td>2,362</td><td>3.4</td></tr><tr><th scope="row">2015</th><td>18,969</td><td>5,364</td><td>1,383</td><td>1,320</td><td>3.5</td></tr><tr><th scope="row">2016</th><td>36,119</td><td>6,573</td><td>1,682</td><td>1,723</td><td>5.5</td></tr><tr><th scope="row">2017</th><td>66,489</td><td>6,067</td><td>1,662</td><td>1,757</td><td>11.0</td></tr><tr><th scope="row">2018</th><td>69,934</td><td>4,947</td><td>1,573</td><td>1,672</td><td>14.1</td></tr><tr><th scope="row">2019</th><td>90,050</td><td>4,185</td><td>1,122</td><td>1,140</td><td>21.5</td></tr><tr><th scope="row">2020</th><td>380,906</td><td>4,996</td><td>2,724</td><td>2,445</td><td>76.2</td></tr><tr><th scope="row">2021</th><td>307,945</td><td>5,365</td><td>2,798</td><td>2,580</td><td>57.4</td></tr><tr><th scope="row">2022</th><td>171,875</td><td>5,850</td><td>3,340</td><td>3,299</td><td>29.4</td></tr><tr><th scope="row">2023</th><td>94,679</td><td>7,870</td><td>2,014</td><td>2,132</td><td>12.0</td></tr><tr><th scope="row">2024</th><td>101,795</td><td>9,341</td><td>1,725</td><td>1,961</td><td>10.9</td></tr></tbody></table></div></div>
+<p class="src">results/20260928/covariance_by_year.csv, notebook 07.</p>
+</div>
+</section>
+
+<section id="method" class="view method">
+<p class="ch-view-lead">The data, what is known at each date, the costs, what the study cannot show, and the terms.</p>
+<h2>Method</h2>
+<p><strong>Data and access.</strong> CRSP and Compustat via Wharton Research Data Services, accessed through Queen Mary University of London, from an extraction of 28 September 2026. They are licensed, and the repository holds none of them: it holds code, tests, the extraction's SHA-256 and aggregate tables.<sup id="ref-5"><a href="#note-5">5</a></sup> Nothing that reproduces CRSP's index file is committed by month, and no weight of a security or of a sector of the portfolio is committed in any form. Kenneth R. French's files are downloaded at run time.</p>
+<p><strong>What is known at each date.</strong> Membership, sector and capitalisation are read on the last trading day of the month before. Each covariance matrix uses the three years of daily returns before the month. Nothing from the month itself enters a weight.</p>
+<p><strong>Rebalancing and costs.</strong> Monthly. The turnover cap applies to chosen turnover, measured from the portfolio left after last month's returns with leavers sold and entrants bought at their benchmark weight. Returns are gross of fees. A trading cost of 10 basis points per unit of one-way turnover is charged where stated, forced turnover included.</p>
+<p><strong>What the study cannot show.</strong> It is a simulation. The benchmark weights CRSP's list by full capitalisation, and the index weights by float. A GICS sub-industry is wider than a list of controversial weapons. Costs are proportional to turnover, with no market impact. Sectors exist from July 1999, so the mandate starts there. No active return is distinguishable from zero, so the study makes no claim about a return the mandate earns.</p>
+
+<h2 id="terms">Terms</h2>
+<dl class="terms">
+<dt>universe</dt><dd>the point-in-time S&amp;P 500: the stocks on CRSP's list of index members on the last trading day of the month before.</dd>
+<dt>market capitalisation</dt><dd>price times shares outstanding, at the end of the month before.</dd>
+<dt>benchmark</dt><dd>the cap-weighted universe, each stock's weight its market capitalisation over the universe's total.</dd>
+<dt>active weight</dt><dd>a weight in the portfolio minus the same weight in the benchmark.</dd>
+<dt>active return</dt><dd>the portfolio's return minus the benchmark's, each over the month's names with a return.</dd>
+<dt>cap-weighted</dt><dd>weighted by market capitalisation. CRSP's value-weighted return of the list is the same, computed by CRSP.</dd>
+<dt>value-weighted</dt><dd>cap-weighted.</dd>
+<dt>basis point</dt><dd>a hundredth of a percentage point.</dd>
+<dt>tracking error</dt><dd>the standard deviation of the monthly active return, times the square root of 12. The forecast is the one the month's covariance matrix implies for the month's active weights, the realised the measured one.</dd>
+<dt>covariance matrix</dt><dd>the table of the stocks' variances and of their covariances with each other.</dd>
+<dt>covariance estimator</dt><dd>a way of estimating the covariance matrix from three years of daily returns: the sample covariance, the Ledoit-Wolf estimator<sup id="ref-6"><a href="#note-6">6</a></sup>, which shrinks it towards a scaled identity matrix, a factor model on French's five factors and momentum, and a principal-component model with the benchmark as its first factor. The last three are the structured estimators.</dd>
+<dt>eigenvalue</dt><dd>the variance of one of the uncorrelated portfolios a covariance matrix splits into.</dd>
+<dt>condition number</dt><dd>a covariance matrix's largest eigenvalue over its smallest.</dd>
+<dt>band</dt><dd>the range of the bias statistic within which a forecast counts as right, 0.8 to 1.25, fixed before the run.</dd>
+<dt>bias statistic</dt><dd>the standard deviation of each month's active return divided by that month's forecast, over the months with a forecast above one millionth. It is 1 when the forecasts are right on average.</dd>
+<dt>mandate</dt><dd>the full set of constraints the portfolio obeys: long-only, each stock and each company within 50 basis points of its benchmark weight, each sector within 2 percentage points, chosen turnover capped, the tilt, two sub-industries excluded and a beta of one to the benchmark.</dd>
+<dt>beta</dt><dd>the slope of a return on the benchmark's return.</dd>
+<dt>tilt</dt><dd>every Energy and Utilities stock capped at half its benchmark weight.</dd>
+<dt>constraint set</dt><dd>one of the cumulative sets C0 to C3: long-only, plus the bounds per stock, company and sector, plus the turnover cap, plus the rest of the mandate.</dd>
+<dt>path</dt><dd>one covariance estimator under one constraint set at one turnover cap, run month by month from the benchmark.</dd>
+<dt>turnover</dt><dd>a month's one-way trading as a share of the portfolio. Forced turnover is what index changes require, chosen turnover the rest.</dd>
+<dt>turnover cap</dt><dd>the limit on chosen turnover, 2 per cent of the portfolio a month in the mandate, with 0.5, 1 and 4 per cent and no cap on the frontier.</dd>
+<dt>reweighting</dt><dd>the turnover that following the benchmark's own changes in share counts and its dividends takes.</dd>
+<dt>rebalancing</dt><dd>the optimiser's own moves. The overlap is the trades of one step that the next undoes.</dd>
+<dt>Newey-West standard error</dt><dd>the standard error of a mean that allows each month to be correlated with the next twelve. A plain standard error makes no such allowance.</dd>
+<dt>attribution</dt><dd>a split of the active return into parts that sum to it.</dd>
+<dt>allocation</dt><dd>the part of the active return from holding a sector at another weight than the benchmark's: the sector's active weight times the benchmark sector's return less the benchmark's.</dd>
+<dt>selection</dt><dd>the part from holding other stocks within a sector: the sector's benchmark weight times the portfolio sector's return less the benchmark sector's.</dd>
+<dt>interaction</dt><dd>the sector's active weight times that same difference.</dd>
+<dt>Unclassified</dt><dd>the twelfth sector, the members with no GICS sector, one to three securities a month.</dd>
+<dt>factor</dt><dd>a common source of return: the market, size, value, profitability and investment factors of Fama and French (2015), and momentum.</dd>
+<dt>loading</dt><dd>a stock's sensitivity to a factor, from a regression of its daily returns on the six factors over the three years before the month.</dd>
+<dt>active exposure</dt><dd>the members' loadings on a factor weighted by the active weights. A factor's contribution is its active exposure times its return, the residual the active return less the contributions, and the factor share one minus the residual's variance over the active return's.</dd>
+<dt>Sharpe ratio</dt><dd>in the card of Optimal versus naive diversification below, a portfolio's mean return above the one-month Treasury bill rate, over its standard deviation.</dd>
+<dt>look-ahead</dt><dd>the use, in a decision dated at one time, of data published only later.</dd>
+<dt>gate</dt><dd>a test of the data fixed in advance, which stops the study if not met.</dd>
+<dt>expectation</dt><dd>a test of a result fixed in advance, reported as a finding whether met or not.</dd>
+</dl>
+
+<h2 id="notes">Notes</h2>
+<ol class="notes">
+<li id="note-1"><a href="https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html">Kenneth R. French Data Library</a>: the files of the five factors and momentum, and of the portfolios formed on size and momentum and on size and variance.</li>
+<li id="note-2">Brinson, G. P. and Fachler, N. (1985). Measuring non-U.S. equity portfolio performance. <em>Journal of Portfolio Management</em> 11(3), 73 to 76. <a href="https://doi.org/10.3905/jpm.1985.409005">https://doi.org/10.3905/jpm.1985.409005</a></li>
+<li id="note-3">Fama, E. F. and French, K. R. (2015). A five-factor asset pricing model. <em>Journal of Financial Economics</em> 116(1), 1 to 22. <a href="https://doi.org/10.1016/j.jfineco.2014.10.010">https://doi.org/10.1016/j.jfineco.2014.10.010</a></li>
+<li id="note-4">Shumway, T. (1997). The delisting bias in CRSP data. <em>Journal of Finance</em> 52(1), 327 to 340. <a href="https://doi.org/10.1111/j.1540-6261.1997.tb03818.x">https://doi.org/10.1111/j.1540-6261.1997.tb03818.x</a></li>
+<li id="note-5"><a href="https://github.com/ochofer/stock-level-tracking">The repository</a>: the notebooks, the tables committed in results/20260928/ and the constants fixed before each run.</li>
+<li id="note-6">Ledoit, O. and Wolf, M. (2004). A well-conditioned estimator for large-dimensional covariance matrices. <em>Journal of Multivariate Analysis</em> 88(2), 365 to 411. <a href="https://doi.org/10.1016/S0047-259X(03)00096-4">https://doi.org/10.1016/S0047-259X(03)00096-4</a></li>
+</ol>
+</section>
+
+<section id="other-projects" class="other">
+<h2>Other projects</h2>
+<p><strong>Optimal versus naive diversification.</strong> Under an index-tracking mandate on French's 49 industries, five covariance estimators understate their own tracking error, by 22 to 61 per cent. The replication of DeMiguel, Garlappi and Uppal (2009) reproduces 29 of the 30 Sharpe ratios that carry a band. <a href="https://www.carlohofer.com/projects/optimal-vs-naive-diversification/">Page</a>, <a href="https://www.carlohofer.com/optimal-vs-naive-diversification/dashboard/B-P_dashboard.html">dashboard</a>, <a href="https://www.carlohofer.com/optimal-vs-naive-diversification/note/B-P_note_2026-10.pdf">note</a>, <a href="https://github.com/ochofer/optimal-vs-naive-diversification">code</a></p>
+<p><strong>Climate risk as an equity signal.</strong> An ownership graph linking 328 listed companies to the 5,115 tracked assets they own. Of 19 apparent ownership changes checked by hand, 12 had no transaction behind them. <a href="https://www.carlohofer.com/projects/climate-risk-equity-signal/">Page</a>, <a href="https://github.com/ochofer/paper1-hazard-exposure-data/releases/download/note-v1.2/what-a-vintage-difference-measures.pdf">note</a>, <a href="https://github.com/ochofer/paper1-hazard-exposure-data">code</a></p>
+<p><strong>Volatility-managed portfolios: a replication, the real-time critique, and the months after the sample.</strong> Volatility estimation and position sizing on Ken French's equity factors, backtested out of sample and without look-ahead, replicating Moreira and Muir (2017) and Cederburg, O'Doherty, Wang and Yan (2020). Scaled by the inverse of last month's realised variance, a factor has a Sharpe ratio above the original's beyond its 95 per cent interval for one of six factors, momentum, and the 136 months after Moreira and Muir's sample cannot tell any difference from zero. <a href="https://www.carlohofer.com/projects/volatility-managed-portfolios/">Page</a>, <a href="https://www.carlohofer.com/volatility-managed-portfolios/dashboard/B-Q_dashboard.html">dashboard</a>, <a href="https://www.carlohofer.com/volatility-managed-portfolios/note/B-Q_note_2026-11.pdf">note</a>, <a href="https://github.com/ochofer/volatility-managed-portfolios">code</a></p>
+<p><strong>Rules-based portfolio.</strong> Runs a real-money portfolio under rules published before the first order: two UCITS ETFs at 70/30, a monthly cycle with pre-trade checks, look-through exposure and ex-ante risk on a public dashboard. <a href="https://www.carlohofer.com/projects/rules-based-portfolio/">Page</a>, <a href="https://www.carlohofer.com/rules-based-portfolio/">dashboard</a>, <a href="https://www.carlohofer.com/rules-based-portfolio/guide/guide.pdf">guide</a>, <a href="https://github.com/ochofer/rules-based-portfolio">code</a></p>
+</section>
+</main>
+
+<footer class="ch-foot"><div>
+<p>Every figure of the mandate on this page is a simulation on CRSP and Compustat data, gross of fees unless a trading cost is stated, and none is a record.</p>
+<p>Built by dashboard/build_dashboard.py from the tables in results/20260928/, written by notebooks 02 to 11 on the extraction of 28 September 2026, and rebuilt whenever a notebook is rerun, from the tables committed with it. Every figure has a table under it. Charts drawn with Plotly 2.35.2.</p>
+<p>Carlo Hofer &middot; Data: CRSP and Compustat via Wharton Research Data Services, and Kenneth R. French Data Library &middot; <a href="https://github.com/ochofer/stock-level-tracking">Code on GitHub</a> &middot; Last build: 17 November 2026</p>
+</div></footer>
+
+<script>
+(function () {
+  "use strict";
+  var D = {"est":["ledoit_wolf","sample","factor","pca"],"label":{"ledoit_wolf":"Ledoit-Wolf","sample":"Sample","factor":"Factor","pca":"Principal-component"},"short":{"ledoit_wolf":"Ledoit-Wolf","sample":"Sample","factor":"Factor","pca":"PCA"},"colour":{"ledoit_wolf":"#24599e","sample":"#d9711c","factor":"#12929f","pca":"#c8423b"},"f1":{"ledoit_wolf":{"forecast":55.183,"realised":78.946,"bias":1.475},"sample":{"forecast":52.812,"realised":80.637,"bias":1.6005},"factor":{"forecast":45.057,"realised":80.493,"bias":1.8496},"pca":{"forecast":48.026,"realised":83.562,"bias":1.7305}},"f2":{"year":[1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024],"months":[6,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12],"realised":[86.331,82.125,87.584,76.903,85.044,78.24,100.175,92.863,92.544,176.344,90.407,65.675,72.738,60.598,33.254,55.267,62.448,65.155,46.477,58.199,48.288,70.322,37.997,68.171,47.241,33.512],"forecast":[46.271,48.933,72.433,74.316,67.754,59.304,66.117,71.685,75.473,101.316,103.282,81.84,81.092,52.778,44.568,40.138,33.026,36.405,34.823,33.998,33.378,28.412,27.629,41.288,42.575,31.468]},"f3":{"ledoit_wolf":{"cap":["0.5","1","2","4","none"],"chosen":[6.273,12.212,24.173,45.682,59.409],"realised":[76.283,78.363,78.946,78.968,79.382],"forecast":[64.497,58.306,55.183,54.268,54.072]},"factor":{"cap":["0.5","1","2","4","none"],"chosen":[6.193,10.494,13.241,14.621,14.85],"realised":[83.311,82.306,80.493,79.589,79.571],"forecast":[46.592,45.273,45.057,45.021,45.016]}},"f4":{"sector":["Energy","Materials","Industrials","Consumer Discretionary","Consumer Staples","Health Care","Financials","Information Technology","Communication Services","Utilities","Real Estate","Unclassified"],"allocation":[0.9813,1.0274,-0.0939,0.3182,0.2564,-0.4715,-1.6036,1.8452,-1.1589,2.8716,-2.1299,-0.4519],"allocation_se":[13.4219,2.8323,0.6341,1.0733,1.9787,2.1827,2.4087,1.1749,1.2412,4.2253,1.0271,1.3572],"selection":[0.0025,-0.1936,1.8716,0.1587,-5.1283,3.6686,6.9184,3.3968,0.1046,0.0001,-0.3988,0.9153],"selection_se":[0.0025,3.0051,5.9992,3.989,4.5647,2.98,4.5243,4.4358,1.3942,0.0001,0.677,0.8462]}};
+  var CH = { cat: ["#24599e", "#d9711c", "#12929f", "#c8423b", "#6b45b8", "#7c9a12", "#b03a72", "#a87b00"],
+    navy: "#16213a", ink: "#262b33", ink2: "#5d6470", meta: "#6b7280", frame: "#cfcfcf", grid: "#e5e5e5", grey: "#8c8c8c" };
+  var CONFIG = { displayModeBar: false, scrollZoom: false, responsive: true };
+  var VIEWS = { summary: [f1], mandate: [f2, f3], attribution: [f4], data: [], method: [] };
+  var state = { view: "summary" }, drawn = {}, wasNarrow = null;
+
+  function narrow() { return window.innerWidth < 700; }
+  function pick(cond, a, b) { if (cond) { return a; } return b; }
+  function ename(e) { return pick(narrow(), D.short[e], D.label[e]); }
+  function axis(opts) {
+    var a = { showgrid: false, linecolor: CH.frame, tickcolor: CH.frame, tickfont: { color: CH.meta, size: 11 }, fixedrange: true, zeroline: false, automargin: true, tickangle: 0 };
+    Object.keys(opts || {}).forEach(function (k) { a[k] = opts[k]; });
+    if (opts && opts.value) { a.showgrid = true; a.gridcolor = CH.grid; delete a.value; }
+    if (a.title && typeof a.title === "string") { a.title = { text: a.title, font: { size: 12, color: CH.ink2 } }; }
+    return a;
+  }
+  function base(extra) {
+    var l = { paper_bgcolor: "#ffffff", plot_bgcolor: "#ffffff", font: { family: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif", color: CH.ink, size: 12 },
+      margin: { l: 56, r: 16, t: 12, b: 56 }, hovermode: "closest", hoverlabel: { bgcolor: "#ffffff", bordercolor: CH.frame, font: { color: CH.ink } },
+      legend: { orientation: "h", x: 0.5, xanchor: "center", y: -0.2, yanchor: "top", font: { size: 12 }, traceorder: "normal" }, showlegend: true };
+    Object.keys(extra || {}).forEach(function (k) { l[k] = extra[k]; });
+    return l;
+  }
+  function hollow(c) { return { color: "#ffffff", size: 10, line: { color: c, width: 2 } }; }
+  function filled(c) { return { color: c, size: 10 }; }
+  function plot(id, traces, layout) { Plotly.newPlot(id, traces, layout, CONFIG); }
+
+  // Figure 1: forecast (hollow) and realised (filled) tracking error by estimator
+  function f1() {
+    var names = D.est.map(ename), traces = [];
+    D.est.forEach(function (e, i) {
+      var r = D.f1[e], c = D.colour[e];
+      traces.push({ x: [r.forecast, r.realised], y: [names[i], names[i]], mode: "lines", line: { color: c, width: 2 }, hoverinfo: "skip", showlegend: false });
+      traces.push({ x: [r.forecast], y: [names[i]], mode: "markers+text", marker: hollow(c), text: [r.forecast.toFixed(1)], textposition: "middle left", textfont: { size: 11, color: CH.ink2 }, cliponaxis: false, showlegend: false, hovertemplate: names[i] + ": mean forecast %{x:.1f} bp a year<extra></extra>" });
+      traces.push({ x: [r.realised], y: [names[i]], mode: "markers+text", marker: filled(c), text: [r.realised.toFixed(1) + pick(narrow(), "", "   bias " + r.bias.toFixed(2))], textposition: "middle right", textfont: { size: 11, color: CH.ink }, cliponaxis: false, showlegend: false, hovertemplate: names[i] + ": realised %{x:.1f} bp a year, bias " + r.bias.toFixed(2) + "<extra></extra>" });
+    });
+    traces.push({ x: [null], y: [null], mode: "markers", marker: hollow(CH.grey), name: "mean forecast" });
+    traces.push({ x: [null], y: [null], mode: "markers", marker: filled(CH.grey), name: "realised" });
+    plot("f1", traces, base({ margin: { l: pick(narrow(), 84, 150), r: pick(narrow(), 44, 110), t: 8, b: 76 },
+      xaxis: axis({ title: "basis points a year", range: [30, 100], value: true }), yaxis: axis({ autorange: "reversed" }) }));
+  }
+
+  // Figure 2: realised and mean forecast tracking error by year, Ledoit-Wolf
+  function f2() {
+    var c = D.colour.ledoit_wolf, F = D.f2;
+    var traces = [
+      { x: F.year, y: F.realised, mode: "lines+markers", name: "realised", line: { color: c, width: 2 }, marker: { color: c, size: 7 }, hovertemplate: "%{x}: realised %{y:.1f} bp a year<extra></extra>" },
+      { x: F.year, y: F.forecast, mode: "lines+markers", name: "mean forecast", line: { color: c, width: 1.5, dash: "dash" }, marker: { color: "#ffffff", size: 7, line: { color: c, width: 1.5 } }, hovertemplate: "%{x}: mean forecast %{y:.1f} bp a year<extra></extra>" }
+    ];
+    var k = F.realised.indexOf(Math.max.apply(null, F.realised));
+    var ann = [{ x: F.year[k], y: F.realised[k], text: F.realised[k].toFixed(0), showarrow: false, xanchor: "left", xshift: 8, font: { size: 11, color: CH.ink } },
+      { x: F.year[k], y: F.forecast[k], text: F.forecast[k].toFixed(0), showarrow: false, xanchor: "right", xshift: -8, font: { size: 11, color: CH.ink2 } }];
+    plot("f2", traces, base({ annotations: ann, xaxis: axis({ dtick: 4, tick0: 2000 }), yaxis: axis({ title: "basis points a year", range: [0, 190], value: true }) }));
+  }
+
+  // Figure 3: tracking error against chosen turnover at five caps
+  function f3() {
+    var traces = [];
+    Object.keys(D.f3).forEach(function (e, j) {
+      var g = D.f3[e], c = D.colour[e];
+      traces.push({ x: g.chosen, y: g.realised, mode: "lines+markers", name: D.label[e] + ", realised", line: { color: c, width: 2 }, marker: { color: c, size: 8 }, customdata: g.cap, hovertemplate: D.label[e] + ", cap %{customdata}: chosen turnover %{x:.1f}% a year, realised %{y:.1f} bp a year<extra></extra>" });
+      traces.push({ x: g.chosen, y: g.forecast, mode: "lines+markers", name: D.label[e] + ", mean forecast", line: { color: c, width: 1.5, dash: "dash" }, marker: { color: "#ffffff", size: 8, line: { color: c, width: 1.5 } }, customdata: g.cap, hovertemplate: D.label[e] + ", cap %{customdata}: chosen turnover %{x:.1f}% a year, mean forecast %{y:.1f} bp a year<extra></extra>" });
+    });
+    var ann = [];
+    Object.keys(D.f3).forEach(function (e, j) {
+      var g = D.f3[e], groups = [], run = [];
+      g.chosen.forEach(function (x, i) { if (run.length && x - g.chosen[run[run.length - 1]] >= 2) { groups.push(run); run = []; } run.push(i); });
+      groups.push(run);
+      groups.forEach(function (grp) {
+        var x = grp.reduce(function (s, i) { return s + g.chosen[i]; }, 0) / grp.length, y = Math.max.apply(null, grp.map(function (i) { return g.realised[i]; }));
+        ann.push({ x: x, y: y, text: grp.map(function (i) { return g.cap[i]; }).join(", "), showarrow: false, yshift: pick(j === 0, -16, 14), font: { size: 11, color: CH.ink2 } });
+      });
+    });
+    plot("f3", traces, base({ annotations: ann, margin: { l: 56, r: 16, t: 12, b: pick(narrow(), 130, 96) },
+      xaxis: axis({ title: "chosen turnover, per cent a year (labels: the cap, per cent a month)", range: [0, 65] }), yaxis: axis({ title: "basis points a year", range: [30, 95], value: true }) }));
+  }
+
+  // Figure 4: allocation and selection by sector, two Newey-West standard errors on each side
+  function f4() {
+    var c = D.colour.ledoit_wolf, F = D.f4;
+    [["f4a", "allocation", "Allocation"], ["f4b", "selection", "Selection"]].forEach(function (s, j) {
+      var t = [{ x: F[s[1]], y: F.sector, mode: "markers", marker: { color: c, size: 9 }, showlegend: false,
+        error_x: { type: "data", array: F[s[1] + "_se"].map(function (x) { return 2 * x; }), color: c, thickness: 1.5, width: 0 },
+        customdata: F[s[1] + "_se"], hovertemplate: "%{y}: " + s[2].toLowerCase() + " %{x:.2f} bp a year, standard error %{customdata:.2f}<extra></extra>" }];
+      plot(s[0], t, base({ showlegend: false, margin: { l: pick(j === 0 || narrow(), 168, 16), r: 16, t: 30, b: 50 },
+        title: { text: s[2], x: 0, xanchor: "left", font: { size: 13, color: CH.ink } },
+        shapes: [{ type: "line", x0: 0, x1: 0, y0: -0.5, y1: F.sector.length - 0.5, line: { color: CH.frame, width: 1 } }],
+        xaxis: axis({ title: "basis points a year", range: [-30, 30], dtick: 10, value: true }), yaxis: axis({ autorange: "reversed", showticklabels: j === 0 || narrow() }) }));
+    });
+  }
+
+  function viewOf(id) { var el = document.getElementById(id); while (el && !(el.classList && el.classList.contains("view"))) { el = el.parentElement; } return el ? el.id : "summary"; }
+  function drawView(name) { if (drawn[name]) { return; } VIEWS[name].forEach(function (fn) { fn(); }); drawn[name] = true; }
+  function showView(name, scrollTo) {
+    state.view = name;
+    document.querySelectorAll(".view").forEach(function (v) { v.classList.toggle("on", v.id === name); });
+    document.querySelectorAll("[data-view]").forEach(function (b) { b.setAttribute("aria-selected", String(b.getAttribute("data-view") === name)); });
+    if (typeof Plotly !== "undefined") { drawView(name); }
+    if (scrollTo) { var el = document.getElementById(scrollTo); if (el) { el.scrollIntoView({ block: "start" }); } }
+  }
+  function route() {
+    var h = (location.hash || "").replace("#", "");
+    if (VIEWS[h]) { showView(h); return; }
+    if (h && document.getElementById(h)) { showView(viewOf(h), h); return; }
+    showView("summary");
+  }
+  document.querySelectorAll("[data-view]").forEach(function (b) { b.addEventListener("click", function () { var v = b.getAttribute("data-view"); history.replaceState(null, "", "#" + v); showView(v); window.scrollTo(0, 0); }); });
+  window.addEventListener("hashchange", route);
+  document.querySelectorAll(".tbtn").forEach(function (b) { b.addEventListener("click", function () {
+    var el = document.getElementById("t-" + b.getAttribute("data-table")), open = el.getAttribute("hidden") !== null;
+    if (open) { el.removeAttribute("hidden"); } else { el.setAttribute("hidden", ""); }
+    b.setAttribute("aria-pressed", String(open)); b.textContent = pick(open, "Hide table", "Table");
+  }); });
+  var timer = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(timer);
+    timer = setTimeout(function () { var n = narrow(); if (n !== wasNarrow) { wasNarrow = n; drawn = {}; drawView(state.view); } }, 200);
+  });
+  if (typeof Plotly === "undefined") {
+    document.querySelectorAll(".chart").forEach(function (el) { el.textContent = "The charting library did not load. This page needs a connection to cdn.plot.ly once, and every figure's numbers are in the table under it."; });
+  }
+  wasNarrow = narrow();
+  route();
+  // the fade at the tab bar's right edge shows only while more of the bar lies to the right
+  (function () {
+    var bar = document.querySelector(".tabs"), row = bar.querySelector(".wrap");
+    function upd() { bar.classList.toggle("more", row.scrollWidth - row.clientWidth - row.scrollLeft > 1); }
+    if (!("ResizeObserver" in window)) { return; }
+    row.addEventListener("scroll", upd);
+    new ResizeObserver(upd).observe(row);
+    upd();
+  })();
+  // the fade at a table's right edge shows only while more of the table lies to the right
+  document.querySelectorAll(".tw").forEach(function (t) {
+    function upd() { var s = t.querySelector(".tscroll"); t.classList.toggle("more", !!s && s.scrollWidth - s.clientWidth - s.scrollLeft > 1); }
+    if (!("ResizeObserver" in window)) { t.classList.add("more"); return; }
+    t.addEventListener("scroll", upd, true);
+    new ResizeObserver(upd).observe(t);
+    new MutationObserver(upd).observe(t, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
+    upd();
+  });
+})();
+</script>
+</body>
+</html>
