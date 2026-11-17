@@ -262,11 +262,11 @@ dl.terms dd { margin: 0 0 0 1rem; }
 <figure class="fig" id="figure-3">
 <h2>Figure 3 | Tracking error against chosen turnover at five caps, the Ledoit-Wolf and factor estimators under the mandate, {{first_w}} to {{last_w}}</h2>
 <p class="cap">For each estimator and each cap on chosen turnover (0.5, 1, 2 and 4 per cent a month, and none): the realised (filled) and mean forecast (hollow) tracking error in basis points a year, against the chosen turnover in per cent a year.</p>
-<p class="text">E5 is not met. On both estimators the mean forecast falls as the cap loosens, from {{lw_fc_tight}} to {{lw_fc_none}} basis points a year on Ledoit-Wolf and from {{fa_fc_tight}} to {{fa_fc_none}} on the factor estimator. The realised tracking error at the 4 per cent cap is {{fa_re_4}} on the factor estimator, below its {{fa_re_tight}} at 0.5 per cent, and {{lw_re_4}} on Ledoit-Wolf, above its {{lw_re_tight}}. On Ledoit-Wolf chosen turnover runs from {{chosen_lo}} to {{chosen_hi}} per cent a year across the caps while the realised tracking error stays between {{fr_te_lo}} and {{fr_te_hi}}. The factor estimator chooses at most {{fa_chosen_hi}} per cent a year, and the 2 per cent cap binds on it in {{fa_bind}} per cent of months, against every month on Ledoit-Wolf.</p>
+<p class="text">E5 is not met. On both estimators the mean forecast falls as the cap loosens, from {{lw_fc_tight}} to {{lw_fc_none}} basis points a year on Ledoit-Wolf and from {{fa_fc_tight}} to {{fa_fc_none}} on the factor estimator. The realised tracking error at the 4 per cent cap is {{fa_re_4}} on the factor estimator, below its {{fa_re_tight}} at 0.5 per cent, and {{lw_re_4}} on Ledoit-Wolf, above its {{lw_re_tight}}. On Ledoit-Wolf chosen turnover runs from {{chosen_lo}} to {{chosen_hi}} per cent a year across the caps while the realised tracking error stays between {{fr_te_lo}} and {{fr_te_hi}}. The factor estimator chooses at most {{fa_chosen_hi}} per cent a year, and the 2 per cent cap binds on it in {{fa_bind}} per cent of months, against every month on Ledoit-Wolf. {{cap_relaxed}}</p>
 <div id="f3" class="chart"></div>
 <button type="button" class="tbtn" data-table="f3" aria-pressed="false">Table</button><div class="tbl tw" id="t-f3" hidden>{{t_f3}}</div>
 <p class="basis">Simulated. Monthly rebalancing. Before fees. Chosen turnover is one-way and excludes the turnover that index changes force.</p>
-<p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{first_w}} to {{last_w}}, US large caps, USD. {{results}}/paths_summary.json, notebooks 09 and 10.</p>
+<p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{first_w}} to {{last_w}}, US large caps, USD. {{results}}/paths_summary.json and cap_relaxed.csv, notebooks 09 and 10.</p>
 </figure>
 
 <div class="fig" id="table-2-block">
@@ -362,7 +362,7 @@ dl.terms dd { margin: 0 0 0 1rem; }
 <dt>condition number</dt><dd>a covariance matrix's largest eigenvalue over its smallest.</dd>
 <dt>band</dt><dd>the range of the bias statistic within which a forecast counts as right, 0.8 to 1.25, fixed before the run.</dd>
 <dt>bias statistic</dt><dd>the standard deviation of each month's active return divided by that month's forecast, over the months with a forecast above one millionth. It is 1 when the forecasts are right on average.</dd>
-<dt>mandate</dt><dd>the full set of constraints the portfolio obeys: long-only, each stock and each company within 50 basis points of its benchmark weight, each sector within 2 percentage points, chosen turnover capped, the tilt, two sub-industries excluded and a beta of one to the benchmark.</dd>
+<dt>mandate</dt><dd>the full set of constraints the portfolio obeys: long-only, each stock and each company within 50 basis points of its benchmark weight, each untilted sector within 2 percentage points, chosen turnover capped, the tilt, two sub-industries excluded and a beta of one to the benchmark.</dd>
 <dt>beta</dt><dd>the slope of a return on the benchmark's return.</dd>
 <dt>tilt</dt><dd>every Energy and Utilities stock capped at half its benchmark weight.</dd>
 <dt>constraint set</dt><dd>one of the cumulative sets C0 to C3: long-only, plus the bounds per stock, company and sector, plus the turnover cap, plus the rest of the mandate.</dd>
@@ -476,18 +476,8 @@ dl.terms dd { margin: 0 0 0 1rem; }
       traces.push({ x: g.chosen, y: g.realised, mode: "lines+markers", name: D.label[e] + ", realised", line: { color: c, width: 2 }, marker: { color: c, size: 8 }, customdata: g.cap, hovertemplate: D.label[e] + ", cap %{customdata}: chosen turnover %{x:.1f}% a year, realised %{y:.1f} bp a year<extra></extra>" });
       traces.push({ x: g.chosen, y: g.forecast, mode: "lines+markers", name: D.label[e] + ", mean forecast", line: { color: c, width: 1.5, dash: "dash" }, marker: { color: "#ffffff", size: 8, line: { color: c, width: 1.5 } }, customdata: g.cap, hovertemplate: D.label[e] + ", cap %{customdata}: chosen turnover %{x:.1f}% a year, mean forecast %{y:.1f} bp a year<extra></extra>" });
     });
-    var ann = [];
-    Object.keys(D.f3).forEach(function (e, j) {
-      var g = D.f3[e], groups = [], run = [];
-      g.chosen.forEach(function (x, i) { if (run.length && x - g.chosen[run[run.length - 1]] >= 2) { groups.push(run); run = []; } run.push(i); });
-      groups.push(run);
-      groups.forEach(function (grp) {
-        var x = grp.reduce(function (s, i) { return s + g.chosen[i]; }, 0) / grp.length, y = Math.max.apply(null, grp.map(function (i) { return g.realised[i]; }));
-        ann.push({ x: x, y: y, text: grp.map(function (i) { return g.cap[i]; }).join(", "), showarrow: false, yshift: pick(j === 0, -16, 14), font: { size: 11, color: CH.ink2 } });
-      });
-    });
-    plot("f3", traces, base({ annotations: ann, margin: { l: 56, r: 16, t: 12, b: pick(narrow(), 130, 96) },
-      xaxis: axis({ title: "chosen turnover, per cent a year (labels: the cap, per cent a month)", range: [0, 65] }), yaxis: axis({ title: "basis points a year", range: [30, 95], value: true }) }));
+    plot("f3", traces, base({ margin: { l: 56, r: 16, t: 12, b: pick(narrow(), 130, 96) },
+      xaxis: axis({ title: "chosen turnover, per cent a year", range: [0, 65] }), yaxis: axis({ title: "basis points a year", range: [30, 95], value: true }) }));
   }
 
   // Figure 4: allocation and selection by sector, two Newey-West standard errors on each side

@@ -33,8 +33,10 @@ MONTH_COLUMN = "month"
 # Amended 11 November 2026: the eleven GICS sector weights alone (constants.COMMITTED_MONTHLY).
 # Amended 12 November 2026: and the active returns of the twelve paths under the mandate
 # (constants.MONTHLY_ACTIVE_COLUMNS), each cell under the rule for a signed sum.
+# Amended 17 November 2026: and the months in which the turnover cap gave way, with the path, the cap and the
+# month's chosen turnover (constants.CAP_RELAXED_COLUMNS), each row under the cell rule.
 MONTHLY_ALLOWED = ({MONTH_COLUMN} | {"weight_" + code for code in C.GICS_SECTORS}
-                   | {c.lower() for c in C.MONTHLY_ACTIVE_COLUMNS})
+                   | {c.lower() for c in C.MONTHLY_ACTIVE_COLUMNS} | set(C.CAP_RELAXED_COLUMNS))
 # Twelve sectors over CRSP's 1,189 index months is 14,268 rows in long form, the largest aggregate the
 # design names; a table of one row per security and month would run to hundreds of thousands.
 ROW_LIMIT = 15000

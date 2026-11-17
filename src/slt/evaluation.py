@@ -319,6 +319,50 @@ def active_returns_table(records: dict) -> tuple:
     return table.reset_index(), empty
 
 
+def cap_relaxed(inp: dict, out_dir, records: dict) -> pd.DataFrame:
+    """The months in which the turnover cap gave way, on every capped path under the mandate: in such a month the
+    other constraints need more chosen turnover than the cap allows, and the optimiser takes the least they need.
+    One row for each such month, with the path, the month, the cap and the month's chosen turnover, and whether it
+    passes the cell rule (constants.CAP_RELAXED_COMMITTED). The chosen turnover is recomputed from the recorded
+    weights, from the reference portfolio as the script built it (the benchmark in a path's first month), and must
+    equal the record's. The cell rule reads the month's moves, half the absolute change in each name's weight: at
+    least SMALL_CELL_MIN_MEMBERS names move by more than OPT_TOL, and none is more than SMALL_CELL_MAX_MEMBER_SHARE
+    of their sum."""
+    rows = []
+    for p in C.MONTHLY_PATHS:
+        if p[2] is None:
+            continue
+        label = C.PATH_LABELS[p]
+        rec = records.get(label)
+        if rec is None:
+            continue
+        relaxed = [mo for mo in rec.index if bool(rec.loc[mo, "relaxed"])]
+        if not relaxed:
+            continue
+        frame = pd.read_parquet(os.path.join(os.fspath(out_dir), label + "_weights.parquet"))
+        weights = {mo: g.set_index("permno")["weight"] for mo, g in frame.groupby("month")}
+        months = list(rec.index)
+        for mo in relaxed:
+            m, _ = month_view(inp["members"], mo)
+            i = months.index(mo)
+            if i == 0:
+                w_ref = pd.Series(m.b, index=m.permnos)
+            else:
+                _, r_prev = month_view(inp["members"], months[i - 1])
+                w_drift, _ = M.drift(weights[months[i - 1]], r_prev)
+                w_ref = M.reference_portfolio(w_drift, m.permnos, m.b)
+            w_new = weights[mo].reindex(m.permnos).fillna(0.0)
+            moves = 0.5 * (w_new - w_ref.reindex(m.permnos).fillna(0.0)).abs()
+            chosen = float(moves.sum())
+            if abs(chosen - float(rec.loc[mo, "turnover_chosen"])) > 1e-9:
+                raise ValueError(f"{label} {mo}: chosen turnover {chosen:.12f} recomputed against {rec.loc[mo, 'turnover_chosen']:.12f} recorded")
+            moved = moves[moves > C.OPT_TOL]
+            ok = len(moved) >= C.SMALL_CELL_MIN_MEMBERS and float(moved.max()) <= C.SMALL_CELL_MAX_MEMBER_SHARE * float(moved.sum())
+            rows.append({"path": label, "month": mo, "cap": p[2], "turnover_chosen": chosen, "names_moved": len(moved),
+                         "largest_share": float(moved.max() / moved.sum()) if len(moved) else np.nan, "cell_ok": ok})
+    return pd.DataFrame(rows, columns=["path", "month", "cap", "turnover_chosen", "names_moved", "largest_share", "cell_ok"])
+
+
 # ---------------------------------------------------------------------------
 # The expectations of milestone 3
 # ---------------------------------------------------------------------------

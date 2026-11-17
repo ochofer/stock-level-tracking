@@ -74,3 +74,49 @@ def test_an_expectation_for_two_or_more_estimators_is_one_verdict():
     assert v == {"met": False, "holds_for": ["factor"], "fails_for": ["ledoit_wolf"]}
     out["E5_ledoit_wolf"]["met"] = True
     assert V.one_verdict(out, "E5", ("ledoit_wolf", "factor"))["met"]
+
+
+def test_the_months_the_cap_gave_way_are_recomputed_from_the_weights(tmp_path):
+    """Two months, five members, one capped path under the mandate on which the cap gave way in both. In the first
+    month the chosen turnover runs from the benchmark, in the second from the reference portfolio built from the
+    first month's weights after its returns; both must equal the record's, and both pass the cell rule. A record
+    that disagrees with the weights stops the count."""
+    from slt import mandate as M
+    months = ["2001-01", "2001-02"]
+    cap = np.array([40.0, 20.0, 20.0, 10.0, 10.0])
+    ret = np.array([0.02, -0.01, 0.03, 0.0, 0.01])
+    rows = [{"month": pd.Period(mo, "M"), "permno": 10 + k, "cap": cap[k], "sector": "45", "gsubind": "", "permco": 100 + k,
+             "ret_total": ret[k]} for mo in months for k in range(5)]
+    members = pd.DataFrame(rows)
+    b = pd.Series(cap / cap.sum(), index=10 + np.arange(5))
+    w1 = b + np.array([-0.02, -0.01, 0.01, 0.01, 0.01])
+    w2 = b + np.array([-0.03, 0.01, 0.0, 0.01, 0.01])
+    ref2 = M.reference_portfolio(M.drift(w1, pd.Series(ret, index=b.index))[0], b.index.to_numpy(), b.to_numpy())
+    chosen = [M.one_way(w1, b), M.one_way(w2, ref2)]
+    path = next(p for p in C.MONTHLY_PATHS if p[2] is not None)
+    label = C.PATH_LABELS[path]
+    pd.DataFrame([{"month": mo, "permno": int(k), "weight": float(w[k])} for mo, w in zip(months, [w1, w2]) for k in b.index]) \
+      .to_parquet(tmp_path / (label + "_weights.parquet"))
+    rec = pd.DataFrame({"relaxed": [True, True], "turnover_chosen": chosen}, index=pd.Index(months, name="month"))
+    out = V.cap_relaxed({"members": members}, tmp_path, {label: rec})
+    assert list(out["month"]) == months and (out["path"] == label).all() and (out["cap"] == path[2]).all()
+    assert np.allclose(out["turnover_chosen"], chosen, atol=1e-15) and out["cell_ok"].all()
+    rec.loc["2001-02", "turnover_chosen"] += 1e-6
+    import pytest
+    with pytest.raises(ValueError):
+        V.cap_relaxed({"members": members}, tmp_path, {label: rec})
+
+
+def test_the_committed_months_the_cap_gave_way_match_the_counts_of_each_path():
+    """cap_relaxed.csv holds, for each capped path under the mandate, as many rows as its relaxed_months in
+    paths_summary.json, under the columns constants.CAP_RELAXED_COMMITTED names (constants.CAP_RELAXED_COLUMNS)."""
+    res = pathlib.Path(__file__).resolve().parents[1] / C.RESULTS_DIR
+    table = pd.read_csv(res / "cap_relaxed.csv")
+    assert list(table.columns) == ["path", "month", "cap", "turnover_chosen"]
+    assert set(table.columns) - {"month"} == set(C.CAP_RELAXED_COLUMNS)
+    summary = json.loads((res / "paths_summary.json").read_text())["paths"]
+    for p in C.MONTHLY_PATHS:
+        label = C.PATH_LABELS[p]
+        assert int((table["path"] == label).sum()) == summary[label]["relaxed_months"], label
+    assert table["path"].isin([C.PATH_LABELS[p] for p in C.MONTHLY_PATHS if p[2] is not None]).all()
+    assert (table["turnover_chosen"] > table["cap"]).all()

@@ -1484,7 +1484,7 @@ NB10 = [
     md("""
 # 10. Turnover: membership, reweighting and rebalancing, and E7
 
-**What this notebook does.** It splits each path's monthly *turnover*, the share of the portfolio sold and bought, into three parts, each measured, sums them by year, and judges E7.
+**What this notebook does.** It splits each path's monthly *turnover*, the share of the portfolio sold and bought, into three parts, each measured, sums them by year, and judges E7. It then lists the months in which the cap on turnover gave way, with the turnover each of them needed.
 
 **Terms used in this notebook.**
 
@@ -1500,6 +1500,8 @@ NB10 = [
 - *overlap*: the three parts less the total, the trades of one step that the next step undoes. By the triangle inequality it is never below zero.
 - *chosen turnover*: the turnover from the reference portfolio to the new weights, the quantity the cap bounds.
 - *mandate*: constraint set C3, the portfolio the study runs, set out in notebook 08.
+- *the cap gives way*: in a month where the other constraints need more chosen turnover than the cap allows, the optimiser takes the least turnover they need, above the cap. The record of such a month marks it as relaxed.
+- *cell rule*: a figure by month is committed only if at least three names make it up and no name is more than 80 per cent of it. Here the names are those whose weight moves, and each one's part is half its absolute move.
 - *verdict*: the record of whether an expectation fixed before the run is met.
 
 **The benchmark's own figures.** Counting the change from June to July 1999, the benchmark alone turns over 5.82 per cent a year over the 306 months to December 2024: membership 2.84, reweighting 3.73 and an overlap of 0.75. A path that holds the benchmark starts in July 1999 with no turnover in that month, so section 2 shows it at 5.78, 2.80, 3.71 and 0.73. Restoring last month's weights themselves undoes the month's price moves, and on the benchmark alone it would take 30.64 per cent a year, trading that no path does. A middle part defined that way would leave the rest below zero in every month, so the middle part follows the benchmark's own weights. These figures were computed on 12 November 2026 at 14:46, from this study's panel by code that is not in this repository, before any path's turnover was read. They describe the benchmark alone and say nothing of the mandate.
@@ -1509,7 +1511,7 @@ NB10 = [
 - *E7*: under the mandate at the 2 per cent cap on the Ledoit-Wolf estimator, membership is less than a third of total turnover over the window. The index replaces about four to five per cent of its weight a year, and a cap of 2 per cent a month allows about 24 per cent a year of chosen turnover.
 - With no verdict: under C0 and C1, where the portfolio is the benchmark, rebalancing is zero to the solver's precision, and the other figures are close to the benchmark's own.
 
-Running time: under a minute.
+Running time: about three minutes, most of it reading the extraction, which section 4 needs to rebuild each month's reference portfolio.
 """),
     code(SETUP),
     code(MODULES_09),
@@ -1548,21 +1550,41 @@ print(f"E7: {'met' if e7['met'] else 'not met'}. Under the mandate at the 2 per 
       f"{100 * e7['membership_share_of_total']:.1f} per cent of total one-way turnover over the window, against less than {100 * C.E7_FORCED_SHARE_MAX:.1f}.")
 """),
     md("""
-## 4. What is committed
+## 4. The months in which the cap gave way
 
-Two files: the decomposition by path and year, the total, the three parts and the overlap, and the verdicts of milestone 3 with E7 added.
+Every path starts as the benchmark, and the mandate's first month needs more chosen turnover than any cap allows, so on every capped path under the mandate the cap gives way in July 1999. At the cap of 0.5 per cent a month it also gives way in later months. For each such month the chosen turnover is computed again from the recorded weights, from the reference portfolio the script built, and must equal the record's. Each row is then held to the cell rule, and the notebook stops before anything is written if one fails. The rows of each path must equal the count of relaxed months in its records.
+"""),
+    code("""
+t0 = time.time()
+inp = V.inputs(root)
+relaxed = V.cap_relaxed(inp, OUT, records)
+show = relaxed.assign(cap=100 * relaxed["cap"], turnover_chosen=(100 * relaxed["turnover_chosen"]).round(4),
+                      largest_share=relaxed["largest_share"].round(3))
+print(show.to_string(index=False))
+print(f"{len(relaxed)} months on {relaxed['path'].nunique()} paths, in {time.time() - t0:.0f} s")
+assert relaxed["cell_ok"].all(), "a month fails the cell rule: nothing is written"
+counts = relaxed.groupby("path").size()
+for lab, rec in records.items():
+    assert int(counts.get(lab, 0)) == int(rec["relaxed"].astype(bool).sum()), lab
+"""),
+    md("""
+## 5. What is committed
+
+Three files: the decomposition by path and year (the total, the three parts and the overlap), the verdicts of milestone 3 with E7 added, and the months in which the cap gave way, one row for each, with the path, the month, the cap and the month's chosen turnover.
 """),
     code("""
 path = ROOT / C.RESULTS_DIR / "verdicts_milestone3.json"
 record = json.loads(path.read_text()) if path.exists() else {}
 record["E7"] = V.jsonable(e7)
-for p in [X.write_results("turnover_by_year.csv", frame=table), X.write_results("verdicts_milestone3.json", record=record)]:
+cap_table = relaxed[["path", "month", "cap", "turnover_chosen"]]
+for p in [X.write_results("turnover_by_year.csv", frame=table), X.write_results("verdicts_milestone3.json", record=record),
+          X.write_results("cap_relaxed.csv", frame=cap_table)]:
     print("written:", p.relative_to(ROOT))
 """),
     md("""
 ## What was learned, and what could be wrong
 
-What the notebook establishes: how much of each path's trading the index's own changes force, how much following the benchmark's own reweighting takes, how much the optimiser chooses, and whether the forced part is the small one E7 expects.
+What the notebook establishes: how much of each path's trading the index's own changes force, how much following the benchmark's own reweighting takes, how much the optimiser chooses, whether the forced part is the small one E7 expects, and in which months the cap gave way to the least turnover the other constraints need.
 
 What could still be wrong. The parts depend on the order of the steps, membership first, then reweighting, then rebalancing: another order would split the same total another way, and the overlap says how much the steps undo of each other. And the forced part counts only the trades the index's changes require on the day the month begins. A portfolio that anticipated a change would trade earlier, and this study does not.
 """),

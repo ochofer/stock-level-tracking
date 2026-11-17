@@ -6,9 +6,10 @@ Usage, from the repository root, on any machine with a clone (no extraction is r
 Every number on the page is read from a committed file by src/slt/report.py and substituted into the template, so that
 the page and the tables cannot differ; the source line under each exhibit names the file. The four charts are drawn in
 the browser by Plotly from the data embedded in the page, and every chart has its table under a toggle, written as HTML
-so that it reads without the charting library. Nothing is by month: the page reads summaries over the window and tables
-by year. The build date is the day the script runs, in Amsterdam, unless --date gives it, so that a rebuild on a given
-date from the same files is byte-identical.
+so that it reads without the charting library. One table it reads is by month, cap_relaxed.csv, the months in which the
+turnover cap gave way, for the text of Figure 3: everything else is summaries over the window and tables by year, and
+the page's data holds only the tables of its four charts. The build date is the day the script runs, in Amsterdam,
+unless --date gives it, so that a rebuild on a given date from the same files is byte-identical.
 """
 import argparse
 import datetime

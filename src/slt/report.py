@@ -4,7 +4,8 @@ Every figure, sentence number and table of the dashboard and the note, read from
 build(repo) reads the files in results/<vintage>/ (constants.RESULTS_DIR) and returns two dictionaries: the numbers and
 the tables as HTML, keyed by the names the templates use, and the data the dashboard's charts draw. The dashboard
 (dashboard/build_dashboard.py) and the note (note/build_note.py) both build from it, so that a figure is computed once
-and reads the same on both. Nothing here is by month.
+and reads the same on both. One file it reads is by month, cap_relaxed.csv, the months in which the turnover cap gave
+way (notebook 10, 19 rows, each under the cell rule). Everything else is over the window or by year.
 """
 from __future__ import annotations
 
@@ -126,6 +127,33 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
     se = [BP * paths[MAIN[e]]["active_return_gross_se"] for e in EST]
     P["ar_lo"], P["ar_hi"] = lohi(ar)
     P["ar_se_lo"], P["ar_se_hi"] = lohi(se)
+    P["ar_se12_lo"], P["ar_se12_hi"] = lohi([BP * paths[C.PATH_LABELS[p]]["active_return_gross_se"] for p in C.MONTHLY_PATHS])
+
+    # --- the months in which the turnover cap gave way (notebook 10), by month ---
+    relaxed = read("cap_relaxed.csv", res)
+    capped = [C.PATH_LABELS[p] for p in C.MONTHLY_PATHS if p[2] is not None]
+    first_rows = relaxed[relaxed["month"] == str(pd.Period(first, "M"))]
+    assert sorted(first_rows["path"]) == sorted(capped), "the text says the cap gives way in the first month of every capped path"
+    assert first_rows["turnover_chosen"].max() - first_rows["turnover_chosen"].min() < 1e-6, "one figure for the first month"
+    later = relaxed[relaxed["month"] != str(pd.Period(first, "M"))]
+    tight = min(p[2] for p in C.MONTHLY_PATHS if p[2] is not None)
+    assert (later["cap"] == tight).all(), "the text says the later months are at the tightest cap"
+    P["cr_first_w"] = words(first)
+    P["cr_first"] = num(100 * first_rows["turnover_chosen"].iloc[0], 2)
+    P["cr_tight"] = num(100 * tight, 1)
+    P["cr_lw_more"], P["cr_fa_more"] = (str(int((later["path"] == C.PATH_LABELS[(e, C.MANDATE, tight)]).sum())) for e in C.FRONTIER_ESTIMATORS)
+    assert set(later["path"]) <= {C.PATH_LABELS[(e, C.MANDATE, tight)] for e in C.FRONTIER_ESTIMATORS}
+    bind_all = [p for p in C.MONTHLY_PATHS if p[0] == "ledoit_wolf" and p[2] is not None and paths[C.PATH_LABELS[p]]["cap_binding_share"] == 1.0]
+    assert sorted(p[2] for p in bind_all) == [0.005, 0.01, 0.02], "the text names the caps at which the cap binds in every month on Ledoit-Wolf"
+    for p in bind_all:
+        assert paths[C.PATH_LABELS[p]]["turnover_chosen_per_year"] > 12 * p[2], "the text says chosen turnover lies above twelve times the cap"
+    CAP_RELAXED = ("In a month where the other constraints need more chosen turnover than the cap allows, the cap gives way to the "
+                   "least turnover they need. This happens in the first month of every capped path under the mandate, {{cr_first_w}}, "
+                   "when the portfolio leaves the benchmark for the mandate and needs {{cr_first}} per cent, and in {{cr_lw_more}} further "
+                   "months at the {{cr_tight}} per cent cap on the Ledoit-Wolf estimator and {{cr_fa_more}} on the factor estimator. So on "
+                   "the Ledoit-Wolf estimator at caps of 0.5, 1 and 2 per cent, where the cap binds in every month, chosen turnover a "
+                   "year lies a little above twelve times the cap.")
+    P["cap_relaxed"] = re.sub(r"\{\{(\w+)\}\}", lambda m: P[m.group(1)], CAP_RELAXED)
 
     # --- Figure 2: by year, the Ledoit-Wolf path ---
     t2 = F.tracking_error_by_year(res)
@@ -162,6 +190,7 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
     P["chance"] = num(0.05 * beyond["ledoit_wolf"]["terms"], 1)
     en, ut = t4.set_index("sector").loc["10"], t4.set_index("sector").loc["55"]
     P["en_alloc"], P["en_alloc_se"], P["ut_alloc"], P["ut_alloc_se"] = num(en.allocation), num(en.allocation_se), num(ut.allocation), num(ut.allocation_se)
+    P["other_alloc_se_max"] = num(t4[t4["sector"] != "10"]["allocation_se"].max())
     P["fs_lw_total"], P["fs_lw_total_se"] = num(BP * factor[MAIN["ledoit_wolf"]]["factor total (per year)"]), num(BP * factor[MAIN["ledoit_wolf"]]["factor total (standard error)"])
     P["fs_lw_resid"], P["fs_lw_resid_se"] = num(BP * factor[MAIN["ledoit_wolf"]]["residual (per year)"]), num(BP * factor[MAIN["ledoit_wolf"]]["residual (standard error)"])
     P["mkt_exp_lo"], P["mkt_exp_hi"] = (num(x, 4, True) for x in sorted(factor[MAIN[e]]["exposure Mkt-RF"] for e in EST)[::3])

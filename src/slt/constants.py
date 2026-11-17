@@ -709,6 +709,16 @@ ATTRIBUTION_COMMITTED = "by year and over the window, nothing by month and no se
 # within OPT_TOL, below it and above it (tilt_cap.csv), so that the README's count is read from a result file.
 # It is a count with no verdict.
 TILT_CAP_COMMITTED = "by path over the window: tilted stock-months, at the cap within OPT_TOL, below, above"
+# Added 17 November 2026, after the verification of the write-up and before its release: notebook 10 also
+# commits the months in which the turnover cap gave way (cap_relaxed.csv), one row for each such month of each
+# capped path under the mandate, with the path, the month, the cap and the month's chosen turnover, so that the
+# write-up's sentence on them is read from a result file. In such a month the other constraints need more chosen
+# turnover than the cap allows, and the optimiser takes the least they need (mandate.solve). Each row passes the
+# cell rule on the sum of the month's absolute moves from the reference portfolio, and the notebook stops if one
+# fails. The rows of each path equal its relaxed_months in paths_summary.json. It is a table by month with no
+# verdict, and the reconstruction test admits its columns.
+CAP_RELAXED_COMMITTED = "by path, each month in which the turnover cap gave way: the cap and the month's chosen turnover"
+CAP_RELAXED_COLUMNS = ("path", "cap", "turnover_chosen")
 # (4) E8's second clause. Each month's effect is the sum of the term over the
 # twelve sectors; its absolute value is taken month by month and the mean is over
 # the months of the window. It is one verdict, met only if the allocation's mean
