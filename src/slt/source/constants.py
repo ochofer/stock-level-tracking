@@ -43,3 +43,6 @@ OPT_SOLVER_OPTIONS_ROBUST = {"tol_gap_abs": 1e-9, "tol_gap_rel": 1e-9, "tol_feas
 OPT_TOL = 1e-6                                             # line 393
 FO_E1_BIND_TOL_ANNUAL = 0.0001                             # line 612
 FO_SOLVER_OPTIONS_LOOSE = {"tol_gap_abs": 1e-7, "tol_gap_rel": 1e-7, "tol_feas": 1e-7}   # line 706
+
+# Read by attribution.py (copied for milestone 4)
+ATTRIBUTION_FACTORS = ("Mkt-RF", "SMB", "HML", "RMW", "CMA", "Mom")   # line 510

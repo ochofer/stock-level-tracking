@@ -1,0 +1,70 @@
+{
+ "E8": {
+  "identity": {
+   "largest_error": 9.595189226496714e-17,
+   "met": true
+  },
+  "second_clause": {
+   "met": true,
+   "holds_for": [
+    "ledoit_wolf",
+    "factor",
+    "pca"
+   ],
+   "fails_for": [],
+   "by_estimator": {
+    "sample": {
+     "allocation": 0.0016632999393309726,
+     "selection": 0.0014369038247823752,
+     "interaction": 0.0001864030378503161,
+     "holds": true
+    },
+    "ledoit_wolf": {
+     "allocation": 0.001655983528103983,
+     "selection": 0.0013805152985030928,
+     "interaction": 0.00017553655796129946,
+     "holds": true
+    },
+    "factor": {
+     "allocation": 0.0016736888864321436,
+     "selection": 0.0010630146675346557,
+     "interaction": 0.00015006943320281413,
+     "holds": true
+    },
+    "pca": {
+     "allocation": 0.0016411130851823757,
+     "selection": 0.001233470542575159,
+     "interaction": 0.00022060998180643723,
+     "holds": true
+    }
+   },
+   "no_verdict": [
+    "sample"
+   ]
+  },
+  "met": true
+ },
+ "E9": {
+  "identity": {
+   "largest_error": 8.673617379884035e-19,
+   "met": true
+  },
+  "market_exposure": {
+   "by_estimator": {
+    "sample": -0.0005806562268314578,
+    "ledoit_wolf": -0.0005817496443322026,
+    "factor": 9.129215910393903e-05,
+    "pca": -0.0002468526306041107
+   },
+   "met": true,
+   "holds_for": [
+    "sample",
+    "ledoit_wolf",
+    "factor",
+    "pca"
+   ],
+   "fails_for": []
+  },
+  "met": true
+ }
+}

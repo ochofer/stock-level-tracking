@@ -266,6 +266,7 @@ def month_estimates(month, excess: pd.DataFrame, factors: pd.DataFrame, bench: p
         out["share_class_pairs"] = len(out["pair_correlations"])
         out.update(one_class_conditioning(X, oc["kept"]))
     out["matrices"] = {"assembled": mats, "complete": blocks, "order": A + others,
+                       "loadings": np.vstack([B_chk.T, B_B]),      # each member's six factor loadings, in "order": the factor estimator's
                        "checks": {"factor_loadings_equal": float(np.abs(B_chk.T - B_A).max())}}
     return out
 

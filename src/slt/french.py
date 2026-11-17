@@ -226,6 +226,16 @@ def daily_factors(folder: str | Path | None = None) -> tuple:
     return frame[list(C.FACTOR_MODEL_FACTORS)], frame["RF"], [r5, rm]
 
 
+def monthly_factors(folder: str | Path | None = None) -> tuple:
+    """The six factors' monthly returns from French's monthly files, in decimals, indexed by month, and the
+    monthly risk-free rate; with the provenance records of the two files. Added 17 November 2026 for E9."""
+    f5, r5 = load_block("factors5_monthly", 0, folder)
+    mom, rm = load_block("momentum_monthly", 0, folder)
+    mom.columns = [c.strip() for c in mom.columns]
+    frame = pd.concat([f5, mom[["Mom"]]], axis=1, join="inner")
+    return frame[list(C.FACTOR_MODEL_FACTORS)], frame["RF"], [r5, rm]
+
+
 PROVENANCE_NAME = "provenance_french.json"
 
 

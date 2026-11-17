@@ -1569,9 +1569,182 @@ What could still be wrong. The parts depend on the order of the steps, membershi
 ]
 
 
+# ---------------------------------------------------------------------------
+# 11: the attribution by sector and by factor
+# ---------------------------------------------------------------------------
+
+MODULES_11 = """
+import numpy as np
+
+from slt import attributions as A
+from slt import brinson as B
+from slt import evaluation as V
+from slt import french as FR
+from slt import sorts as Q
+from slt.source import attribution as SA
+
+OUT = ROOT / C.OUTPUTS_DIR / "evaluation"
+NAMES = {"sample": "sample", "ledoit_wolf": "Ledoit-Wolf", "factor": "factor", "pca": "PCA"}
+"""
+
+NB11 = [
+    md("""
+# 11. The attribution: by sector and by factor, E8 and E9
+
+**What this notebook does.** It explains where the mandate's monthly result against the universe it tracks comes from, in two ways that the terms below set out: by sector, with the method of Brinson and Fachler (1985), and through six common sources of return. It judges E8 and E9 and writes the tables that are committed, by year and over the window only.
+
+**Why it comes here.** Notebook 09 measured how far the mandate strayed from the universe. This notebook says what the straying consisted of. It reads the weights the script recorded on this machine, the extraction and French's monthly files, and runs no solver.
+
+**Terms used in this notebook.**
+
+- *market capitalisation*: price times shares outstanding, at the end of the month before.
+- *benchmark*: the universe weighted by market capitalisation at the start of the month.
+- *active weight*: a weight in the portfolio minus the same weight in the benchmark. The *active return* is the portfolio's return minus the benchmark's, as notebook 09 committed it: each side over the month's names with a return, its weights rescaled to one.
+- *mandate*: constraint set C3 of notebook 08, here at the 2 per cent cap on each of the four covariance matrices. The *tilt* is its rule that holds every Energy and Utilities stock at no more than half its benchmark weight.
+- *sector*: one of the eleven GICS sectors, or Unclassified, the members with no GICS sector, which holds one to three securities a month.
+- *attribution*: a split of the active return into parts that sum to it. Both attributions here use the rescaled weights of the active return, so that they describe the portfolio whose return is committed.
+- *allocation*, *selection* and *interaction*: the three parts of the attribution by sector. With w and b a sector's weight in the portfolio and in the benchmark, R_b the benchmark's return, R_b,s and R_p,s the sector's return in the benchmark and in the portfolio: allocation is (w − b)(R_b,s − R_b), what holding the sector at another weight earned; selection is b(R_p,s − R_b,s), what holding other stocks within it earned; interaction is (w − b)(R_p,s − R_b,s), the product of the two differences. Summed over the twelve sectors they equal the active return.
+- *held*: a sector is held in a month when one of its stocks with a return has a weight above one millionth. For a sector not held, selection is zero, and interaction is what is left of the sector's part: the sum over its stocks of weight times return, less its weight times the benchmark sector's return.
+- *factor*: a common source of return, here French's five factors and momentum, with their monthly returns taken from French's monthly files.
+- *loading*: a stock's sensitivity to a factor, from the regression of its daily returns less the daily *risk-free rate*, the one-month Treasury bill rate of French's files, on the six factors over the three years before the month: the factor estimator's loadings of notebook 07, for every path.
+- *active exposure*: the loadings weighted by the active weights, one number for each factor. A factor's *contribution* is its active exposure times its return in the month, and the *residual* is the active return less the sum of the contributions. The *factor share* is one minus the residual's variance over the active return's.
+- *beta*: the slope of a return on the benchmark's return. The mandate holds its beta at one.
+- *tracking error*: the standard deviation of the active return.
+- *basis point*: a hundredth of a percentage point.
+- *Newey-West standard error*: the standard error of a mean that allows each month to be correlated with the next twelve.
+- *verdict*: the record of whether an expectation fixed before the run is met.
+- *provenance*: the record of what a result was built from.
+
+**What I expect to see, fixed in `src/slt/constants.py` before this notebook ran on the extraction.**
+
+- *E8*: the three terms sum to the active return within 1e-9 in every month of the four paths. And on each of the Ledoit-Wolf, factor and PCA paths, the mean absolute monthly allocation exceeds the mean absolute monthly selection, and the mean absolute monthly interaction is the smallest of the three, each month's figure being the sum over the twelve sectors. One verdict, met only if it holds on all three. The sample estimator's path is reported with no verdict. The reason: the mandate's active return comes from the tilt, an underweight of two sectors, while the stocks within sectors are chosen to keep the tracking error small.
+- *E9*: contributions plus residual equal the active return within 1e-9 in every month. And on each of the four paths the mean active exposure to the market factor is within 0.05 of zero, because the mandate holds its beta at one. One verdict over the four.
+
+Running time: about five minutes, most of it the loadings of 306 months.
+"""),
+    code(SETUP),
+    code(MODULES_11),
+    md("""
+## 1. The inputs
+
+The extraction as notebook 09's script read it, French's monthly factor returns, and the four paths' records and weights from `outputs/evaluation/`.
+"""),
+    code("""
+t0 = time.time()
+inp = V.inputs(root)
+factors_m, rf_m, french_records = FR.monthly_factors()
+months = pd.period_range(C.EVAL_START, C.EVAL_END, freq="M")
+for r_ in french_records:
+    print(r_["filename"], r_["zip_sha256"][:12], r_["vintage_line"])
+print(f"inputs ready in {time.time() - t0:.0f} s; paths: {[C.PATH_LABELS[p] for p in C.ATTRIBUTION_PATHS]}")
+"""),
+    md("""
+## 2. Both attributions, month by month
+
+Each month the notebook builds the factor estimator's loadings, then for each path splits the active return by sector and computes the inputs of the factor attribution. It checks that the active return it recomputes from the weights equals the one the script recorded.
+"""),
+    code("""
+t0 = time.time()
+res = A.run(inp, OUT, months, factors_m, progress=True)
+print(f"{time.time() - t0:.0f} s; largest gap between the recomputed and the recorded active return: {res['active_return_gap']:.1e}")
+assert res["active_return_gap"] < 1e-12
+"""),
+    md("""
+## 3. The attribution by sector and E8
+
+Per path over the window, in basis points a year with Newey-West standard errors, and the mean absolute monthly figure of each total.
+"""),
+    code("""
+summ = {p[0]: B.summary(res["terms"][p], res["totals"][p], Q.newey_west_se) for p in C.ATTRIBUTION_PATHS}
+for est, s in summ.items():
+    t = s["total"]
+    print(f"{NAMES[est]}: " + " | ".join(f"{k} {1e4 * t[k + '_per_year']:.1f} ({1e4 * t[k + '_per_year_se']:.1f}), mean absolute {1e4 * t[k + '_mean_abs_monthly']:.2f} a month"
+                                     for k in C.ATTRIBUTION_TERMS) + f" | sector-months not held {s['sector_months_not_held']}")
+print()
+print("By sector on the Ledoit-Wolf path, basis points a year:")
+lw = summ["ledoit_wolf"]["sectors"]
+print(pd.DataFrame({s: {k: round(1e4 * lw[s][k + "_per_year"], 1) for k in C.ATTRIBUTION_TERMS} for s in C.ATTRIBUTION_SECTORS}).T.to_string())
+"""),
+    code("""
+e8 = B.judge_e8(summ)
+print(f"E8, identity: {'met' if e8['identity']['met'] else 'not met'}. The largest gap between the sum of the three terms and the active return, "
+      f"over every month of the four paths, is {e8['identity']['largest_error']:.1e}, against 1e-9.")
+for est, v in e8["second_clause"]["by_estimator"].items():
+    label = "no verdict" if est in e8["second_clause"]["no_verdict"] else ("holds" if v["holds"] else "fails")
+    print(f"E8, {NAMES[est]} ({label}): mean absolute monthly allocation {1e4 * v['allocation']:.2f}, selection {1e4 * v['selection']:.2f}, "
+          f"interaction {1e4 * v['interaction']:.2f} basis points.")
+def the(ests):
+    names = [f"the {NAMES[e]}" for e in ests]
+    return (", ".join(names[:-1]) + " and " + names[-1] if len(names) > 1 else names[0]) + (" estimators" if len(names) > 1 else " estimator")
+v = e8["second_clause"]
+parts = ([f"holds for {the(v['holds_for'])}"] if v["holds_for"] else []) + ([f"fails for {the(v['fails_for'])}"] if v["fails_for"] else [])
+print(f"E8, second clause: {'met' if v['met'] else 'not met'}. It " + " and ".join(parts) + ".")
+print(f"E8: {'met' if e8['met'] else 'not met'}.")
+"""),
+    md("""
+## 4. The attribution by factor and E9
+
+The source repository's factor attribution, copied unchanged in `src/slt/source/attribution.py`, on the same active returns.
+"""),
+    code("""
+fsum = {p[0]: SA.summarise(res["factor"][p]) for p in C.ATTRIBUTION_PATHS}
+for est, s in fsum.items():
+    print(f"{NAMES[est]}: exposures " + ", ".join(f"{n} {s['exposure ' + n]:+.3f}" for n in C.FACTOR_ATTRIBUTION_FACTORS)
+          + f" | factor total {1e4 * s['factor total (per year)']:.1f} ({1e4 * s['factor total (standard error)']:.1f}) and residual "
+          f"{1e4 * s['residual (per year)']:.1f} ({1e4 * s['residual (standard error)']:.1f}) basis points a year | factor share {s['factor share']:.2f}")
+e9 = A.judge_e9(fsum)
+print(f"E9, identity: {'met' if e9['identity']['met'] else 'not met'}, largest error {e9['identity']['largest_error']:.1e} against 1e-9.")
+v = e9["market_exposure"]
+parts = ([f"holds for {the(v['holds_for'])}"] if v["holds_for"] else []) + ([f"fails for {the(v['fails_for'])}"] if v["fails_for"] else [])
+print("E9, market exposure: " + ", ".join(f"{NAMES[e]} {x:+.4f}" for e, x in v["by_estimator"].items()) + " against 0.05 either side of zero. It " + " and ".join(parts) + ".")
+print(f"E9: {'met' if e9['met'] else 'not met'}.")
+"""),
+    md("""
+## 5. What is committed
+
+Six files go into `results/20260928/`, all by year or over the window, and the record of French's files is brought up to date. No figure by month and no weight of any sector.
+"""),
+    code("""
+labels = res["labels"]
+by_year = pd.concat([B.by_year(res["terms"][p]).assign(path=labels[p]) for p in C.ATTRIBUTION_PATHS], ignore_index=True)
+by_year = by_year[["path", "year", "sector", "months"] + list(C.ATTRIBUTION_TERMS)]
+counts = pd.concat({labels[p]: res["totals"][p][["members_without_return", "sectors_not_held"]] for p in C.ATTRIBUTION_PATHS}, axis=1)
+counts.index = pd.PeriodIndex(counts.index, freq="M").year
+counts = counts.groupby(level=0).sum()
+counts_by_year = pd.DataFrame({"year": counts.index, "name_months_without_return": counts[labels[C.ATTRIBUTION_PATHS[0]]]["members_without_return"].to_numpy()})
+for p in C.ATTRIBUTION_PATHS:
+    counts_by_year[f"sector_months_not_held_{labels[p]}"] = counts[labels[p]]["sectors_not_held"].to_numpy()
+factor_by_year = pd.concat([A.factor_by_year(res["factor"][p]).assign(path=labels[p]) for p in C.ATTRIBUTION_PATHS], ignore_index=True)
+factor_by_year = factor_by_year[["path"] + [c for c in factor_by_year.columns if c != "path"]]
+brinson_summary = V.jsonable({"written_by": "notebooks/11_attribution.ipynb", "manifest_sha256": C.MANIFEST_SHA256,
+                              "weights": C.ATTRIBUTION_WEIGHTS, "linking": C.ATTRIBUTION_LINKING,
+                              "paths": {labels[p]: summ[p[0]] for p in C.ATTRIBUTION_PATHS}})
+factor_summary = V.jsonable({"written_by": "notebooks/11_attribution.ipynb", "manifest_sha256": C.MANIFEST_SHA256,
+                             "loadings": "the factor estimator's of the month, every path", "factor_returns": "French's monthly files",
+                             "paths": {labels[p]: fsum[p[0]] for p in C.ATTRIBUTION_PATHS}})
+verdicts = V.jsonable({"E8": e8, "E9": e9})
+for p_ in [X.write_results("brinson_by_year.csv", frame=by_year),
+           X.write_results("brinson_summary.json", record=brinson_summary),
+           X.write_results("attribution_counts_by_year.csv", frame=counts_by_year),
+           X.write_results("factor_attribution_by_year.csv", frame=factor_by_year),
+           X.write_results("factor_attribution_summary.json", record=factor_summary),
+           X.write_results("verdicts_milestone4.json", record=verdicts),
+           FR.write_provenance(french_records)]:
+    print("written:", p_.relative_to(ROOT))
+"""),
+    md("""
+## What was learned, and what could be wrong
+
+What the notebook establishes: how much of the mandate's active return came from holding sectors at other weights than the benchmark's, how much from the stocks held within them, and how much the six factors explain, on each of the four covariance matrices.
+
+What could still be wrong. The terms are summed over months arithmetically, with no geometric linking, so a year's terms add up to the sum of its monthly active returns, which differs from the active return compounded over the year. Allocation, selection and interaction depend on the order of the definitions, and another convention moves part of the interaction into one of the other two. The factor attribution reads every path through one set of loadings estimated on daily returns, applied to monthly factor returns, and a loading measured with error moves part of a contribution into the residual. And Unclassified, one to three securities a month, is a sector of its own here only so that every identity holds.
+"""),
+]
+
+
 if __name__ == "__main__":
     for name, cells in (("01_extraction.ipynb", NB01), ("02_universe.ipynb", NB02), ("03_returns.ipynb", NB03),
                         ("04_reconstruction.ipynb", NB04), ("05_sectors.ipynb", NB05), ("06_answer_key.ipynb", NB06),
                         ("07_covariance.ipynb", NB07), ("08_mandate.ipynb", NB08), ("09_rolling_evaluation.ipynb", NB09),
-                        ("10_turnover.ipynb", NB10)):
+                        ("10_turnover.ipynb", NB10), ("11_attribution.ipynb", NB11)):
         print("wrote", write(name, cells).relative_to(ROOT))
