@@ -704,6 +704,11 @@ SECTOR_HELD_MIN_WEIGHT = OPT_TOL
 # mean active exposures, the contributions per year with their standard errors, the
 # factor share and the largest identity error.
 ATTRIBUTION_COMMITTED = "by year and over the window, nothing by month and no sector weight"
+# Added 17 November 2026, after the verification of notebook 11 and before the write-up: notebook 11 also
+# commits, by path over the window, the stock-months of the tilted sectors and how many sit at the tilt's cap
+# within OPT_TOL, below it and above it (tilt_cap.csv), so that the README's count is read from a result file.
+# It is a count with no verdict.
+TILT_CAP_COMMITTED = "by path over the window: tilted stock-months, at the cap within OPT_TOL, below, above"
 # (4) E8's second clause. Each month's effect is the sum of the term over the
 # twelve sectors; its absolute value is taken month by month and the mean is over
 # the months of the window. It is one verdict, met only if the allocation's mean

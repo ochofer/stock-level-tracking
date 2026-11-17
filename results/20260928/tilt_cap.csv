@@ -1,0 +1,5 @@
+"path","months","tilted_stock_months","at_cap","below","above"
+"sample_C3_cap200bp",306,19433,19431,2,0
+"ledoit_wolf_C3_cap200bp",306,19433,19431,2,0
+"factor_C3_cap200bp",306,19433,19433,0,0
+"pca_C3_cap200bp",306,19433,19263,170,0

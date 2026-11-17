@@ -105,3 +105,27 @@ def test_the_rescaled_weights_sum_to_one_over_the_names_with_a_return():
     w, b, r, sector = made_up_month()
     x = A.rescaled(w, r)
     assert np.isclose(x.sum(), 1.0) and (x[r.isna()] == 0).all()
+
+
+def test_the_tilt_cap_counts_at_below_and_above(tmp_path):
+    """Two months, five members, two of them in a tilted sector: one at half its benchmark weight, one below it in
+    the first month and above it in the second. The counts read the recorded weights against the month's
+    capitalisation shares, and the members of other sectors are not counted."""
+    months = [pd.Period("2001-01", "M"), pd.Period("2001-02", "M")]
+    cap = np.array([40.0, 20.0, 20.0, 10.0, 10.0])
+    sector = ["10", "55", "45", "45", "40"]
+    rows = [{"month": mo, "permno": 10 + k, "cap": cap[k], "sector": sector[k], "gsubind": "", "permco": 100 + k,
+             "ret_total": 0.01} for mo in months for k in range(5)]
+    members = pd.DataFrame(rows)
+    b = cap / cap.sum()
+    w1 = np.array([0.5 * b[0], 0.5 * b[1] - 0.01, 0.0, 0.0, 0.0])
+    w2 = np.array([0.5 * b[0], 0.5 * b[1] + 0.01, 0.0, 0.0, 0.0])
+    w1[2:] = (1 - w1[:2].sum()) / 3
+    w2[2:] = (1 - w2[:2].sum()) / 3
+    path = C.ATTRIBUTION_PATHS[1]
+    frame = pd.DataFrame([{"month": str(mo), "permno": 10 + k, "weight": w[k]} for mo, w in zip(months, [w1, w2]) for k in range(5)])
+    frame.to_parquet(tmp_path / (C.PATH_LABELS[path] + "_weights.parquet"))
+    out = A.tilt_cap({"members": members}, tmp_path, months, paths=(path,))
+    row = out.iloc[0]
+    assert row["path"] == C.PATH_LABELS[path] and row["months"] == 2
+    assert (row["tilted_stock_months"], row["at_cap"], row["below"], row["above"]) == (4, 2, 1, 1)

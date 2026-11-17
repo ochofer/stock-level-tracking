@@ -85,6 +85,29 @@ def run(inp: dict, out_dir, months, factors: pd.DataFrame, paths: tuple = C.ATTR
     return out
 
 
+def tilt_cap(inp: dict, out_dir, months, paths: tuple = C.ATTRIBUTION_PATHS) -> pd.DataFrame:
+    """For each path, over the months: the stock-months of the tilted sectors (constants.TILT_SECTORS) among the
+    month's members with a capitalisation, and how many of them sit at the tilt's cap, half the benchmark weight
+    (constants.TILT_MAX_SHARE_OF_BENCHMARK), within constants.OPT_TOL, below it and above it, from the recorded
+    weights. The benchmark weight is the capitalisation share among those members (evaluation.month_view)."""
+    labels = {p: C.PATH_LABELS[p] for p in paths}
+    weights = {p: load_weights(out_dir, labels[p]) for p in paths}
+    counts = {p: {"tilted_stock_months": 0, "at_cap": 0, "below": 0, "above": 0} for p in paths}
+    for month in months:
+        key = str(pd.Period(month, "M"))
+        m, _ = V.month_view(inp["members"], month)
+        tilted = np.isin(m.sector, C.TILT_SECTORS)
+        cap = C.TILT_MAX_SHARE_OF_BENCHMARK * m.b
+        for p in paths:
+            w = weights[p][key].reindex(m.permnos).fillna(0.0).to_numpy()
+            c = counts[p]
+            c["tilted_stock_months"] += int(tilted.sum())
+            c["at_cap"] += int((tilted & (np.abs(w - cap) <= C.OPT_TOL)).sum())
+            c["below"] += int((tilted & (w < cap - C.OPT_TOL)).sum())
+            c["above"] += int((tilted & (w > cap + C.OPT_TOL)).sum())
+    return pd.DataFrame([{"path": labels[p], "months": len(months), **counts[p]} for p in paths])
+
+
 def factor_by_year(att: pd.DataFrame) -> pd.DataFrame:
     """The factor attribution by calendar year: the mean active exposures and the contributions per year (the copy's
     by_period), one row per year."""

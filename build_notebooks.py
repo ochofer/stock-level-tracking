@@ -1700,9 +1700,18 @@ print("E9, market exposure: " + ", ".join(f"{NAMES[e]} {x:+.4f}" for e, x in v["
 print(f"E9: {'met' if e9['met'] else 'not met'}.")
 """),
     md("""
-## 5. What is committed
+## 5. The tilt's cap
 
-Six files go into `results/20260928/`, all by year or over the window, and the record of French's files is brought up to date. No figure by month and no weight of any sector.
+The tilt caps every Energy and Utilities stock at half its benchmark weight, and whether the cap binds is a result. For each path this section counts the stock-months of the two sectors among the month's members with a market capitalisation, and how many of them sit at half the benchmark weight within one millionth, below it and above it, from the recorded weights. The benchmark weight here is the capitalisation share among those members. A sector whose stocks all sit at the same fraction of their benchmark weights earns the benchmark sector's return, so the count says why selection in the two sectors is close to zero and how close.
+"""),
+    code("""
+cap = A.tilt_cap(inp, OUT, months)
+print(cap.to_string(index=False))
+"""),
+    md("""
+## 6. What is committed
+
+Seven files go into `results/20260928/`, all by year or over the window, and the record of French's files is brought up to date. No figure by month and no weight of any sector.
 """),
     code("""
 labels = res["labels"]
@@ -1729,6 +1738,7 @@ for p_ in [X.write_results("brinson_by_year.csv", frame=by_year),
            X.write_results("factor_attribution_by_year.csv", frame=factor_by_year),
            X.write_results("factor_attribution_summary.json", record=factor_summary),
            X.write_results("verdicts_milestone4.json", record=verdicts),
+           X.write_results("tilt_cap.csv", frame=cap),
            FR.write_provenance(french_records)]:
     print("written:", p_.relative_to(ROOT))
 """),
