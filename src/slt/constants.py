@@ -79,6 +79,8 @@ FRENCH_FILES = {
     "me_var": "25_Portfolios_ME_VAR_5x5_CSV.zip",                    # 25 portfolios on size and the variance of daily returns, monthly from 1963-07: E3
     "factors5_daily": "F-F_Research_Data_5_Factors_2x3_daily_CSV.zip",   # Mkt-RF, SMB, HML, RMW, CMA and RF, daily: the factor model and the risk-free rate
     "momentum_daily": "F-F_Momentum_Factor_daily_CSV.zip",           # Mom, daily: the factor model's sixth factor
+    "factors5_monthly": "F-F_Research_Data_5_Factors_2x3_CSV.zip",   # the five factors and RF, monthly: E9's factor returns (added 17 November 2026)
+    "momentum_monthly": "F-F_Momentum_Factor_CSV.zip",               # Mom, monthly: E9's sixth factor return (added 17 November 2026)
 }
 FRENCH_MISSING_CODES = (-99.99, -999.0)   # French's own convention, stated at the top of every file
 FRENCH_RETURNS_ARE_PERCENT = True         # divided by 100 once, when a block is loaded, and nowhere else
@@ -666,7 +668,58 @@ TURNOVER_DECOMPOSITION_COMMITTED = "by year and over the window, for every path"
 ATTRIBUTION_TERMS = E8_ORDER
 ATTRIBUTION_PATHS = tuple((est, MANDATE, MAIN_CAP) for est in COV_ESTIMATORS)
 ATTRIBUTION_LINKING = "arithmetic sum of monthly terms"
+ATTRIBUTION_SECTORS = tuple(GICS_SECTORS) + (UNCLASSIFIED,)   # the twelve sectors, in code order
 FACTOR_ATTRIBUTION_FACTORS = FACTOR_MODEL_FACTORS   # the cross-check, E9
+
+# Decided 17 November 2026, before notebook 11 runs on the extraction.
+# (1) The weights. The sector weights and the sector returns of both attributions
+# are taken over the month's names with a return, each side rescaled to one over
+# them, as the committed active return is (mandate.portfolio_return), so that the
+# Brinson-Fachler terms sum to the committed active return of every month and the
+# factor attribution describes the same portfolio. The name-months left out are
+# counted by year.
+ATTRIBUTION_WEIGHTS = "over the names with a return in the month, each side rescaled to one, as the committed active return"
+# (2) A sector the portfolio does not hold. A sector is not held in a month when
+# none of its stocks with a return has a weight above OPT_TOL, the test the count
+# of names held uses. Reason: the solver leaves weights above zero and below
+# OPT_TOL on stocks at their lower bound, so no sector's weight is exactly zero. In
+# such a month its allocation is as defined, its selection is zero, and its
+# interaction is what is left of the sector's effect, the sector's weight times its
+# return less the benchmark sector's (the sum over its stocks of weight times
+# return, less the sector's weight times the benchmark sector's return), so that the
+# three terms still sum to the active return exactly. A sector with no member with a
+# return contributes zero to all three. The sector-months not held are counted by
+# path and year.
+SECTOR_HELD_MIN_WEIGHT = OPT_TOL
+# (3) What is committed. Nothing of either attribution by month. By year and over
+# the window, for each of the four paths: each sector's three terms, summed over the
+# year's months and as annual averages with Newey-West standard errors at
+# NEWEY_WEST_LAGS lags; the three totals over sectors; the largest identity error;
+# the counts of (1) and (2). Unclassified holds one to three securities in every
+# month, so each of its months fails the cell rule; it is committed by year and over
+# the window like the other eleven sectors, because a year's term is a sum over
+# months of products of a weight difference and a return difference. No weight of
+# any sector, and no weight of Unclassified in any form, a range included, is
+# committed or printed. The factor attribution: by year and over the window, the
+# mean active exposures, the contributions per year with their standard errors, the
+# factor share and the largest identity error.
+ATTRIBUTION_COMMITTED = "by year and over the window, nothing by month and no sector weight"
+# (4) E8's second clause. Each month's effect is the sum of the term over the
+# twelve sectors; its absolute value is taken month by month and the mean is over
+# the months of the window. It is one verdict, met only if the allocation's mean
+# exceeds the selection's and the interaction's mean is the smallest of the three
+# on each of the three structured estimators; the parts stand beside it. The sample
+# estimator's path is attributed and reported with no verdict.
+E8_JUDGED_ON = STRUCTURED_ESTIMATORS
+# (5) E9. The four paths at the 2% cap, one verdict over the four for the market
+# exposure and for the identity. Every path is read through the factor estimator's
+# loadings of the month (estimators.month_estimates, model rows included), the
+# source's own design ("by the same regression as the factor covariance
+# estimator"). The factors' monthly returns are French's monthly files of the five
+# factors and of momentum (FRENCH_FILES), with their SHA-256 and vintage line in
+# provenance_french.json, and no daily returns compounded. The active exposures use
+# the weights of (1).
+E9_JUDGED_ON = COV_ESTIMATORS
 
 # ---------------------------------------------------------------------------
 # 8. Code copied from the source repository
