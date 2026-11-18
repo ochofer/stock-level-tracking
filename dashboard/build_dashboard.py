@@ -4,16 +4,15 @@ Usage, from the repository root, on any machine with a clone (no extraction is r
     python3 dashboard/build_dashboard.py [--date YYYY-MM-DD]
 
 Every number on the page is read from a committed file by src/slt/report.py and substituted into the template, so that
-the page and the tables cannot differ. The source line under each exhibit is for the reader and names no file: the Method
-view's table "Where each exhibit comes from" names each exhibit's committed files, linked on
-GitHub at the commit that last changed them, and the notebooks that write them, read from the notebooks. The build
-numbers the figures and the tables in page order and writes the study map at the top of each part's view and under
+the page and the tables cannot differ. The source line under each exhibit is for the reader and names no file: the
+Method view's table "Where each exhibit comes from" names each exhibit's committed files and the notebooks that write
+them, read from the notebooks, each linked on GitHub at the commit that last changed it. The build numbers the figures and the tables in page order and writes the study map at the top of each part's view and under
 the Summary's key figures. The four charts are drawn in the browser by Plotly from the data embedded in the page,
 and every chart has its table under a toggle, written as HTML so that it reads without the charting library. One table
 it reads is by month, cap_relaxed.csv, the months in which the turnover cap gave way, for the text of Figure 3:
 everything else is summaries over the window and tables by year, and the page's data holds only the tables of its four
 charts. The build date is the day the script runs, in Amsterdam, unless --date gives it, so that a rebuild on a given
-date from the same files and the same commit of the tables is byte-identical.
+date from the same files, each at the same last commit, is byte-identical.
 """
 import argparse
 import datetime
@@ -83,15 +82,18 @@ def study_map(current=None):
     return f'<nav class="{cls}" aria-label="The study in three parts">\n' + "\n".join(pieces) + "\n</nav>"
 
 
-def results_commit():
-    """The commit that last changed the committed tables, which the links of the Method view point to. It does not
-    move when only the page is rebuilt, so a rebuild from the same tables stays byte-identical."""
-    try:
-        out = subprocess.run(["git", "-C", REPO, "log", "-1", "--format=%H", "--", C.RESULTS_DIR],
-                             capture_output=True, text=True, check=True).stdout.strip()
-        return out or "main"
-    except (OSError, subprocess.CalledProcessError):
-        return "main"
+def last_commit(path, _seen={}):
+    """The commit that last changed a file of the repository, which its link in the Method view points to. It moves
+    only when that file changes, so a rebuild of the page on its own commit is byte-identical. Without git the link
+    points to the branch."""
+    if path not in _seen:
+        try:
+            out = subprocess.run(["git", "-C", REPO, "log", "-1", "--format=%H", "--", path],
+                                 capture_output=True, text=True, check=True).stdout.strip()
+        except (OSError, subprocess.CalledProcessError):
+            out = ""
+        _seen[path] = out or "main"
+    return _seen[path]
 
 
 def writers():
@@ -105,9 +107,9 @@ def writers():
     return found
 
 
-def exhibit_sources(page, order, commit):
-    """The Method view's table: each exhibit's number and title, its committed files linked on GitHub at the
-    commit of the tables, and the notebooks that write them."""
+def exhibit_sources(page, order):
+    """The Method view's table: each exhibit's number and title, its committed files and the notebooks that write
+    them, each linked on GitHub at the commit that last changed it."""
     by = writers()
     rows = []
     for key, kind, n in order:
@@ -116,12 +118,12 @@ def exhibit_sources(page, order, commit):
         for f in SOURCES[key]:
             path = f if "/" in f else f"{C.RESULTS_DIR}/{f}"
             assert os.path.exists(os.path.join(REPO, path)), path
-            files.append(f'<a href="{REPO_URL}/blob/{commit}/{path}">{f}</a>')
+            files.append(f'<a href="{REPO_URL}/blob/{last_commit(path)}/{path}">{f}</a>')
             if "/" not in f:
                 assert f in by, f"no notebook writes {f}"
                 nbs += [nb for nb in by[f] if nb not in nbs]
         nbs.sort()
-        links = [f'<a href="{REPO_URL}/blob/{commit}/notebooks/{nb}">notebook&nbsp;{nb[:2]}</a>' for nb in nbs]
+        links = [f'<a href="{REPO_URL}/blob/{last_commit("notebooks/" + nb)}/notebooks/{nb}">notebook&nbsp;{nb[:2]}</a>' for nb in nbs]
         rows.append([f"{kind} {n} | {title}", ", ".join(files), ", ".join(links)])
     head = ('<p class="cap">The committed tables each exhibit is drawn from, each linked on GitHub at the commit that last '
             'changed it, and the notebooks that write them.</p>')
@@ -140,7 +142,7 @@ missing = sorted(set(re.findall(r"\{\{(\w[\w-]*)\}\}", tpl)) - set(P))
 assert not missing, missing
 page = re.sub(r"\{\{(\w[\w-]*)\}\}", lambda m: P[m.group(1)], tpl)
 assert "{{" not in page
-page = page.replace("@@EXHIBIT_SOURCES@@", exhibit_sources(page, order, results_commit()))
+page = page.replace("@@EXHIBIT_SOURCES@@", exhibit_sources(page, order))
 for line in re.findall(r'<p class="src">(.*?)</p>', page):
     assert not re.search(r"results/|\.json|\.csv|\.py\b|notebook", line), f"a source line names a file: {line}"
 page = page.replace("/*DATA*/null", json.dumps(D, separators=(",", ":")))
