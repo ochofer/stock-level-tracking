@@ -123,8 +123,8 @@ def exhibit_sources(page, order, commit):
         nbs.sort()
         links = [f'<a href="{REPO_URL}/blob/{commit}/notebooks/{nb}">notebook&nbsp;{nb[:2]}</a>' for nb in nbs]
         rows.append([f"{kind} {n} | {title}", ", ".join(files), ", ".join(links)])
-    head = (f'<p class="cap">The committed tables each exhibit is drawn from, linked on GitHub at commit '
-            f'<a href="{REPO_URL}/tree/{commit}">{commit[:7]}</a>, and the notebooks that write them.</p>')
+    head = ('<p class="cap">The committed tables each exhibit is drawn from, each linked on GitHub at the commit that last '
+            'changed it, and the notebooks that write them.</p>')
     return head + '<div class="tw">' + R.table(["Exhibit", "Committed tables", "Written by"], rows, "sources") + "</div>"
 
 ap = argparse.ArgumentParser()
