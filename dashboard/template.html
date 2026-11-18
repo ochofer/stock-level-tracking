@@ -79,6 +79,9 @@ main { padding-bottom: 8px; }
 .verdicts tbody th { white-space: nowrap; }
 .verdicts thead th:nth-child(2), .verdicts thead th:nth-child(3) { text-align: left; }
 .verdicts td:last-child { font-weight: 600; }
+.sources td { white-space: normal; text-align: left; min-width: 11em; }
+.sources thead th { text-align: left; }
+.sources tbody th { white-space: normal; min-width: 16em; font-weight: 400; }
 h2 { font-size: 1.45rem; margin: 30px 0 4px; }
 h3 { font-size: 1.05rem; margin: 30px 0 4px; }
 h4 { font-size: 14px; margin: 10px 0 2px; }
@@ -160,6 +163,30 @@ dl.terms dd { margin: 0 0 0 1rem; }
 .ch-word, .ch-nav a { white-space: nowrap; }
 @media (max-width: 359px) { .ch-word { font-size: 15px; letter-spacing: .12em; } .ch-nav a { font-size: 13px; margin-left: 12px; } }
 @media print { .tabs, .tw::after, .tabs::after { display: none; } .view { display: block; } .fig { break-inside: avoid; } }
+/* The study map: a row of puzzle pieces, each locking into the next */
+.ch-map { --r: 15px; display: flex; gap: 2px; margin: 0 0 18px; position: relative; isolation: isolate; }
+.ch-map--summary { margin-top: 18px; }
+.ch-map__piece { position: relative; flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: center; min-height: 84px; padding: 12px 16px 12px calc(var(--r) + 14px); background: #e9edf3; color: var(--navy); text-decoration: none; }
+.ch-map__piece:first-child { padding-left: 16px; }
+.ch-map__piece:not(:last-child)::after { content: ""; position: absolute; z-index: 2; top: 50%; right: calc(-1px - var(--r)); width: calc(2 * var(--r)); height: calc(2 * var(--r)); margin-top: calc(-1 * var(--r)); border-radius: 50%; background: inherit; }
+.ch-map__piece + .ch-map__piece::before { content: ""; position: absolute; z-index: 1; top: 50%; left: calc(-3px - var(--r)); width: calc(2 * var(--r) + 4px); height: calc(2 * var(--r) + 4px); margin-top: calc(-2px - var(--r)); border-radius: 50%; background: #ffffff; clip-path: inset(0 0 0 calc(var(--r) + 3px)); }
+.ch-map__piece[aria-current="step"] { background: var(--navy); color: #ffffff; }
+.ch-map__n { font-size: 12px; font-weight: 600; line-height: 1.3; color: #5d6470; }
+.ch-map__name { font-size: 15px; font-weight: 600; line-height: 1.25; }
+.ch-map__sub { margin-top: 3px; font-size: 12.5px; line-height: 1.35; color: #5d6470; }
+.ch-map__piece[aria-current="step"] .ch-map__n, .ch-map__piece[aria-current="step"] .ch-map__sub { color: #c9d1de; }
+.ch-map__piece:not([aria-current="step"]):hover { background: #dde3ec; }
+.ch-map__piece:focus-visible { outline: 2px solid var(--navy); outline-offset: -4px; }
+@media (max-width: 599.98px) {
+  .ch-map { --r: 9px; }
+  .ch-map__piece { min-height: 52px; padding: 8px 8px 8px calc(var(--r) + 10px); }
+  .ch-map__piece:first-child { padding-left: 10px; }
+  .ch-map__name { font-size: 13px; }
+  .ch-map__sub { display: none; }
+}
+@media print { .ch-map__piece, .ch-map__piece::after { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+/* This page: a part's map stands as far under the tab bar as a view's first line did */
+.view > .ch-map:first-child { margin-top: 26px; }
 </style>
 <script src="https://cdn.plot.ly/plotly-cartesian-2.35.2.min.js" charset="utf-8"></script>
 <script data-goatcounter="https://carlohofer.goatcounter.com/count" async src="https://gc.zgo.at/count.v5.js" crossorigin="anonymous" integrity="sha384-atnOLvQb9t+jTSipvd75X2yginT4PjVbqDdlJAmxMm+wYElFmeR6EmLP5bYeoRVQ"></script>
@@ -192,7 +219,7 @@ dl.terms dd { margin: 0 0 0 1rem; }
 <div class="ch-docs"><a href="../note/stock-level-tracking_note_2026-11.pdf">Note (PDF)</a><a href="https://github.com/ochofer/stock-level-tracking">Code on GitHub</a></div>
 </div></section>
 <nav class="tabs" aria-label="Views"><div class="wrap">
-<button type="button" data-view="summary" aria-selected="true">Summary</button><button type="button" data-view="mandate" aria-selected="false"><span class="lg">The mandate</span><span class="sh">Mandate</span></button><button type="button" data-view="attribution" aria-selected="false">Attribution</button><button type="button" data-view="data" aria-selected="false"><span class="lg">The data layer</span><span class="sh">Data</span></button><button type="button" data-view="method" aria-selected="false"><span class="lg">Method and terms</span><span class="sh">Method</span></button>
+<button type="button" data-view="summary" aria-selected="true">Summary</button><button type="button" data-view="data" aria-selected="false"><span class="lg">Benchmark</span><span class="sh">Data</span></button><button type="button" data-view="mandate" aria-selected="false">Mandate</button><button type="button" data-view="attribution" aria-selected="false">Attribution</button><button type="button" data-view="method" aria-selected="false"><span class="lg">Method and terms</span><span class="sh">Method</span></button>
 </div></nav>
 <main class="wrap">
 
@@ -206,6 +233,7 @@ dl.terms dd { margin: 0 0 0 1rem; }
 <div class="ch-kpi"><div class="ch-kpi__label">Forced turnover</div><div class="ch-kpi__value">{{forced_share}}%</div><div class="ch-kpi__ref">of one-way turnover is forced by index changes, {{forced}} of {{total_turn}} per cent a year, Ledoit-Wolf estimator under the mandate, simulated</div></div>
 <div class="ch-kpi"><div class="ch-kpi__label">Benchmark rebuilt</div><div class="ch-kpi__value">{{recon_te}}</div><div class="ch-kpi__ref">bp a year of tracking error against CRSP's value-weighted return of the same list, {{recon_first_w}} to {{recon_last_w}}, with dividends</div></div>
 </div>
+{{map_summary}}
 <ul class="kp">
 <li>{{kp1}}</li>
 <li>{{kp2}}</li>
@@ -227,113 +255,116 @@ dl.terms dd { margin: 0 0 0 1rem; }
 </dl></aside>
 </div>
 
-<figure class="fig" id="figure-1">
-<h2>Figure 1 | Forecast and realised tracking error under the mandate, four covariance estimators, {{first_w}} to {{last_w}}</h2>
+<figure class="fig" id="{{id:f-estimators}}">
+<h2>Figure {{n:f-estimators}} | Forecast and realised tracking error under the mandate, four covariance estimators, {{first_w}} to {{last_w}}</h2>
 <p class="cap">Each estimator's mean forecast (hollow) beside the tracking error it realised (filled), in basis points a year, with the bias statistic.</p>
 <p class="text">Every realised value lies to the right of its forecast. The four estimators realise {{te_lo}} to {{te_hi}} basis points a year, and the bias statistic, {{bias_lo}} to {{bias_hi}}, lies above the band of 0.8 to 1.25 on all four. The forecast is the tracking error the month's own covariance matrix implies for the weights the optimiser chose.</p>
 <div id="f1" class="chart short"></div>
 <button type="button" class="tbtn" data-table="f1" aria-pressed="false">Table</button><div class="tbl tw" id="t-f1" hidden>{{t_f1}}</div>
 <p class="basis">Simulated. Monthly rebalancing. Before fees. Bias statistic: the standard deviation of each month's active return divided by that month's forecast, over the months with a forecast, 1 for a calibrated forecast.</p>
-<p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{first_w}} to {{last_w}}, US large caps, USD. {{results}}/paths_summary.json, notebook 09.</p>
+<p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{first_w}} to {{last_w}}, US large caps, USD.</p>
 </figure>
 
-<div class="fig" id="table-1-block">
-<h2 id="table-1">Table 1 | The four gates and nine expectations, fixed before each run, and what the run found</h2>
+<div class="fig" id="{{id:t-verdicts}}-block">
+<h2 id="{{id:t-verdicts}}">Table {{n:t-verdicts}} | The four gates and nine expectations, fixed before each run, and what the run found</h2>
 <p class="cap">A gate not met stops the study. An expectation not met is reported as a finding, in the same words as one met. An expectation named for two or more estimators has one verdict, met only if it holds for each.</p>
 <div class="tw">{{table1}}</div>
-<p class="src">{{results}}/verdicts_milestone1.json to verdicts_milestone4.json, notebooks 02 to 11. The levels and their reasons are in src/slt/constants.py, each dated before the run that judged it.</p>
+<p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{recon_first_w}} to {{recon_last_w}}, US large caps, USD.</p>
+</div>
+</section>
+
+<section id="data" class="view">
+{{map_data}}
+<p class="ch-view-lead">Whether the rebuilt benchmark and the four covariance matrices are what they claim to be.</p>
+<p class="lead">The universe in a month is the stocks on CRSP's list of index members on the last trading day of the month before, each weighted by its market capitalisation at the start of the month. A delisting is applied as Shumway (1997)<sup id="ref-4"><a href="#note-4">4</a></sup> proposes, and a member's sector is the GICS sector in force on the same day, through CRSP's link to Compustat. The index as S&amp;P publishes it is not the benchmark: its total return is not in the extraction, and its float adjustment cannot be rebuilt from CRSP's share counts.</p>
+
+<div class="fig" id="{{id:t-checks}}-block">
+<h2 id="{{id:t-checks}}">Table {{n:t-checks}} | The benchmark's checks, {{recon_first_w}} to {{recon_last_w}}</h2>
+<p class="cap">The benchmark against CRSP's own figures and the universe's sorts against French's, with the conditioning of the covariance matrices.</p>
+<div class="tw">{{table6}}</div>
+<p class="text">The months in which the sample matrix's condition number reaches ten times the Ledoit-Wolf one have a cause found after the run: from 2014 the universe holds up to five companies with two share classes each, whose daily returns move almost together, and the difference between two such classes sets the sample matrix's smallest eigenvalue.</p>
+<p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{recon_first_w}} to {{recon_last_w}}, US large caps, USD.</p>
+</div>
+
+<div class="fig" id="{{id:t-condition}}-block">
+<h2 id="{{id:t-condition}}">Table {{n:t-condition}} | The condition numbers of the four covariance matrices by year, {{first_w}} to {{last_w}}</h2>
+<p class="cap">The median over each year's months. A larger number means small errors in the matrix become larger errors in the weights an optimiser builds on it.</p>
+<div class="tw">{{table7}}</div>
+<p class="src">Source: CRSP via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, each from three years of daily returns, {{first_w}} to {{last_w}}, US large caps, USD.</p>
 </div>
 </section>
 
 <section id="mandate" class="view">
+{{map_mandate}}
 <p class="ch-view-lead">How much tracking error each estimator forecast and realised under the mandate, what the turnover cap buys and what the turnover is made of.</p>
 <p class="lead">Each month the mandate chooses the weights that make the forecast tracking error as small as its constraints allow. Twenty-four paths run from the benchmark over the {{months}} months: the four estimators under four cumulative constraint sets at the 2 per cent cap, and the Ledoit-Wolf and factor estimators under the mandate at four further caps. Under the first three sets nothing pushes the portfolio off the benchmark, and it stays there in every month. The figures below are the twelve paths under the mandate.</p>
 
-<figure class="fig" id="figure-2">
-<h2>Figure 2 | Realised and forecast tracking error by year, the Ledoit-Wolf estimator under the mandate, 1999 to 2024</h2>
+<figure class="fig" id="{{id:f-years}}">
+<h2>Figure {{n:f-years}} | Realised and forecast tracking error by year, the Ledoit-Wolf estimator under the mandate, 1999 to 2024</h2>
 <p class="cap">The tracking error realised in each calendar year and the mean of that year's monthly forecasts, in basis points a year. The year 1999 holds six months.</p>
 <p class="text">The realised tracking error runs from {{low_re}} basis points a year in {{low_year}} to {{peak_re}} in {{peak_year}}, when the mean forecast was {{peak_fc}}. The realised tracking error is above the mean forecast in {{below_years}} of the {{years}} calendar years, and not in {{above_list}}, so the understatement is not confined to one crisis.</p>
 <div id="f2" class="chart short"></div>
 <button type="button" class="tbtn" data-table="f2" aria-pressed="false">Table</button><div class="tbl tw" id="t-f2" hidden>{{t_f2}}</div>
 <p class="basis">Simulated. Monthly rebalancing. Before fees. The realised figure of a year is the standard deviation of its monthly active returns, times the square root of 12.</p>
-<p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{first_w}} to {{last_w}}, US large caps, USD. {{results}}/paths_by_year.csv, notebook 09.</p>
+<p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{first_w}} to {{last_w}}, US large caps, USD.</p>
 </figure>
 
-<figure class="fig" id="figure-3">
-<h2>Figure 3 | Tracking error against chosen turnover at five caps, the Ledoit-Wolf and factor estimators under the mandate, {{first_w}} to {{last_w}}</h2>
+<figure class="fig" id="{{id:f-frontier}}">
+<h2>Figure {{n:f-frontier}} | Tracking error against chosen turnover at five caps, the Ledoit-Wolf and factor estimators under the mandate, {{first_w}} to {{last_w}}</h2>
 <p class="cap">For each estimator and each cap on chosen turnover (0.5, 1, 2 and 4 per cent a month, and none): the realised (filled) and mean forecast (hollow) tracking error in basis points a year, against the chosen turnover in per cent a year.</p>
 <p class="text">E5 is not met. On both estimators the mean forecast falls as the cap loosens, from {{lw_fc_tight}} to {{lw_fc_none}} basis points a year on Ledoit-Wolf and from {{fa_fc_tight}} to {{fa_fc_none}} on the factor estimator. The realised tracking error at the 4 per cent cap is {{fa_re_4}} on the factor estimator, below its {{fa_re_tight}} at 0.5 per cent, and {{lw_re_4}} on Ledoit-Wolf, above its {{lw_re_tight}}. On Ledoit-Wolf chosen turnover runs from {{chosen_lo}} to {{chosen_hi}} per cent a year across the caps while the realised tracking error stays between {{fr_te_lo}} and {{fr_te_hi}}. The factor estimator chooses at most {{fa_chosen_hi}} per cent a year, and the 2 per cent cap binds on it in {{fa_bind}} per cent of months, against every month on Ledoit-Wolf. {{cap_relaxed}}</p>
 <div id="f3" class="chart"></div>
 <button type="button" class="tbtn" data-table="f3" aria-pressed="false">Table</button><div class="tbl tw" id="t-f3" hidden>{{t_f3}}</div>
 <p class="basis">Simulated. Monthly rebalancing. Before fees. Chosen turnover is one-way and excludes the turnover that index changes force.</p>
-<p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{first_w}} to {{last_w}}, US large caps, USD. {{results}}/paths_summary.json and cap_relaxed.csv, notebooks 09 and 10.</p>
+<p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{first_w}} to {{last_w}}, US large caps, USD.</p>
 </figure>
 
-<div class="fig" id="table-2-block">
-<h2 id="table-2">Table 2 | The twelve paths under the mandate, {{first_w}} to {{last_w}}</h2>
+<div class="fig" id="{{id:t-paths}}-block">
+<h2 id="{{id:t-paths}}">Table {{n:t-paths}} | The twelve paths under the mandate, {{first_w}} to {{last_w}}</h2>
 <p class="cap">Tracking error, active return and its standard error in basis points a year. Turnover one-way, in per cent a year.</p>
 <div class="tw">{{table2}}</div>
 <p class="basis">Simulated. Monthly rebalancing. Gross of fees. The net active return is the gross less a trading cost of 10 basis points per unit of one-way turnover, forced turnover included. No active return is beyond one Newey-West standard error of zero.</p>
-<p class="src">{{results}}/paths_summary.json, notebooks 09 and 10.</p>
+<p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{first_w}} to {{last_w}}, US large caps, USD.</p>
 </div>
 
-<div class="fig" id="table-3-block">
-<h2 id="table-3">Table 3 | What the turnover is made of, {{first_w}} to {{last_w}}</h2>
+<div class="fig" id="{{id:t-turnover}}-block">
+<h2 id="{{id:t-turnover}}">Table {{n:t-turnover}} | What the turnover is made of, {{first_w}} to {{last_w}}</h2>
 <p class="cap">One-way turnover in per cent a year, split into the part index changes force, the part that follows the benchmark's own reweighting and the part the optimiser chooses. The three parts less their overlap equal the total.</p>
 <div class="tw">{{table3}}</div>
 <p class="text">E7 is met. On the Ledoit-Wolf path forced turnover is {{forced}} per cent a year of a total of {{total_turn}}, or {{forced_share}} per cent, below the third fixed before the run. A portfolio that holds the benchmark turns over {{held_total}} per cent a year: forced turnover {{held_forced}}, reweighting {{held_rew}} and no rebalancing.</p>
-<p class="src">{{results}}/paths_summary.json, notebook 10.</p>
+<p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{first_w}} to {{last_w}}, US large caps, USD.</p>
 </div>
 </section>
 
 <section id="attribution" class="view">
+{{map_attribution}}
 <p class="ch-view-lead">Where the mandate's active return came from, by sector and by factor.</p>
 <p class="lead">Each month the active return of the four paths at the 2 per cent cap is split by the twelve sectors with the method of Brinson and Fachler (1985)<sup><a href="#note-2">2</a></sup> into allocation, selection and interaction, which sum to it exactly, and by six factors into contributions and a residual. Both sides are taken over the month's names with a return. A sector with no stock above a weight of one millionth has a selection of zero and keeps the rest of its part as interaction. The monthly terms are summed over months with no geometric linking.</p>
 
-<figure class="fig" id="figure-4">
-<h2>Figure 4 | Allocation and selection by sector over the window, the Ledoit-Wolf path under the mandate, {{first_w}} to {{last_w}}</h2>
+<figure class="fig" id="{{id:f-sectors}}">
+<h2>Figure {{n:f-sectors}} | Allocation and selection by sector over the window, the Ledoit-Wolf path under the mandate, {{first_w}} to {{last_w}}</h2>
 <p class="cap">Each sector's allocation and selection as annual averages, in basis points a year, each with a bar of two Newey-West standard errors on each side.</p>
 <p class="text">On this path the active return of {{lw_ar}} basis points a year splits into allocation {{lw_alloc}}, selection {{lw_sel}} and interaction {{lw_int}}, with Newey-West standard errors of {{lw_alloc_se}}, {{lw_sel_se}} and {{lw_int_se}}. In Energy and Utilities, the two tilted sectors, selection is within a tenth of a basis point a year of zero: the tilt caps each stock at half its benchmark weight, the cap binds on {{cap_lw_at}} of the {{cap_tilted}} stock-months in the two sectors on this path, and a sector whose stocks all sit at the same fraction of their benchmark weights earns the benchmark sector's return. Their allocation is {{en_alloc}} and {{ut_alloc}} basis points a year, on standard errors of {{en_alloc_se}} and {{ut_alloc_se}}. On this path {{beyond_lw}} of the 36 sector terms, interaction included, which the figure does not show, lie two standard errors or more from zero, and {{beyond_lo}} to {{beyond_hi}} on the other paths, against, at the 5 per cent level, {{chance}} on average if the tests were independent.</p>
 <div class="panels"><div class="panel"><div id="f4a" class="chart tall"></div></div><div class="panel"><div id="f4b" class="chart tall"></div></div></div>
 <button type="button" class="tbtn" data-table="f4" aria-pressed="false">Table</button><div class="tbl tw" id="t-f4" hidden>{{t_f4}}</div>
 <p class="basis">Simulated. Monthly, summed arithmetically. Gross of fees. Interaction is in the table.</p>
-<p class="src">Source: CRSP and Compustat via Wharton Research Data Services and author's calculations. Monthly, {{first_w}} to {{last_w}}, US large caps, USD. {{results}}/brinson_summary.json and tilt_cap.csv, notebook 11.</p>
+<p class="src">Source: CRSP and Compustat via Wharton Research Data Services and author's calculations. Monthly, {{first_w}} to {{last_w}}, US large caps, USD.</p>
 </figure>
 
-<div class="fig" id="table-4-block">
-<h2 id="table-4">Table 4 | The three terms over the window, four paths under the mandate at the 2 per cent cap, {{first_w}} to {{last_w}}</h2>
+<div class="fig" id="{{id:t-terms}}-block">
+<h2 id="{{id:t-terms}}">Table {{n:t-terms}} | The three terms over the window, four paths under the mandate at the 2 per cent cap, {{first_w}} to {{last_w}}</h2>
 <p class="cap">Annual averages with Newey-West standard errors, and E8's mean absolute monthly terms, each month's figure the sum over the twelve sectors.</p>
 <div class="tw">{{table4}}</div>
 <p class="text">E8 is met. The three terms sum to the active return in every month of the four paths, and on the three structured estimators allocation is the largest in absolute value and interaction the smallest. A sector is not held in {{nh_sample}} months on the sample estimator's path and in {{nh_lw}} on the Ledoit-Wolf path, all of them from 2022, and {{no_return}} member-months have no return and are left out of both sides.</p>
-<p class="src">{{results}}/brinson_summary.json, verdicts_milestone4.json and attribution_counts_by_year.csv, notebook 11.</p>
+<p class="src">Source: CRSP and Compustat via Wharton Research Data Services and author's calculations. Monthly, {{first_w}} to {{last_w}}, US large caps, USD.</p>
 </div>
 
-<div class="fig" id="table-5-block">
-<h2 id="table-5">Table 5 | The factor attribution, four paths under the mandate at the 2 per cent cap, {{first_w}} to {{last_w}}</h2>
+<div class="fig" id="{{id:t-factors}}-block">
+<h2 id="{{id:t-factors}}">Table {{n:t-factors}} | The factor attribution, four paths under the mandate at the 2 per cent cap, {{first_w}} to {{last_w}}</h2>
 <p class="cap">Contributions, their sum, the residual and the active return in basis points a year, each with its plain standard error in brackets, the factor share in per cent and the mean active exposures.</p>
 <div class="tw">{{table5}}</div>
 <p class="text">E9 is met. Contributions and residual sum to the active return in every month, and the mean active exposure to the market factor lies between {{mkt_exp_lo}} and {{mkt_exp_hi}} on the four paths. On the Ledoit-Wolf path the six contributions sum to {{fs_lw_total}} basis points a year and the residual to {{fs_lw_resid}}. The standard errors of this table are the plain ones the copied attribution computes, with no allowance for correlation from one month to the next.</p>
-<p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. {{results}}/factor_attribution_summary.json, notebook 11.</p>
-</div>
-</section>
-
-<section id="data" class="view">
-<p class="ch-view-lead">Whether the rebuilt benchmark and the four covariance matrices are what they claim to be.</p>
-<p class="lead">The universe in a month is the stocks on CRSP's list of index members on the last trading day of the month before, each weighted by its market capitalisation at the start of the month. A delisting is applied as Shumway (1997)<sup id="ref-4"><a href="#note-4">4</a></sup> proposes, and a member's sector is the GICS sector in force on the same day, through CRSP's link to Compustat. The index as S&amp;P publishes it is not the benchmark: its total return is not in the extraction, and its float adjustment cannot be rebuilt from CRSP's share counts.</p>
-
-<div class="fig" id="table-6-block">
-<h2 id="table-6">Table 6 | The data layer's checks, {{recon_first_w}} to {{recon_last_w}}</h2>
-<p class="cap">The benchmark against CRSP's own figures and the universe's sorts against French's, with the conditioning of the covariance matrices.</p>
-<div class="tw">{{table6}}</div>
-<p class="text">The months in which the sample matrix's condition number reaches ten times the Ledoit-Wolf one have a cause found after the run: from 2014 the universe holds up to five companies with two share classes each, whose daily returns move almost together, and the difference between two such classes sets the sample matrix's smallest eigenvalue.</p>
-<p class="src">{{results}}/reconstruction_summary.json, universe_summary.json, answer_key_summary.json and covariance_summary.json, notebooks 02, 04, 06 and 07.</p>
-</div>
-
-<div class="fig" id="table-7-block">
-<h2 id="table-7">Table 7 | The condition numbers of the four covariance matrices by year, {{first_w}} to {{last_w}}</h2>
-<p class="cap">The median over each year's months. A larger number means small errors in the matrix become larger errors in the weights an optimiser builds on it.</p>
-<div class="tw">{{table7}}</div>
-<p class="src">{{results}}/covariance_by_year.csv, notebook 07.</p>
+<p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{first_w}} to {{last_w}}, US large caps, USD.</p>
 </div>
 </section>
 
@@ -344,6 +375,9 @@ dl.terms dd { margin: 0 0 0 1rem; }
 <p><strong>What is known at each date.</strong> Membership, sector and capitalisation are read on the last trading day of the month before. Each covariance matrix uses the three years of daily returns before the month. Nothing from the month itself enters a weight.</p>
 <p><strong>Rebalancing and costs.</strong> Monthly. The turnover cap applies to chosen turnover, measured from the portfolio left after last month's returns with leavers sold and entrants bought at their benchmark weight. Returns are gross of fees. A trading cost of 10 basis points per unit of one-way turnover is charged where stated, forced turnover included.</p>
 <p><strong>What the study cannot show.</strong> It is a simulation. The benchmark weights CRSP's list by full capitalisation, and the index weights by float. A GICS sub-industry is wider than a list of controversial weapons. Costs are proportional to turnover, with no market impact. Sectors exist from July 1999, so the mandate starts there. No active return is distinguishable from zero, so the study makes no claim about a return the mandate earns.</p>
+
+<h2 id="exhibit-sources">Where each exhibit comes from</h2>
+{{exhibit_sources}}
 
 <h2 id="terms">Terms</h2>
 <dl class="terms">
@@ -510,6 +544,7 @@ dl.terms dd { margin: 0 0 0 1rem; }
     showView("summary");
   }
   document.querySelectorAll("[data-view]").forEach(function (b) { b.addEventListener("click", function () { var v = b.getAttribute("data-view"); history.replaceState(null, "", "#" + v); showView(v); window.scrollTo(0, 0); }); });
+  document.querySelectorAll(".ch-map__piece").forEach(function (a) { a.addEventListener("click", function (e) { var v = a.getAttribute("href").replace("#", ""); if (!VIEWS[v]) { return; } e.preventDefault(); history.replaceState(null, "", "#" + v); showView(v); window.scrollTo(0, 0); }); });
   window.addEventListener("hashchange", route);
   document.querySelectorAll(".tbtn").forEach(function (b) { b.addEventListener("click", function () {
     var el = document.getElementById("t-" + b.getAttribute("data-table")), open = el.getAttribute("hidden") !== null;
