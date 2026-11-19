@@ -50,6 +50,18 @@ MANIFEST_FILE = "manifest.json"  # the extraction's record: the SQL, rows, colum
 # was added on 10 November 2026 at 16:05 Amsterdam time, which changed the hash.
 MANIFEST_SHA256, MANIFEST_SHA256_2026_09_28 = "23e96d189f4b095936f47a1ebacb4e987fb260726afab4b6e6400c25ebce8693", "8b2e6b6bf762204bb2c4f70b1a53c66d527d02d2905a540caa53275a54de2b22"   # 310 files and 112,161,796 rows from 10 November 2026; 309 files and 112,115,800 rows on 28 September 2026
 CRSP_END = "2024-12-31"          # the last date of the CRSP library on this subscription; the sample ends here
+# Added 19 November 2026: the source of the descriptions of the fields of CRSP's
+# stock and index files in this repository, cited with its printed page. CRSP's list
+# of index members and its link to Compustat are not in it, and are described from
+# the study's design and from counts of the extraction. It is the author's copy, read
+# on 19 November 2026, and it is not committed. Its pages are numbered 1 to 92 and
+# then 97 to 130. The guide names no table of Wharton Research Data Services:
+# `crsp.msp500` is read as its CRSP Value-Weighted Index of the S&P 500 Universe
+# (index 1000500), with the published S&P 500 Composite (index 1000502) beside it
+# (p. 112).
+CRSP_GUIDE = ("CRSP, Data Descriptions Guide for CRSPAccess (FIZ) US Stock & Index Databases, "
+              "last modified 20 November 2025")
+CRSP_MSP500_INDEXES = {"vwretd": 1000500, "vwretx": 1000500, "sprtrn": 1000502}
 DAILY_FILE_START = "1990-01-02"  # the first date of the daily stock file in the extraction
 
 # The extraction's keys for the tables used (its folders raw/<key>/), with the WRDS table each holds.
@@ -125,9 +137,28 @@ SHARE_CODES_COMMON = (10, 11)    # share codes are not filtered, since the list 
 # Delisting returns, after Shumway (1997). CRSP's delisting return is applied in
 # the month of the delisting where CRSP gives one. Where it is missing, the
 # return is set by the delisting code, and every such month is counted.
-DELIST_PERFORMANCE_CODES = (400, 599)   # performance-related delisting codes, inclusive
+DELIST_PERFORMANCE_CODES = (400, 599)   # the codes the study treats as a delisting for poor performance, inclusive
+# Added 19 November 2026: CRSP's guide names the first digit 4 "liquidation" and the
+# first digit 5 "delisted by NYSE, NYSE MKT, NASDAQ or Arca" (p. 28). The study treats
+# both as a delisting for poor performance. The codes and the minus 30% are the
+# study's rule, after Shumway (1997), whose own set of codes has not been read.
 DELIST_PERFORMANCE_MISSING_RETURN = -0.30   # a missing delisting return with a performance-related code
 DELIST_OTHER_MISSING_RETURN = 0.0           # a missing delisting return with any other code
+# Added 19 November 2026, after every recorded run, with no verdict and no change to
+# any return. In the monthly file, where CRSP has no information after the delisting,
+# the delisting return is the return from the last month-end price to the last
+# trading price, which the guide calls a partial-month return and "not truly" a
+# delisting return. The condition is that the amount after delisting is not zero and
+# the payment date is on or before the delisting date (CRSP's guide, pp. 30 and 98).
+# Notebook 03 counts, among the delisting months of members with a delisting return
+# from CRSP, those that meet it, by the hundreds of the delisting code.
+DELIST_PARTIAL_MONTH_RULE = "the amount after delisting is not zero and its payment date is on or before the delisting date"
+# Added 19 November 2026: CRSP codes a missing return as -66, -77, -88 or -99 and a
+# missing delisting return as -55, -66, -88 or -99 (CRSP's guide, pp. 30, 75 and 122).
+# The extraction holds those as missing, and a test on the machine that holds it
+# asserts that no monthly return and no delisting return is below RETURN_FLOOR, so
+# that no code is read as a return.
+RETURN_FLOOR = -1.0
 
 # Fixed 10 November 2026: a universe member with no monthly return and no
 # delisting event in the month is left out of that month's benchmark return and
@@ -236,12 +267,45 @@ G4_WINDOW = "usable window, each name on its own membership months inside it"   
 # since 2005, which CRSP's shares outstanding are not.
 E1_TE_MAX = 0.0020
 E1_MEAN_DIFF_MAX = 0.0002        # per month
+# Added 19 November 2026, after the run, with the reason above left as it was written:
+# CRSP's guide says that monthly index returns are calculated from monthly security
+# returns (p. 104), and it defines the index of the S&P 500 universe otherwise than
+# the benchmark. A security enters a month if it is a member at the end of that month
+# and has a price at the end of that month and of the month before, ADRs are left
+# out, and no delisting return enters (pp. 104 and 106). Notebook 04 rebuilds the
+# return on that definition as a diagnostic with no verdict (CRSP_DEFINITION_).
 # Fixed 11 November 2026: the price-only benchmark against the index's own price
 # return over the months to December 2004, as tracking error and mean difference
 # beside the whole-window figures, with no verdict. Until 2005 the index weighted
 # by full capitalisation, so this gap is evidence on membership independent of
 # CRSP's list, removals included, which Compustat's history cannot test.
 INDEX_FULL_CAP_LAST_MONTH = "2004-12"
+# Added 19 November 2026 by the design, after every recorded run, with no verdict: a
+# diagnostic of E1. Notebook 04 rebuilds the return of the S&P 500 universe once more
+# on CRSP's own definition of its index (CRSP's guide, pp. 104 and 106): in month t
+# the members on the last trading day of month t, with a price at the end of month t
+# and at the end of month t-1, ADRs left out (a share code whose first digit is 3, as
+# of the end of month t-1, p. 78), weighted by the capitalisation at the end of month
+# t-1 and earning the month's return with no delisting return. It reports, over the
+# usable window and beside E1's figures, the tracking error and the mean monthly
+# difference against CRSP's return with dividends and price-only, the same figures of
+# the benchmark against the return on CRSP's definition, which measure how far the two
+# definitions lie apart, and the months in which the count it uses equals CRSP's used
+# count (`usdcnt`, pp. 43 and 102).
+CRSP_DEFINITION_MEMBERSHIP = "membership interval covers the last trading day of month t"
+CRSP_DEFINITION_ADR_FIRST_DIGIT = 3
+# Fixed 19 November 2026 by the design, before the run of the diagnostic: how its
+# result is read, on the tracking error with dividends of the return on CRSP's
+# definition against CRSP's return, in a year. At or below the first level the text
+# says that the benchmark's 11.5 basis points come from the difference of definition.
+# At or above the second it says that the difference of definition does not account
+# for them and that their cause is not known. Between the two it says that the
+# difference accounts for part of them and that the rest has no cause the study can
+# name, with no share given, because tracking errors do not subtract. Every reading
+# gives three figures: the benchmark against CRSP's return, the return on CRSP's
+# definition against CRSP's return, and the benchmark against the return on CRSP's
+# definition.
+CRSP_DEFINITION_READING_LEVELS = (0.00023, 0.0010)   # 2.3 and 10.0 basis points a year
 
 # E2, counts and values. In every month of the usable window the universe's count
 # is within 10 of CRSP's count, and the summed capitalisation is within 2% of
@@ -802,6 +866,43 @@ PAIRED_SIZE_CONSERVATIVE_BELOW = 0.035
 PAIRED_LEFT_OUT_MONTHS = ("2008-07", "2008-12")
 PAIRED_LEFT_OUT_ROWS = tuple(pair for pair in PAIRED_FAMILY_B if pair[0][0] == "factor")
 
+# Added 19 November 2026 by the design, after every recorded run, on the referee's
+# report of 18 November. Four additions, each with no verdict; E6, E8 and E9 keep the
+# verdicts notebooks 09 and 11 gave them.
+# (1) The benchmark's own turnover, in notebook 10 by committed code: the benchmark
+# alone, from June 1999 to December 2024, so that the change from June to July 1999
+# is counted and the window has 306 months, split as a path's turnover is
+# (TURNOVER_PARTS), with the turnover that restoring last month's weights themselves
+# would take beside it. Five figures over the window, in per cent a year.
+BENCHMARK_TURNOVER_FIRST_MONTH = "1999-06"
+# (2) Each mandate path's forecast tracking error by month, committed beside its
+# active return, a cell left empty where the active return's is (the cell rule of the
+# active weights), and a 95% interval on each bias statistic from a circular block
+# bootstrap of the months that keeps each month's active return with its forecast,
+# as the source repository's block_bootstrap_band does (evaluation.bias_band), with
+# its settings. The word band stays E6's (BIAS_BAND): these names are the code's.
+# The Ledoit-Wolf path at the 0.5% cap, whose bias statistic of 1.26 is the one
+# nearest the band, is read with its interval.
+BIAS_BAND_BLOCK_MONTHS = 12
+BIAS_BAND_DRAWS = 2000
+BIAS_BAND_SEED = 20261009                  # the source study's EVAL_BOOTSTRAP_SEED
+BIAS_BAND_LEVEL = 0.95
+# (3) The mean absolute monthly allocation term, as E8 reads it, three ways for each
+# path of the attribution: summed over all twelve sectors, over the two tilted ones,
+# and over the other ten, Unclassified included, so that no figure is the
+# Unclassified sector's alone. Three figures per path and no series by sector.
+ALLOCATION_GROUPS = {"all": ATTRIBUTION_SECTORS, "tilted": TILT_SECTORS,
+                     "other": tuple(s for s in ATTRIBUTION_SECTORS if s not in TILT_SECTORS)}
+# (4) Newey-West standard errors at NEWEY_WEST_LAGS for each factor's mean monthly
+# contribution, the six-factor total and the residual, on the four paths of the
+# attribution, and the count of the six contributions beyond FACTOR_BEYOND_SE
+# standard errors from zero against the count FACTOR_CHANCE_LEVEL would give by
+# chance, as the sector table counts its terms. The text says of the six-factor total
+# and of the market term whether each is FACTOR_BEYOND_SE Newey-West standard errors
+# or more from zero.
+FACTOR_BEYOND_SE = 2.0
+FACTOR_CHANCE_LEVEL = 0.05
+
 # ---------------------------------------------------------------------------
 # 8. Code copied from the source repository
 # ---------------------------------------------------------------------------
@@ -911,6 +1012,11 @@ MONTHLY_PATHS = tuple(p for p in PATHS if p[1] == MANDATE)
 # A path's label in every table: estimator, constraint set and cap in basis points.
 PATH_LABELS = {p: f"{p[0]}_{p[1]}_{'nocap' if p[2] is None else 'cap' + str(int(round(p[2] * 1e4))) + 'bp'}" for p in PATHS}
 MONTHLY_ACTIVE_COLUMNS = tuple("active_return_" + PATH_LABELS[p] for p in MONTHLY_PATHS)
+# Added 19 November 2026 by the design, on the referee's report of 18 November
+# (section 7, the four additions, (2)): the forecast tracking error of the same twelve
+# paths by month, in its own table, each cell empty where the active return's is. It
+# amends the decision of 12 November above for that one series.
+MONTHLY_FORECAST_COLUMNS = tuple("forecast_te_" + PATH_LABELS[p] for p in MONTHLY_PATHS)
 # Decided 12 November 2026, after the run and before any result of it was
 # committed: the largest absolute active weight is committed for the paths under
 # C0, C1 and C2 only, where it measures how far the solver leaves the portfolio from
