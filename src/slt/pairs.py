@@ -3,7 +3,7 @@ The paired tests of notebook 13: two realised tracking errors measured on the sa
 test of Ledoit and Wolf (2011) as the source repository's paired.py computes it (src/slt/source/paired.py, copied
 unchanged).
 
-Added on 18 November 2026, after every recorded run of the study, by the design of that day, and in no verdict
+Added on 18 November 2026, after the study's results were known, with no verdict
 (constants.PAIRED_). Everything here reads the active returns as committed, results/<vintage>/active_returns_monthly.csv,
 and runs no path, so anyone can rerun it from the repository alone. size_table() is the expectation P1, the test's
 rejection rate on simulated pairs with equal variances, and runs before paired_table() touches the study's returns.

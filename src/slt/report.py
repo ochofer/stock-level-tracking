@@ -87,6 +87,7 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
     # --- inputs, one line per file, with the notebook that writes it ---
     v1, v2, v3, v4 = (read(f"verdicts_milestone{k}.json", res) for k in (1, 2, 3, 4))   # notebooks 04 and 02, 06 and 07, 09 and 10, 11
     paths = read("paths_summary.json", res)["paths"]                                    # notebook 09
+    intervals = read("bias_intervals.csv", res).set_index("path")                      # notebook 09, added 19 November 2026
     brinson = read("brinson_summary.json", res)["paths"]                                # notebook 11
     factor = read("factor_attribution_summary.json", res)["paths"]                      # notebook 11
     recon = read("reconstruction_summary.json", res)                                    # notebook 04
@@ -308,11 +309,12 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
         s = paths[C.PATH_LABELS[p]]
         cap = F.CAP_LABELS[p[2]]
         rows2.append([f"{LBL[p[0]]}, cap {cap}{'' if cap == 'none' else ' per cent'}",
-                      num(BP * s["realised_te"]), num(BP * s["forecast_te_mean"]), f"{s['bias']:.2f}",
+                      num(BP * s["realised_te"]), num(BP * s["forecast_te_mean"]),
+                      "{:.2f} ({:.2f} to {:.2f})".format(s["bias"], *intervals.loc[C.PATH_LABELS[p], ["interval_low", "interval_high"]]),
                       num(BP * s["active_return_gross"], 1, True), num(BP * s["active_return_gross_se"]),
                       num(BP * s["active_return_net_at_10bp"], 1, True), num(100 * s["turnover_total_per_year"]),
                       num(100 * s["turnover_chosen_per_year"]), f"{s['held_mean']:.0f}"])
-    P["table2"] = table(["Path", "Realised tracking error", "Mean forecast", "Bias statistic", "Active return, gross",
+    P["table2"] = table(["Path", "Realised tracking error", "Mean forecast", "Bias statistic (95 per cent interval)", "Active return, gross",
                          "Newey-West standard error", "Active return, net at 10 bp", "Total turnover, % a year",
                          "Chosen turnover, % a year", "Names held, mean"], rows2)
 

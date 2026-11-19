@@ -137,10 +137,12 @@ def test_read_table_ignores_the_nullable_metadata_in_the_files(tmp_path):
     folder.mkdir(parents=True)
     frame = pd.DataFrame({"permno": pd.array([1, 2], dtype="Int64"), "dlstdt": pd.array(["2001-02-28", None], dtype="string"),
                           "dlstcd": pd.array([552, None], dtype="Int64"), "dlret": pd.array([None, 0.1], dtype="Float64"),
-                          "dlretx": pd.array([None, 0.1], dtype="Float64")})
+                          "dlretx": pd.array([None, 0.1], dtype="Float64"),
+                          # amended 19 November 2026: the two columns of the partial-month count of notebook 03
+                          "dlamt": pd.array([None, 12.5], dtype="Float64"), "dlpdt": pd.array([None, "2001-03-05"], dtype="string")})
     frame.to_parquet(folder / "crsp_msedelist.parquet", index=False)
     df, unparsed = X.read_table(tmp_path, "crsp_msedelist")
     assert unparsed == {}
     assert df["permno"].dtype == "int64" and df["dlstcd"].dtype == "float64" and df["dlret"].dtype == "float64"
-    assert str(df["dlstdt"].dtype).startswith("datetime64")
+    assert str(df["dlstdt"].dtype).startswith("datetime64") and str(df["dlpdt"].dtype).startswith("datetime64")
     assert df["dlstcd"].between(400, 599).tolist() == [True, False]

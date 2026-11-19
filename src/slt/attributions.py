@@ -118,6 +118,31 @@ def factor_by_year(att: pd.DataFrame) -> pd.DataFrame:
     return pd.concat([expo, contrib, largest], axis=1).reset_index()
 
 
+def factor_newey_west(att: pd.DataFrame, newey_west_se, names: tuple = C.FACTOR_ATTRIBUTION_FACTORS) -> pd.DataFrame:
+    """Added 19 November 2026: each factor's mean contribution a year, the six-factor total and the residual, each
+    with its plain standard error, as the copy's summarise() gives it, and its Newey-West standard error at
+    constants.NEWEY_WEST_LAGS, both times 12, and the mean in Newey-West standard errors. One row per term."""
+    rows = []
+    for col in [f"contribution {n}" for n in names] + ["factor total", "residual"]:
+        x = att[col].to_numpy(dtype=float)
+        mean = 12 * float(x.mean())
+        plain = 12 * float(x.std(ddof=1)) / np.sqrt(len(x))
+        nw = 12 * newey_west_se(x, C.NEWEY_WEST_LAGS)
+        rows.append({"term": col.replace("contribution ", ""), "months": int(len(x)), "per_year": mean,
+                     "standard_error": plain, "newey_west_se": nw, "in_newey_west_se": mean / nw if nw > 0 else float("nan"),
+                     "beyond": bool(abs(mean) > C.FACTOR_BEYOND_SE * nw)})
+    return pd.DataFrame(rows)
+
+
+def factor_beyond_count(table: pd.DataFrame, names: tuple = C.FACTOR_ATTRIBUTION_FACTORS) -> dict:
+    """Added 19 November 2026: of the factor contributions in `table` (one or more paths), how many lie beyond
+    constants.FACTOR_BEYOND_SE Newey-West standard errors from zero, against the count constants.FACTOR_CHANCE_LEVEL
+    would give on average if the tests were independent."""
+    f = table[table["term"].isin(names)]
+    return {"contributions": int(len(f)), "beyond": int(f["beyond"].sum()),
+            "by_chance": C.FACTOR_CHANCE_LEVEL * len(f), "level": C.FACTOR_CHANCE_LEVEL, "standard_errors": C.FACTOR_BEYOND_SE}
+
+
 def judge_e9(summaries: dict) -> dict:
     """E9: contributions plus residual equal the active return within E9_IDENTITY_MAX_ABS_ERROR in every month of
     every path; and, as one verdict over E9_JUDGED_ON, the mean active exposure to the market factor within

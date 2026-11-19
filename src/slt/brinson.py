@@ -103,6 +103,17 @@ def summary(terms: pd.DataFrame, totals: pd.DataFrame, newey_west_se) -> dict:
     return out
 
 
+def allocation_by_group(terms: pd.DataFrame, groups: dict = C.ALLOCATION_GROUPS) -> dict:
+    """Added 19 November 2026: the mean absolute monthly allocation term, as E8 reads it, with the month's allocation
+    summed over each group of sectors (constants.ALLOCATION_GROUPS) before its absolute value is taken. Three figures,
+    in returns a month, and no series by sector. `terms` has one row per month and sector."""
+    out = {}
+    for name, sectors in groups.items():
+        x = terms[terms["sector"].isin(sectors)].groupby("month")["allocation"].sum()
+        out[name] = float(x.abs().mean())
+    return out
+
+
 def judge_e8(summaries: dict) -> dict:
     """E8: the identity within E8_IDENTITY_MAX_ABS_ERROR on every path; and, as one verdict over E8_JUDGED_ON, the
     allocation's mean absolute monthly effect above the selection's with the interaction's the smallest, on each."""

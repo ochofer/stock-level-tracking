@@ -280,7 +280,7 @@ E1_MEAN_DIFF_MAX = 0.0002        # per month
 # by full capitalisation, so this gap is evidence on membership independent of
 # CRSP's list, removals included, which Compustat's history cannot test.
 INDEX_FULL_CAP_LAST_MONTH = "2004-12"
-# Added 19 November 2026 by the design, after every recorded run, with no verdict: a
+# Added 19 November 2026, after the study's results were known, with no verdict: a
 # diagnostic of E1. Notebook 04 rebuilds the return of the S&P 500 universe once more
 # on CRSP's own definition of its index (CRSP's guide, pp. 104 and 106): in month t
 # the members on the last trading day of month t, with a price at the end of month t
@@ -294,7 +294,7 @@ INDEX_FULL_CAP_LAST_MONTH = "2004-12"
 # count (`usdcnt`, pp. 43 and 102).
 CRSP_DEFINITION_MEMBERSHIP = "membership interval covers the last trading day of month t"
 CRSP_DEFINITION_ADR_FIRST_DIGIT = 3
-# Fixed 19 November 2026 by the design, before the run of the diagnostic: how its
+# Fixed 19 November 2026, before the run of the diagnostic: how its
 # result is read, on the tracking error with dividends of the return on CRSP's
 # definition against CRSP's return, in a year. At or below the first level the text
 # says that the benchmark's 11.5 basis points come from the difference of definition.
@@ -855,7 +855,7 @@ PAIRED_SIZE_T_DOF = 5
 PAIRED_SIZE_CASES = ((0.99, 20261120), (0.80, 20261121))   # (correlation, seed)
 PAIRED_SIZE_MAX = 0.065
 PAIRED_SIZE_CONSERVATIVE_BELOW = 0.035
-# Added 19 November 2026 by the design, after every recorded run, and in no verdict:
+# Added 19 November 2026, after the study's results were known, with no verdict:
 # the two rows of family B on the factor estimator have critical values near 5.9
 # against 2.1 to 2.4 on the other five, and two months of 2008 carry almost all of the
 # difference between the two variances on that estimator. Notebook 13 shows it by code:
@@ -866,9 +866,8 @@ PAIRED_SIZE_CONSERVATIVE_BELOW = 0.035
 PAIRED_LEFT_OUT_MONTHS = ("2008-07", "2008-12")
 PAIRED_LEFT_OUT_ROWS = tuple(pair for pair in PAIRED_FAMILY_B if pair[0][0] == "factor")
 
-# Added 19 November 2026 by the design, after every recorded run, on the referee's
-# report of 18 November. Four additions, each with no verdict; E6, E8 and E9 keep the
-# verdicts notebooks 09 and 11 gave them.
+# Added 19 November 2026, after the study's results were known. Four additions, each
+# with no verdict: E6, E8 and E9 keep the verdicts notebooks 09 and 11 gave them.
 # (1) The benchmark's own turnover, in notebook 10 by committed code: the benchmark
 # alone, from June 1999 to December 2024, so that the change from June to July 1999
 # is counted and the window has 306 months, split as a path's turnover is
@@ -920,8 +919,8 @@ COPIED_FILES = {
     "rules.py": ("src/bp/rules.py", "4cbfb330a519059042da03cf8ceab5a42cde394275d3ac3ea3fc7bf9305166eb"),
     "paired.py": ("src/bp/paired.py", "bb07c2b90c7f24be524ff34a8217a0b2f1fad8e4c3fefe3f47c41dcf4301ede1"),
 }
-# Added 18 November 2026, after every recorded run of the study, by the design of that
-# day: paired.py, the paired test of two realised tracking errors of section 7 (PAIRED_),
+# Added 18 November 2026, after the study's results were known: paired.py, the paired
+# test of two realised tracking errors of section 7 (PAIRED_),
 # is copied from the source repository at the later commit where it was added, which its
 # first line names. It reads no constant: every setting is passed by its caller.
 COPIED_AT_COMMIT = {"paired.py": "0e651a0"}
@@ -1012,10 +1011,9 @@ MONTHLY_PATHS = tuple(p for p in PATHS if p[1] == MANDATE)
 # A path's label in every table: estimator, constraint set and cap in basis points.
 PATH_LABELS = {p: f"{p[0]}_{p[1]}_{'nocap' if p[2] is None else 'cap' + str(int(round(p[2] * 1e4))) + 'bp'}" for p in PATHS}
 MONTHLY_ACTIVE_COLUMNS = tuple("active_return_" + PATH_LABELS[p] for p in MONTHLY_PATHS)
-# Added 19 November 2026 by the design, on the referee's report of 18 November
-# (section 7, the four additions, (2)): the forecast tracking error of the same twelve
-# paths by month, in its own table, each cell empty where the active return's is. It
-# amends the decision of 12 November above for that one series.
+# Added 19 November 2026, after the study's results were known: the forecast tracking
+# error of the same twelve paths by month, in its own table, each cell empty where the
+# active return's is. It amends the decision of 12 November above for that one series.
 MONTHLY_FORECAST_COLUMNS = tuple("forecast_te_" + PATH_LABELS[p] for p in MONTHLY_PATHS)
 # Decided 12 November 2026, after the run and before any result of it was
 # committed: the largest absolute active weight is committed for the paths under

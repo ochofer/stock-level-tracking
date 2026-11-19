@@ -319,6 +319,96 @@ def active_returns_table(records: dict) -> tuple:
     return table.reset_index(), empty
 
 
+def forecast_table(records: dict) -> tuple:
+    """Added 19 November 2026: the table by month of each mandate path's forecast tracking error, a year's figure as
+    the script records it, a cell left empty where the path's active return is (the cell rule of the month's active
+    weights), so that the two tables hold the same months. Returns the table and the count of empty cells by column."""
+    cols, empty = {}, {}
+    for p in C.MONTHLY_PATHS:
+        rec = records[C.PATH_LABELS[p]]
+        col = "forecast_te_" + C.PATH_LABELS[p]
+        cols[col] = rec["forecast_te"].where(rec["cell_ok"].astype(bool))
+        empty[col] = int((~rec["cell_ok"].astype(bool)).sum())
+    table = pd.DataFrame(cols)
+    table.index.name = "month"
+    return table.reset_index(), empty
+
+
+def bias_band(active, forecast_te, block: int = C.BIAS_BAND_BLOCK_MONTHS, draws: int = C.BIAS_BAND_DRAWS,
+              seed: int = C.BIAS_BAND_SEED, level: float = C.BIAS_BAND_LEVEL) -> tuple:
+    """Added 19 November 2026: a 95% interval on the bias statistic from a circular block bootstrap, as the source
+    repository's block_bootstrap_band computes it: each resample takes ceil(n / block) starting months at random and
+    `block` consecutive months from each, running past the last month into the first, keeping each month's active
+    return with its forecast; the interval is the central `level` share of the resampled statistics. Over the months
+    bias_statistic uses, those whose forecast is above constants.BIAS_FORECAST_MIN. Deterministic for a given seed."""
+    f_all = np.asarray(forecast_te, dtype=float)
+    a_all = np.asarray(active, dtype=float)
+    keep = f_all > C.BIAS_FORECAST_MIN
+    a, f = a_all[keep], f_all[keep] / np.sqrt(PERIODS_PER_YEAR)
+    n = len(a)
+    if n < 2 or block < 1 or draws < 1:
+        raise ValueError("the interval needs at least two months, a block of one month or more and one draw or more")
+    ratio = a / f
+    rng = np.random.default_rng(seed)
+    k = int(np.ceil(n / block))
+    starts = rng.integers(0, n, size=(draws, k))
+    idx = ((starts[:, :, None] + np.arange(block)[None, None, :]) % n).reshape(draws, k * block)[:, :n]
+    stats = np.std(ratio[idx], axis=1, ddof=1)
+    tail = 100.0 * (1.0 - level) / 2.0
+    lo, hi = np.percentile(stats, [tail, 100.0 - tail])
+    return float(lo), float(hi)
+
+
+def bias_bands(active_table: pd.DataFrame, forecast_tbl: pd.DataFrame) -> pd.DataFrame:
+    """Added 19 November 2026: for each mandate path, from the two committed tables by month, the bias statistic, its
+    95% interval and the months it uses. A reader can rerun it from the repository alone."""
+    a = active_table.set_index("month")
+    f = forecast_tbl.set_index("month")
+    rows = []
+    for p in C.MONTHLY_PATHS:
+        lab = C.PATH_LABELS[p]
+        both = pd.concat([a["active_return_" + lab], f["forecast_te_" + lab]], axis=1).dropna()
+        ar, fc = both.iloc[:, 0].to_numpy(float), both.iloc[:, 1].to_numpy(float)
+        lo, hi = bias_band(ar, fc)
+        rows.append({"path": lab, "months": int((fc > C.BIAS_FORECAST_MIN).sum()), "bias": bias_statistic(ar, fc),
+                     "interval_low": lo, "interval_high": hi, "block": C.BIAS_BAND_BLOCK_MONTHS, "draws": C.BIAS_BAND_DRAWS,
+                     "seed": C.BIAS_BAND_SEED, "level": C.BIAS_BAND_LEVEL})
+    return pd.DataFrame(rows)
+
+
+def benchmark_turnover(inp: dict, first: str = C.BENCHMARK_TURNOVER_FIRST_MONTH, last: str = C.EVAL_END) -> dict:
+    """Added 19 November 2026: the benchmark's own turnover, as a path's is split (mandate.decompose), for the
+    benchmark held alone from `first` to `last`, so that the change from the first month to the second is counted.
+    In each month after the first, last month's benchmark weights drift with last month's returns (mandate.drift);
+    the reference portfolio sells the names that left and buys the entrants at their benchmark weight; the restored
+    portfolio, which keeps each continuing name's weight relative to its benchmark weight, is the benchmark itself,
+    so rebalancing is zero. Beside them: the turnover from the reference portfolio to last month's weights
+    themselves, continuing names at last month's weights rescaled and entrants at their benchmark weight, which a
+    middle part defined that way would take. Means of the monthly figures times 12, in shares a year."""
+    months = pd.period_range(first, last, freq="M")
+    rows = []
+    b_prev = r_prev = None
+    for mo in months:
+        m, r = month_view(inp["members"], mo)
+        b = pd.Series(m.b, index=m.permnos)
+        if b_prev is not None:
+            w_drift, missing = M.drift(b_prev, r_prev)
+            w_ref = M.reference_portfolio(w_drift, m.permnos, m.b)
+            restored = M.restored_portfolio(b_prev, b_prev, m.permnos, m.b)
+            parts = M.decompose(w_drift, w_ref, restored, b)
+            last_weights = M.reference_portfolio(b_prev, m.permnos, m.b)
+            rows.append({"month": str(mo), **parts, "restore_last_weights": M.one_way(last_weights, w_ref),
+                         "missing_return_in_drift": missing})
+        b_prev, r_prev = b, r
+    f = pd.DataFrame(rows)
+    out = {"first_month": str(months[1]), "last_month": str(months[-1]), "months": int(len(f))}
+    for k in ("total", "membership", "reweighting", "rebalancing", "overlap", "restore_last_weights"):
+        out[k] = float(PERIODS_PER_YEAR * f[k].mean())
+    out["largest_rebalancing"] = float(f["rebalancing"].abs().max())
+    out["missing_return_in_drift"] = int(f["missing_return_in_drift"].sum())
+    return out
+
+
 def cap_relaxed(inp: dict, out_dir, records: dict) -> pd.DataFrame:
     """The months in which the turnover cap gave way, on every capped path under the mandate: in such a month the
     other constraints need more chosen turnover than the cap allows, and the optimiser takes the least they need.

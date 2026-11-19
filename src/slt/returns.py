@@ -2,8 +2,9 @@
 Returns and market capitalisation of the universe members, with delisting returns applied.
 
 Monthly returns come from CRSP's monthly stock file. A delisting in the month is applied as data rule D4
-says, after Shumway (1997): CRSP's delisting return where CRSP gives one; where it is missing, minus 30 per
-cent for a performance-related code (400 to 599) and zero for any other code, each such month counted.
+says, the study's rule after Shumway (1997): CRSP's delisting return where CRSP gives one; where it is missing,
+minus 30 per cent for a code from 400 to 599, which the study treats as a delisting for poor performance, and
+zero for any other code, each such month counted.
 CRSP's code 100 marks a security still active and is not a delisting. A member with no return and no
 delisting in the month is counted and left out of that month's benchmark return. The capitalisation at the
 start of month t is the absolute price times shares outstanding at the end of month t-1, in thousands of
@@ -69,6 +70,26 @@ def delisting_code_families(panel: pd.DataFrame) -> pd.Series:
     out = (codes // 100 * 100).value_counts().sort_index()
     out.index.name = "code_family"
     return out.rename("delisting_months")
+
+
+def partial_month_counts(panel: pd.DataFrame, delistings: pd.DataFrame) -> pd.DataFrame:
+    """Added 19 November 2026: among the delisting months of members in which CRSP gives the delisting return, those
+    in which it is a partial-month return, by the hundreds of the delisting code. In the monthly file CRSP's
+    delisting return is the return from the last month-end price to the last trading price where it has no
+    information after the delisting, and the guide gives the condition: the amount after delisting is not zero and
+    the payment date is on or before the delisting date (constants.DELIST_PARTIAL_MONTH_RULE; CRSP's guide, pp. 30
+    and 98). The delisting rows are matched to the panel as monthly_panel matches them. Counts only."""
+    d = delistings[delistings["dlstcd"].notna() & (delistings["dlstcd"] != ACTIVE_CODE)].copy()
+    d["month"] = pd.PeriodIndex(d["dlstdt"], freq="M")
+    d = d.drop_duplicates(["permno", "month"], keep="last")
+    g = panel.loc[panel["delisting"] == "given", ["permno", "month", "dlstcd"]].merge(
+        d[["permno", "month", "dlamt", "dlpdt", "dlstdt"]], on=["permno", "month"], how="left")
+    partial = (g["dlamt"].fillna(0.0) != 0) & (pd.to_datetime(g["dlpdt"]) <= pd.to_datetime(g["dlstdt"]))
+    g = g.assign(code_family=(g["dlstcd"].astype(int) // 100 * 100), partial=partial.to_numpy())
+    out = g.groupby("code_family").agg(delisting_return_given=("partial", "size"), partial_month_return=("partial", "sum"))
+    out["partial_month_return"] = out["partial_month_return"].astype("int64")
+    out["after_delisting"] = out["delisting_return_given"] - out["partial_month_return"]
+    return out.reset_index()
 
 
 def cap_coverage(panel: pd.DataFrame, first_month: str) -> dict:

@@ -1,0 +1,53 @@
+{
+ "written_by": "notebooks/04_reconstruction.ipynb",
+ "months": 1188,
+ "with_dividends": {
+  "months": 1188,
+  "tracking_error": 0.000822892276589088,
+  "mean_difference": -2.204424781168536e-06,
+  "correlation": 0.9999903382708508
+ },
+ "price_only": {
+  "months": 1188,
+  "tracking_error": 0.0008189605899083884,
+  "mean_difference": 2.997772630463225e-07,
+  "correlation": 0.999990452535895
+ },
+ "benchmark_with_dividends": {
+  "months": 1188,
+  "tracking_error": 0.001148479159431748,
+  "mean_difference": -1.759970081023675e-05,
+  "correlation": 0.9999811081205925
+ },
+ "benchmark_price_only": {
+  "months": 1188,
+  "tracking_error": 0.001157753303009866,
+  "mean_difference": -1.637605708861299e-05,
+  "correlation": 0.9999808442618227
+ },
+ "benchmark_against_crsp_definition_with_dividends": {
+  "months": 1188,
+  "tracking_error": 0.001327400586162707,
+  "mean_difference": -1.539527602906822e-05,
+  "correlation": 0.9999749077404575
+ },
+ "benchmark_against_crsp_definition_price_only": {
+  "months": 1188,
+  "tracking_error": 0.0013368011184107347,
+  "mean_difference": -1.667583435165931e-05,
+  "correlation": 0.9999745877577838
+ },
+ "months_count_used_equal": 606,
+ "months_count_used_with_adrs_equal": 1129,
+ "months_with_an_adr_left_out": 544,
+ "most_adrs_left_out_in_one_month": 1,
+ "date_values_not_parsed": {},
+ "reading": {
+  "levels": [
+   0.00023,
+   0.001
+  ],
+  "form": "middle",
+  "says": "the difference of definition accounts for part of the benchmark's gap, and the rest has no cause the study can name"
+ }
+}

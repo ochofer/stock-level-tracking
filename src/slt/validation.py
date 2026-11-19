@@ -42,7 +42,7 @@ def benchmark(panel: pd.DataFrame) -> pd.DataFrame:
 
 # CRSP's index fields under the names the study uses for them. The frame stays in memory and is never committed.
 CRSP_NAMES = {"vwretd": "crsp_return", "vwretx": "crsp_return_price_only", "sprtrn": "index_price_return",
-              "totcnt": "crsp_count", "totval": "crsp_total_value"}
+              "totcnt": "crsp_count", "totval": "crsp_total_value", "usdcnt": "crsp_count_used"}
 
 
 def crsp_by_month(index_file: pd.DataFrame) -> pd.DataFrame:
@@ -52,6 +52,64 @@ def crsp_by_month(index_file: pd.DataFrame) -> pd.DataFrame:
     out.index = pd.PeriodIndex(pd.to_datetime(out["caldt"]), freq="M")
     out.index.name = "month"
     return out
+
+
+def crsp_definition(spells: pd.DataFrame, ends: pd.Series, monthly: pd.DataFrame, names: pd.DataFrame) -> pd.DataFrame:
+    """Added 19 November 2026, a diagnostic with no verdict: the return of the S&P 500 universe rebuilt on CRSP's own
+    definition of its index (CRSP's guide, pp. 104 and 106; constants.CRSP_DEFINITION_MEMBERSHIP). In month t: the
+    stocks whose membership covers the last trading day of month t, with a price at the end of month t and at the end
+    of month t-1, a positive number of shares at the end of month t-1 and a return in month t, less the ADRs (a share
+    code whose first digit is constants.CRSP_DEFINITION_ADR_FIRST_DIGIT in the names record in force at the end of
+    month t-1); each weighted by its capitalisation at the end of month t-1, the absolute price times the shares,
+    earning its monthly return and price-only return, with no delisting return. By month: the two returns and the
+    count of stocks used. It stays in memory, and only its comparison with CRSP's figures is committed."""
+    from . import universe as U
+    # membership_matrix gives row t the date it holds for month t-1, so each month is given the last trading day of the
+    # month after it, and row t covers the last trading day of month t, from the second month of CRSP's file to its last.
+    shifted = pd.Series(np.append(ends.values[1:], ends.values[-1]), index=ends.index)
+    long = U.universe_long(U.membership_matrix(spells, shifted), shifted)
+    long = long.rename(columns={"date_prev": "date_end"})
+    long["date_prev"] = ends.reindex(pd.PeriodIndex(long["month"]) - 1).values
+    s = monthly.assign(month=pd.PeriodIndex(monthly["date"], freq="M")).drop_duplicates(["permno", "month"], keep="last")
+    current = s[["permno", "month", "prc", "ret", "retx"]]
+    previous = s[["permno", "month", "prc", "shrout"]].rename(columns={"prc": "prc_prev"}).copy()
+    previous["month"] = previous["month"] + 1
+    p = long.merge(current, on=["permno", "month"], how="left").merge(previous, on=["permno", "month"], how="left")
+    m = p.merge(names[["permno", "namedt", "nameendt", "shrcd"]], on="permno", how="left")
+    m = m[(m["namedt"] <= m["date_prev"]) & (m["date_prev"] <= m["nameendt"])]
+    m = m.sort_values(["permno", "month", "namedt"], ascending=[True, True, False]).drop_duplicates(["permno", "month"])
+    p = p.merge(m[["permno", "month", "shrcd"]], on=["permno", "month"], how="left")
+    p["adr"] = (p["shrcd"] // 10 == C.CRSP_DEFINITION_ADR_FIRST_DIGIT).to_numpy(dtype=bool)
+    priced = (p["prc"].notna() & (p["prc"] != 0) & p["prc_prev"].notna() & (p["prc_prev"] != 0) & (p["shrout"] > 0))
+    adrs = p[priced & p["adr"]].groupby("month").size()
+    p = p[priced & ~p["adr"] & p["ret"].notna()].copy()
+    p["cap"] = p["prc_prev"].abs() * p["shrout"]
+    p["w_retx"] = np.where(p["retx"].notna(), p["cap"], 0.0)
+    p["cap_ret"], p["cap_retx"] = p["cap"] * p["ret"], p["w_retx"] * p["retx"].fillna(0.0)
+    g = p.groupby("month")
+    out = pd.DataFrame({"return": g["cap_ret"].sum() / g["cap"].sum(), "return_price_only": g["cap_retx"].sum() / g["w_retx"].sum(),
+                        "count_used": g.size().astype("int64")})
+    out["adrs_left_out"] = adrs.reindex(out.index).fillna(0).astype("int64")
+    out.index = pd.PeriodIndex(out.index, freq="M")
+    out.index.name = "month"
+    return out
+
+
+CRSP_DEFINITION_FORMS = {
+    "first": "the benchmark's gap to CRSP's return comes from the difference of definition",
+    "middle": "the difference of definition accounts for part of the benchmark's gap, and the rest has no cause the study can name",
+    "third": "the difference of definition does not account for the benchmark's gap, and its cause is not known",
+}
+
+
+def crsp_definition_reading(tracking_error: float, levels: tuple = C.CRSP_DEFINITION_READING_LEVELS) -> str:
+    """Added 19 November 2026: how the diagnostic is read, fixed before its run (constants.CRSP_DEFINITION_READING_LEVELS),
+    from the tracking error with dividends of the return on CRSP's definition against CRSP's return: "first" at or
+    below the lower level, "third" at or above the upper, "middle" between them (CRSP_DEFINITION_FORMS)."""
+    low, high = levels
+    if tracking_error <= low:
+        return "first"
+    return "third" if tracking_error >= high else "middle"
 
 
 def compare(ours: pd.Series, theirs: pd.Series, tolerance=None, relative: bool = False) -> dict:

@@ -96,6 +96,7 @@ NB01 = [
 - *data root*: the folder that holds the extraction, named by the environment variable `SLT_DATA_ROOT` on the machine that holds it.
 - *vintage*: the version of the data a result was built from, here the extraction's date and its manifest's hash.
 - *provenance*: the record of what a result was built from. The provenance record is the file `results/20260928/provenance.json`, which names the vintage, the fetch date of every table used and the versions of the tools.
+- *CRSP's guide*: CRSP's Data Descriptions Guide for CRSPAccess (FIZ) US Stock & Index Databases, last modified 20 November 2025. The descriptions of the fields of CRSP's stock and index files follow it, cited by its printed page. CRSP's list of index members and its link to Compustat are not in it, and are described from the study's design and from counts of the extraction. It names none of the tables of Wharton Research Data Services, and it is not committed.
 
 **What I expect to see, and where it comes from.** From the manifest, read on 10 November 2026: its SHA-256 begins `23e96d18`, and it lists 310 files and 112,161,796 rows. The study reads 9 of its tables, in 45 files with 73,130,868 rows: eight tables fetched on 28 September 2026 and the GICS history fetched on 10 November 2026. Every file's hash on disk equals the manifest's, every file's row count in its own footer equals the manifest's, and every column the later notebooks read is present. This notebook judges no gate and no expectation. A mismatch stops the study before anything is computed. Running time: under a minute, most of it spent hashing the daily stock file, 2.2 GB in 37 yearly files.
 """),
@@ -161,7 +162,7 @@ print(json.dumps({k: record[k] for k in ("vintage", "fetch_dates", "files_used",
 
 What the checks establish: the files on this machine are, byte for byte, the files the manifest records, the manifest is the one the constants fix, and every column the later notebooks read is present. Every later result names this vintage through the provenance record.
 
-What could still be wrong. A hash shows that a file has not changed since it was fetched. It does not show that the file holds what the vendor intended. Notebooks 02 to 04 test that, against CRSP's own counts and returns. If the same queries, run on another date, return other rows, the hashes in `extraction_files.csv` will differ for reasons that are not errors. And the row counts in the manifest and in the footers are both counts of rows as stored. Neither says anything about a value inside a row.
+What could still be wrong. A hash shows that a file has not changed since it was fetched. It does not show that the file holds what the vendor intended. Notebooks 02 to 04 test that, against CRSP's own counts and returns. CRSP corrects its history with each release of its data, as errors are identified (CRSP's guide, p. 5), so the same queries run later can return other files, with other hashes in `extraction_files.csv`, for reasons that are not errors. And the row counts in the manifest and in the footers are both counts of rows as stored. Neither says anything about a value inside a row.
 """),
 ]
 
@@ -190,16 +191,17 @@ NB02 = [
 
 **Terms used in this notebook.**
 
+- *CRSP's guide*: CRSP's Data Descriptions Guide for CRSPAccess (FIZ) US Stock & Index Databases, last modified 20 November 2025. The descriptions of the fields of CRSP's stock and index files follow it, cited by its printed page. CRSP's list of index members and its link to Compustat are not in it, and are described from the study's design and from counts of the extraction. It names none of the tables of Wharton Research Data Services, and it is not committed.
 - *universe*: the stocks in CRSP's list of index members on the last trading day of the month before. A stock is in the universe in month t when one of its membership spells covers the last trading day of month t−1.
 - *membership spell*: one interval in CRSP's list, from the day a stock entered the index to the day it left, both days included. A stock that left and came back has more than one.
 - *PERMNO*: CRSP's permanent number for a security. It does not change when the company changes its name or its ticker.
 - *GVKEY*: Compustat's permanent number for a company.
 - *link*: CRSP's table of which GVKEY belongs to which PERMNO, and over which dates. Only primary links of types LC and LU are used, with primary flag P or C, each on the dates it was valid.
-- *CRSP's count*: the number of index members with a valid price on a day, which CRSP stores on each row of its monthly index file (`totcnt`). Its row for a month carries the count on that month's last trading day.
+- *CRSP's count*: the number of securities in the index universe with a valid price on a day (CRSP's guide, p. 43), which CRSP stores on each row of its monthly index file (`totcnt`). Its row for a month carries the count on that month's last trading day.
 - *usable window*: the months from the first month in which the universe's count is within 10 names of CRSP's count, to December 2024, CRSP's last month on this subscription.
 - *gate*: a test of the data layer, fixed in advance in `src/slt/constants.py`. A gate that is not met stops the study.
 - *verdict*: the result of a gate, met or not met, printed in the same words either way.
-- *share code*: CRSP's two-digit code for the type of security. Codes 10 and 11 are ordinary common shares. A first digit of 3 marks an ADR, an American depositary receipt: a certificate traded in the United States that stands for shares of a company listed abroad. A second digit of 2 marks a company incorporated outside the United States.
+- *share code*: CRSP's two-digit code for the type of security (CRSP's guide, p. 78). Codes 10 and 11 are ordinary common shares. A first digit of 3 marks an ADR, an American depositary receipt: a certificate traded in the United States that stands for shares of a company listed abroad. A second digit of 2 marks a company incorporated outside the United States.
 
 **What I expect to see, and where it comes from.** From structural counts made on 10 and 11 November 2026 (rows, distinct values, earliest and latest dates, read from the files' columns; no row printed): CRSP's list holds 2,064 spells of 1,936 PERMNOs, 119 PERMNOs have more than one spell, the earliest spell starts on 31 December 1925, and 503 spells end on 31 December 2024, the current members. CRSP's monthly index file has 1,189 rows from 31 December 1925, so the universe runs 1,188 months, January 1926 to December 2024.
 
@@ -228,7 +230,7 @@ print(f"months {len(matrix)}, from {matrix.index[0]} to {matrix.index[-1]} | mem
     md("""
 ## 2. The universe by month
 
-The membership is a table of months by PERMNOs, true where a spell covers the last trading day of the month before. The table below gives the universe's size by decade. Before March 1957 CRSP's list follows the index's predecessor, which held 90 stocks, so the count is expected near 90 there and near 500 from 1957.
+The membership is a table of months by PERMNOs, true where a spell covers the last trading day of the month before. The table below gives the universe's size by decade. Before March 1957 the index held 90 stocks (CRSP's guide, pp. 104 and 106), so the count is expected near 90 there and near 500 from 1957.
 """),
     code("""
 size = matrix.sum(axis=1)
@@ -352,12 +354,14 @@ NB03 = [
 
 **Terms used in this notebook.**
 
+- *CRSP's guide*: CRSP's Data Descriptions Guide for CRSPAccess (FIZ) US Stock & Index Databases, last modified 20 November 2025. The descriptions of the fields of CRSP's stock and index files follow it, cited by its printed page. CRSP's list of index members and its link to Compustat are not in it, and are described from the study's design and from counts of the extraction. It names none of the tables of Wharton Research Data Services, and it is not committed.
 - *universe*: the stocks in CRSP's list of index members on the last trading day of the month before.
 - *member-month*: one stock in the universe in one month.
 - *return*: CRSP's monthly return with dividends (`ret`). The *price-only return* (`retx`) leaves dividends out.
-- *delisting*: the end of a stock's listing on its exchange. CRSP records its date, a code for its reason (`dlstcd`) and, where it can, the *delisting return* (`dlret`), the return from the last price to the value the holder received.
+- *delisting*: the end of a stock's listing on its exchange. CRSP records its date, a code for its reason (`dlstcd`) and, where it can, the *delisting return* (`dlret`), which compares the value after the delisting, an off-exchange price or the sum of the payments to holders, with the price on the last day of trading (CRSP's guide, p. 30). The guide names the first digit of the code 2 "merger", 3 "exchange", 4 "liquidation" and 5 "delisted by NYSE, NYSE MKT, NASDAQ or Arca" (p. 28).
+- *partial-month return*: in the monthly file, where CRSP has no information after the delisting, the value it gives as the delisting return is the return from the last month-end price to the last trading price. CRSP's guide calls it a partial-month return and "not truly" a delisting return, and gives the condition: the amount after delisting (`dlamt`) is not zero and its payment date (`dlpdt`) is on or before the delisting date (pp. 30 and 98).
 - *rule D4*: the study's rule for a delisting, after Shumway (1997). CRSP's delisting return where it gives one. Where it is missing, minus 30 per cent for a code from 400 to 599, the codes the study treats as a delisting for poor performance, and zero for any other code. CRSP's code 100 marks a security still trading and is not a delisting. In a month with both a return and a delisting return, the two are compounded.
-- *market capitalisation*: price times shares outstanding. The capitalisation at the start of month t is the absolute price times shares outstanding at the end of month t−1, in thousands of dollars. CRSP stores the price as negative when it is the midpoint of bid and ask on a day without a trade, hence the absolute value. A price of zero or a missing value gives a missing capitalisation.
+- *market capitalisation*: price times shares outstanding. The capitalisation at the start of month t is the absolute price times shares outstanding at the end of month t−1, in thousands of dollars, since CRSP records shares outstanding in thousands (CRSP's guide, p. 79). CRSP stores the price as negative when it is the average of bid and ask on a day without a closing price, and as zero when it has neither (p. 70), hence the absolute value. A price of zero or a missing value gives a missing capitalisation.
 - *usable window*: the months from the first in which the universe's count is within 10 names of CRSP's count, to December 2024, as notebook 02 found it.
 - *gate*: a test of the data layer, fixed in advance in `src/slt/constants.py`. A gate that is not met stops the study.
 - *verdict*: the result of a gate, met or not met, printed in the same words either way.
@@ -458,9 +462,20 @@ coverage = R.daily_coverage_by_year(daily["present"], days, universe["ulong"])
 print(coverage.to_string(index=False))
 """),
     md("""
-## 7. What is committed
+## 7. Partial-month returns among CRSP's delisting returns, added on 19 November 2026
 
-Five files go into `results/20260928/`, each an aggregate with no identifier of a security: rule D4's counts by year, G4's figures and verdict, G3's figures and verdict with the removals before 1990, the daily coverage by year, and a summary of the counts printed in this notebook.
+Section 2 counts the delisting months in which CRSP gives the delisting return. Some of those values are partial-month returns, which compare the last trading price with the last month-end price and say nothing of what the holder received after the delisting. This section counts them by the hundreds of the delisting code, with the guide's condition. It was added on 19 November 2026, after every recorded run, changes no return and has no verdict. Rule D4 stays as it was fixed.
+"""),
+    code("""
+partial = R.partial_month_counts(panel, data["delistings"])
+print(partial.to_string(index=False))
+print(partial.drop(columns="code_family").sum().to_string())
+assert int(partial["delisting_return_given"].sum()) == int(d4["delisting_return_given"].sum())
+"""),
+    md("""
+## 8. What is committed
+
+Six files go into `results/20260928/`, each an aggregate with no identifier of a security: rule D4's counts by year, G4's figures and verdict, G3's figures and verdict with the removals before 1990, the daily coverage by year, a summary of the counts printed in this notebook, and, added on 19 November 2026, the count of partial-month returns by the hundreds of the delisting code.
 """),
     code("""
 summary = {
@@ -475,7 +490,8 @@ written = [X.write_results("delistings_by_year.csv", frame=d4),
            X.write_results("capitalisation_g4.json", record=g4),
            X.write_results("removals_g3.json", record={"in_daily_file": g3, "before_daily_file": before}),
            X.write_results("daily_coverage_by_year.csv", frame=coverage),
-           X.write_results("returns_summary.json", record=summary)]
+           X.write_results("returns_summary.json", record=summary),
+           X.write_results("delisting_partial_month.csv", frame=partial)]
 for path in written:
     print("written:", path.relative_to(ROOT))
 """),
@@ -505,14 +521,16 @@ NB04 = [
 
 **Terms used in this notebook.**
 
+- *CRSP's guide*: CRSP's Data Descriptions Guide for CRSPAccess (FIZ) US Stock & Index Databases, last modified 20 November 2025. The descriptions of the fields of CRSP's stock and index files follow it, cited by its printed page. CRSP's list of index members and its link to Compustat are not in it, and are described from the study's design and from counts of the extraction. It names none of the tables of Wharton Research Data Services, and it is not committed.
 - *universe*: the stocks in CRSP's list of index members on the last trading day of the month before.
 - *market capitalisation*: price times shares outstanding. The capitalisation at the start of month t is the absolute price times shares outstanding at the end of month t−1.
 - *cap-weighted*: weighted by market capitalisation, each stock's weight being its capitalisation divided by the sum over the stocks held. *Value-weighted* is CRSP's word for the same.
 - *benchmark*: the cap-weighted universe, with each stock's weight set by its capitalisation at the start of the month, so that nothing unknown when the month begins sets a weight. A member without a capitalisation, or with neither a return nor a delisting in the month, is left out of that month's return and the other weights are rescaled. Both are counted.
 - *return with dividends* and *price-only return*: the month's return with dividends reinvested, and without them.
-- *CRSP's return*: CRSP's own value-weighted return of the members of its list, computed from its daily data, with dividends (`vwretd`) and price-only (`vwretx`).
-- *the index's price return*: S&P's published return of the index without dividends, which CRSP stores beside its own (`sprtrn`). Since 2005 the index weights each stock by its float-adjusted shares, the shares available to the public, which CRSP's share counts are not.
-- *CRSP's count* and *CRSP's total value*: the number of index members with a valid price on a day, and the sum of their capitalisations in thousands of dollars, ADRs left out (`totcnt` and `totval`). Each row of CRSP's monthly index file carries them for that month's last trading day.
+- *CRSP's return*: the return of CRSP's Value-Weighted Index of the S&P 500 Universe, index 1000500 in CRSP's guide (p. 112), with dividends (`vwretd`) and price-only (`vwretx`). CRSP computes its monthly index returns from monthly security returns (p. 104). A security enters month t if it is a member at the end of month t and has a price at the end of month t and of month t−1, ADRs are left out, and each is weighted by its capitalisation at the end of month t−1 (pp. 104 and 106). A security without a price at the end of the month is out of that month, so no delisting return enters. The guide sets beside this index CRSP's portfolios of the same universe, which select on the previous month's membership and use delisting returns (p. 106).
+- *the index's price return*: S&P's published return of the index without dividends (`sprtrn`), the S&P 500 Composite of CRSP's guide, index 1000502 (p. 112). CRSP collects its levels from public sources, the levels exclude dividends, and the return is the level over the level before, minus one (pp. 100 and 104). Since 2005 the index weights each stock by its float-adjusted shares, the shares available to the public. CRSP gives one share count per security and no float factor (pp. 79 and 80), so S&P's float-adjusted weights cannot be rebuilt from it.
+- *CRSP's count*: the number of securities in the index universe with a valid price on a day (`totcnt`, CRSP's guide, p. 43). *CRSP's total value*: the total market value of the securities in the index universe that are not ADRs and have a valid price and shares outstanding, in thousands of dollars (`totval`, p. 52). Each row of CRSP's monthly index file carries both for that month's last trading day. *CRSP's used count* (`usdcnt`) is the number of securities the index used in the month, each a member with a valid price at the end of the month and of the month before (pp. 43 and 102).
+- *ADR*: an American depositary receipt, a certificate traded in the United States that stands for shares of a company listed abroad, whose share code's first digit is 3 (p. 78).
 - *basis point*: one hundredth of a percentage point.
 - *mean monthly difference*: the average over the months of the benchmark's return minus CRSP's.
 - *tracking error*: the standard deviation of the monthly difference between two returns, times the square root of 12, a yearly figure.
@@ -524,6 +542,8 @@ NB04 = [
 
 - *G1*: tracking error against CRSP's value-weighted return with dividends of at most 50 basis points a year over the usable window.
 - *E1*: tracking error of at most 20 basis points a year and a mean monthly difference within 2 basis points of zero, with dividends and price-only. CRSP computes its return from the same list and the same file, daily. The differences left are membership changes inside a month, held here to the start of the month, and CRSP's treatment of the day of removal, which concern a small number of names a year, at small weights. So E1, and with it G1, are expected met.
+
+  *Added on 19 November 2026, with the reason above left as it was written before the run.* CRSP's guide computes the monthly index return from monthly security returns, and its index of the S&P 500 universe takes the members at the end of the month that have a price at the end of the month and of the month before, so that no delisting return enters, and leaves ADRs out (pp. 104 and 106). The benchmark takes the members at the start of the month, every share code and the delisting returns. Its tracking error against CRSP's return therefore compares two definitions, and section 6 rebuilds the return on CRSP's.
 - *E2*: in every month of the usable window the universe's count within 10 names of CRSP's count, and the summed capitalisation within 2 per cent of CRSP's total value in at least 95 per cent of months. Expected met, with one inference written before any run: CRSP's total value leaves out ADRs and the universe filters no share code, so in months with ADR members, which notebook 02 lists by year, the summed capitalisation may sit above CRSP's total value.
 - *The index's price return*: until 2005 the index weighted each stock by its full capitalisation, as the benchmark does, so over the months to December 2004 the gap is evidence on membership independent of CRSP's list, removals included, which Compustat's history cannot test. A wider gap is expected from 2005, when the index moved to float-adjusted shares. Neither figure has a verdict.
 
@@ -634,9 +654,45 @@ gates = all(verdicts[g]["met"] for g in ("G1", "G2", "G3", "G4"))
 print(V.verdict_line("The four gates", gates, "The study goes on to the answer key." if gates else "The study stops at the data layer."))
 """),
     md("""
-## 6. What is committed
+## 6. The return on CRSP's own definition, added on 19 November 2026
 
-Four files go into `results/20260928/`: the comparisons by year, the value comparison of E2 by year, a summary of every comparison over the usable window and over the evaluation window, and the six verdicts. Nothing is committed by month. The benchmark's return, the universe's count and its summed capitalisation reproduce CRSP's index file so closely, month by month, that a table of them would be that file under other names, so they stay in memory.
+A diagnostic with no verdict, added on 19 November 2026 after every recorded run: the return of the S&P 500 universe built once more on CRSP's definition of its index, as CRSP's guide gives it on pages 104 and 106. In month t it takes the members on the last trading day of month t, with a price at the end of month t and at the end of month t−1, a positive share count at the end of month t−1 and a return in month t, leaves out the ADRs, each weighted by its capitalisation at the end of month t−1, and applies no delisting return. Its tracking error and mean monthly difference against CRSP's return, with dividends and price-only, are printed beside the benchmark's of section 2, and so is the benchmark against it, which measures how far the two definitions lie apart. Beside them, the months in which the number of stocks it uses equals CRSP's used count, and the same count with the ADRs added back.
+
+How the result is read was fixed in `src/slt/constants.py` before this section ran, on the tracking error with dividends of the return on CRSP's definition against CRSP's return. At 2.3 basis points a year or less, the benchmark's gap to CRSP's return comes from the difference of definition. At 10.0 or more, the difference of definition does not account for it, and its cause is not known. Between the two, the difference accounts for part of it and the rest has no cause the study can name, and no share is given, because tracking errors do not subtract.
+"""),
+    code("""
+names, bad_names = X.read_table(root, "crsp_msenames")
+own = V.crsp_definition(universe["spells"], universe["ends"], data["monthly"], names)
+o = own[own.index >= first]
+used = crsp["crsp_count_used"].reindex(o.index)
+crsp_definition = {"months": int(len(o)),
+                   "with_dividends": V.compare(o["return"], crsp["crsp_return"]),
+                   "price_only": V.compare(o["return_price_only"], crsp["crsp_return_price_only"]),
+                   "benchmark_with_dividends": with_div, "benchmark_price_only": price_only,
+                   "benchmark_against_crsp_definition_with_dividends": V.compare(b["benchmark_return"], o["return"]),
+                   "benchmark_against_crsp_definition_price_only": V.compare(b["benchmark_return_price_only"], o["return_price_only"]),
+                   "months_count_used_equal": int((o["count_used"] == used).sum()),
+                   "months_count_used_with_adrs_equal": int(((o["count_used"] + o["adrs_left_out"]) == used).sum()),
+                   "months_with_an_adr_left_out": int((o["adrs_left_out"] > 0).sum()),
+                   "most_adrs_left_out_in_one_month": int(o["adrs_left_out"].max()),
+                   "date_values_not_parsed": bad_names}
+for label in ("with_dividends", "price_only"):
+    c, b_ = crsp_definition[label], crsp_definition["benchmark_" + label]
+    print(f"{label}: on CRSP's definition, months {c['months']} | tracking error {c['tracking_error'] * 1e4:.1f} basis points a year"
+          f" | mean monthly difference {c['mean_difference'] * 1e4:.2f} | the benchmark's {b_['tracking_error'] * 1e4:.1f} and {b_['mean_difference'] * 1e4:.2f}, with no verdict")
+for label in ("with_dividends", "price_only"):
+    c = crsp_definition["benchmark_against_crsp_definition_" + label]
+    print(f"{label}: the benchmark against the return on CRSP's definition, tracking error {c['tracking_error'] * 1e4:.1f} basis points a year"
+          f" | mean monthly difference {c['mean_difference'] * 1e4:.2f}")
+print(json.dumps({k: v for k, v in crsp_definition.items() if k.startswith(("months_", "most_"))}, indent=1))
+form = V.crsp_definition_reading(crsp_definition["with_dividends"]["tracking_error"])
+crsp_definition["reading"] = {"levels": list(C.CRSP_DEFINITION_READING_LEVELS), "form": form, "says": V.CRSP_DEFINITION_FORMS[form]}
+print(f"Reading, fixed before the run: {form}, {V.CRSP_DEFINITION_FORMS[form]}.")
+"""),
+    md("""
+## 7. What is committed
+
+Five files go into `results/20260928/`: the comparisons by year, the value comparison of E2 by year, a summary of every comparison over the usable window and over the evaluation window, the six verdicts, and, added on 19 November 2026, the summary of the return on CRSP's definition. Nothing is committed by month. The benchmark's return, the universe's count and its summed capitalisation reproduce CRSP's index file so closely, month by month, that a table of them would be that file under other names, so they stay in memory.
 """),
     code("""
 summary = {
@@ -648,7 +704,8 @@ summary = {
 written = [X.write_results("reconstruction_by_year.csv", frame=by_year),
            X.write_results("e2_value_by_year.csv", frame=e2_years),
            X.write_results("reconstruction_summary.json", record=summary),
-           X.write_results("verdicts_milestone1.json", record=verdicts)]
+           X.write_results("verdicts_milestone1.json", record=verdicts),
+           X.write_results("reconstruction_crsp_definition.json", record=dict(written_by="notebooks/04_reconstruction.ipynb", **crsp_definition))]
 for path in written:
     print("written:", path.relative_to(ROOT))
 """),
@@ -1351,6 +1408,7 @@ NB09 = [
 - *path*: one specification run month by month over the evaluation window: a covariance estimator under a constraint set at a turnover cap. There are 24: the four estimators under the four sets C0 to C3, at the 2 per cent cap where the set has a cap, and the Ledoit-Wolf and factor estimators under the mandate at caps of 0.5, 1 and 4 per cent and with no cap. Every path starts as the benchmark.
 - *tracking error*: the standard deviation of the monthly active returns, times the square root of 12. The *realised tracking error* is measured on the returns, and the *forecast tracking error* is the one the month's covariance matrix implied when the weights were chosen.
 - *bias statistic*: the standard deviation of each month's active return divided by that month's forecast monthly tracking error. It is one when the forecasts are right on average, above one when they are too low. It is taken over the months whose forecast tracking error is above one millionth a year, and the number of months it rests on is given beside it.
+- *circular block bootstrap*: a way to measure the sampling error of a statistic of monthly data. It takes 2,000 new samples of the months, each built from blocks of 12 consecutive months that run past the last month into the first, keeps each month's active return with its forecast, and computes the statistic on each sample. The *95 per cent interval* is the central 95 per cent of those 2,000 statistics. It is not the range of 0.8 to 1.25 that E6 sets for the statistic itself.
 - *frontier*: the forecast and realised tracking error of one estimator under the mandate at five caps, from the tightest to none.
 - *basis point*: a hundredth of a percentage point.
 - *cost*: 10 basis points per unit of total turnover, forced included, and 20 as the sensitivity.
@@ -1440,12 +1498,26 @@ for est in ("ledoit_wolf", "factor", "pca"):
 print(one_line("E6"))
 """),
     md("""
-## 5. What is committed
+## 5. The bias statistic with its interval, added on 19 November 2026
 
-Five files go into `results/20260928/`. The active returns by month of the twelve paths under the mandate, gross of costs, each cell under the cell rule; the measures of every path over the window and by year, with no weight and no name; the verdicts of milestone 3, E7 added by notebook 10; and the provenance of the script's run.
+Added on 19 November 2026, after every recorded run, with no verdict: E6's verdict is unchanged. Each mandate path's bias statistic is given with a 95 per cent interval from a circular block bootstrap of its months, in the form of the companion study's notebook 12 and with its settings. The interval is computed from the two tables by month that section 6 commits, the active returns and the forecast tracking errors, so it can be computed again from the repository alone. Each bias statistic recomputed from the two tables must equal the one of section 2. The Ledoit-Wolf path at the 0.5 per cent cap, whose bias statistic of 1.26 is the one nearest the upper end of E6's range, 1.25, is read with its interval.
 """),
     code("""
 table, empty = V.active_returns_table(records)
+forecast, forecast_empty = V.forecast_table(records)
+assert forecast_empty == {c.replace("active_return_", "forecast_te_"): n for c, n in empty.items()}
+bands = V.bias_bands(table, forecast)
+for _, r in bands.iterrows():
+    s = summaries[r["path"]]
+    assert abs(r["bias"] - s["bias"]) < 1e-12 and r["months"] == s["bias_months"], r["path"]
+print(bands[["path", "months", "bias", "interval_low", "interval_high"]].round(3).to_string(index=False))
+"""),
+    md("""
+## 6. What is committed
+
+Seven files go into `results/20260928/`. The active returns by month of the twelve paths under the mandate, gross of costs, each cell under the cell rule; the measures of every path over the window and by year, with no weight and no name; the verdicts of milestone 3, E7 added by notebook 10; and the provenance of the script's run. Added on 19 November 2026: the forecast tracking error by month of the same twelve paths, each cell empty where the active return's is, and the bias statistics with their intervals.
+"""),
+    code("""
 by_year = pd.concat([V.by_year(rec).assign(path=lab) for lab, rec in records.items()], ignore_index=True)
 by_year = by_year[["path"] + [c for c in by_year.columns if c != "path"]]
 withheld = [C.PATH_LABELS[p] for p in C.PATHS if p[1] not in C.LARGEST_ACTIVE_WEIGHT_SETS]   # one stock's weight under C3
@@ -1464,7 +1536,9 @@ for p in [X.write_results("active_returns_monthly.csv", frame=table),
           X.write_results("paths_summary.json", record=summary),
           X.write_results("paths_by_year.csv", frame=by_year),
           X.write_results("verdicts_milestone3.json", record=record),
-          X.write_results("provenance_evaluation.json", record=prov)]:
+          X.write_results("provenance_evaluation.json", record=prov),
+          X.write_results("forecast_te_monthly.csv", frame=forecast),
+          X.write_results("bias_intervals.csv", frame=bands)]:
     print("written:", p.relative_to(ROOT))
 """),
     md("""
@@ -1504,14 +1578,14 @@ NB10 = [
 - *cell rule*: a figure by month is committed only if at least three names make it up and no name is more than 80 per cent of it. Here the names are those whose weight moves, and each one's part is half its absolute move.
 - *verdict*: the record of whether an expectation fixed before the run is met.
 
-**The benchmark's own figures.** Counting the change from June to July 1999, the benchmark alone turns over 5.82 per cent a year over the 306 months to December 2024: membership 2.84, reweighting 3.73 and an overlap of 0.75. A path that holds the benchmark starts in July 1999 with no turnover in that month, so section 2 shows it at 5.78, 2.80, 3.71 and 0.73. Restoring last month's weights themselves undoes the month's price moves, and on the benchmark alone it would take 30.64 per cent a year, trading that no path does. A middle part defined that way would leave the rest below zero in every month, so the middle part follows the benchmark's own weights. These figures were computed on 12 November 2026 at 14:46, from this study's panel by code that is not in this repository, before any path's turnover was read. They describe the benchmark alone and say nothing of the mandate.
+**The benchmark's own figures.** Counting the change from June to July 1999, the benchmark alone turns over 5.82 per cent a year over the 306 months to December 2024: membership 2.84, reweighting 3.73 and an overlap of 0.75. A path that holds the benchmark starts in July 1999 with no turnover in that month, so section 2 shows it at 5.78, 2.80, 3.71 and 0.73. Restoring last month's weights themselves undoes the month's price moves, and on the benchmark alone it would take 30.64 per cent a year, trading that no path does. A middle part defined that way would leave the rest below zero in every month, so the middle part follows the benchmark's own weights. Section 2 computes them by this repository's code, `evaluation.benchmark_turnover`, added on 19 November 2026, and commits them. They describe the benchmark alone and say nothing of the mandate.
 
 **What I expect to see, fixed in `src/slt/constants.py` before any path ran.**
 
 - *E7*: under the mandate at the 2 per cent cap on the Ledoit-Wolf estimator, membership is less than a third of total turnover over the window. The index replaces about four to five per cent of its weight a year, and a cap of 2 per cent a month allows about 24 per cent a year of chosen turnover.
 - With no verdict: under C0 and C1, where the portfolio is the benchmark, rebalancing is zero to the solver's precision, and the other figures are close to the benchmark's own.
 
-Running time: about three minutes, most of it reading the extraction, which section 4 needs to rebuild each month's reference portfolio.
+Running time: about three minutes, most of it reading the extraction, which section 2 needs to follow the benchmark alone and section 4 to rebuild each month's reference portfolio.
 """),
     code(SETUP),
     code(MODULES_09),
@@ -1532,10 +1606,17 @@ low = min(float(rec["turnover_overlap"].min()) for rec in records.values())
 print(f"smallest overlap in any month of any path: {low:.2e}")
 """),
     md("""
-## 2. The paths that hold the benchmark, beside the benchmark's own figures
+## 2. The benchmark's own figures, and the paths that hold the benchmark beside them
+
+The benchmark alone, from June 1999 to December 2024, its turnover split as a path's is, with the turnover that restoring last month's weights themselves would take beside it. Its rebalancing must be zero to the precision of the arithmetic. Then the two paths that hold the benchmark, beside its figures.
 """),
     code("""
-own = {"turnover_total": 5.82, "turnover_membership": 2.84, "turnover_reweighting": 3.73, "turnover_overlap": 0.75}
+t0 = time.time()
+inp = V.inputs(root)
+benchmark = V.benchmark_turnover(inp)
+print({k: (round(100 * v, 2) if isinstance(v, float) and k != "largest_rebalancing" else v) for k, v in benchmark.items()}, f"| {time.time() - t0:.0f} s")
+assert benchmark["months"] == C.EVAL_MONTHS and benchmark["largest_rebalancing"] < 1e-12
+own = {f"turnover_{k}": 100 * benchmark[k] for k in ("total", "membership", "reweighting", "overlap")}
 for lab in (V.label("sample", "C0", None), V.label("sample", "C1", None)):
     row = 100 * window.loc[lab]
     print(lab + ": " + " | ".join(f"{k[9:]} {row[k]:.2f}" + (f" (benchmark {own[k]:.2f})" if k in own else "") for k in figures))
@@ -1556,7 +1637,6 @@ Every path starts as the benchmark, and the mandate's first month needs more cho
 """),
     code("""
 t0 = time.time()
-inp = V.inputs(root)
 relaxed = V.cap_relaxed(inp, OUT, records)
 show = relaxed.assign(cap=100 * relaxed["cap"], turnover_chosen=(100 * relaxed["turnover_chosen"]).round(4),
                       largest_share=relaxed["largest_share"].round(3))
@@ -1570,7 +1650,7 @@ for lab, rec in records.items():
     md("""
 ## 5. What is committed
 
-Three files: the decomposition by path and year (the total, the three parts and the overlap), the verdicts of milestone 3 with E7 added, and the months in which the cap gave way, one row for each, with the path, the month, the cap and the month's chosen turnover.
+Four files: the decomposition by path and year (the total, the three parts and the overlap), the verdicts of milestone 3 with E7 added, the months in which the cap gave way, one row for each, with the path, the month, the cap and the month's chosen turnover, and, added on 19 November 2026, the benchmark's own figures of section 2, one row over the window.
 """),
     code("""
 path = ROOT / C.RESULTS_DIR / "verdicts_milestone3.json"
@@ -1578,7 +1658,8 @@ record = json.loads(path.read_text()) if path.exists() else {}
 record["E7"] = V.jsonable(e7)
 cap_table = relaxed[["path", "month", "cap", "turnover_chosen"]]
 for p in [X.write_results("turnover_by_year.csv", frame=table), X.write_results("verdicts_milestone3.json", record=record),
-          X.write_results("cap_relaxed.csv", frame=cap_table)]:
+          X.write_results("cap_relaxed.csv", frame=cap_table),
+          X.write_results("benchmark_turnover.csv", frame=pd.DataFrame([benchmark]))]:
     print("written:", p.relative_to(ROOT))
 """),
     md("""
@@ -1731,9 +1812,26 @@ cap = A.tilt_cap(inp, OUT, months)
 print(cap.to_string(index=False))
 """),
     md("""
-## 6. What is committed
+## 6. Two readings added on 19 November 2026
 
-Seven files go into `results/20260928/`, all by year or over the window, and the record of French's files is brought up to date. No figure by month and no weight of any sector.
+Added on 19 November 2026, after every recorded run, with no verdict: E8 and E9 keep the verdicts of sections 3 and 4. First, the mean absolute monthly allocation three ways for each path, with the month's allocation summed over a group of sectors before its absolute value is taken: all twelve sectors, which is E8's figure, the two tilted sectors, Energy and Utilities, and the other ten. Three figures per path and nothing by sector. Second, each factor's mean contribution, the six-factor total and the residual with Newey-West standard errors at 12 lags beside the plain standard errors of section 4, and the count of the 24 factor contributions that lie more than two Newey-West standard errors from zero, against the count that chance alone would give at the 5 per cent level.
+"""),
+    code("""
+labels = res["labels"]
+groups = pd.DataFrame([{"path": labels[p], **B.allocation_by_group(res["terms"][p])} for p in C.ATTRIBUTION_PATHS])
+for p in C.ATTRIBUTION_PATHS:
+    assert abs(groups.set_index("path").loc[labels[p], "all"] - summ[p[0]]["total"]["allocation_mean_abs_monthly"]) < 1e-14
+print((1e4 * groups.set_index("path")).round(2).to_string())
+nw = pd.concat([A.factor_newey_west(res["factor"][p], Q.newey_west_se).assign(path=labels[p]) for p in C.ATTRIBUTION_PATHS], ignore_index=True)
+nw = nw[["path"] + [c for c in nw.columns if c != "path"]]
+show = nw.assign(**{c: 1e4 * nw[c] for c in ("per_year", "standard_error", "newey_west_se")})
+print(show.round(2).to_string(index=False))
+print(json.dumps(A.factor_beyond_count(nw)))
+"""),
+    md("""
+## 7. What is committed
+
+Nine files go into `results/20260928/`, all by year or over the window, and the record of French's files is brought up to date. No figure by month and no weight of any sector. The two of section 6 were added on 19 November 2026.
 """),
     code("""
 labels = res["labels"]
@@ -1761,6 +1859,8 @@ for p_ in [X.write_results("brinson_by_year.csv", frame=by_year),
            X.write_results("factor_attribution_summary.json", record=factor_summary),
            X.write_results("verdicts_milestone4.json", record=verdicts),
            X.write_results("tilt_cap.csv", frame=cap),
+           X.write_results("allocation_by_group.csv", frame=groups),
+           X.write_results("factor_attribution_newey_west.csv", frame=nw),
            FR.write_provenance(french_records)]:
     print("written:", p_.relative_to(ROOT))
 """),

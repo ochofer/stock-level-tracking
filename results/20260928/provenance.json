@@ -39,8 +39,9 @@
   "platform": "macOS-27.0.1-arm64-arm-64bit",
   "pandas": "2.2.3",
   "numpy": "2.0.2",
-  "pyarrow": "21.0.0"
+  "pyarrow": "21.0.0",
+  "scipy": "1.13.1"
  },
  "written_by": "notebooks/01_extraction.ipynb",
- "written_at": "2026-11-10 20:45 CET"
+ "written_at": "2026-11-19 13:50 CET"
 }

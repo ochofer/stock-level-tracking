@@ -50,7 +50,7 @@ SOURCES = {
     "t-condition": ["covariance_by_year.csv"],
     "f-years": ["paths_by_year.csv"],
     "f-frontier": ["paths_summary.json", "cap_relaxed.csv", "paired_tests.csv"],
-    "t-paths": ["paths_summary.json"],
+    "t-paths": ["paths_summary.json", "bias_intervals.csv"],
     "t-paired": ["paired_tests.csv", "paired_size_check.csv", "paired_tests_without_two_months.csv"],
     "t-turnover": ["paths_summary.json", "verdicts_milestone3.json"],
     "f-sectors": ["brinson_summary.json", "tilt_cap.csv"],

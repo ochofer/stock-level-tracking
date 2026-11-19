@@ -59,7 +59,8 @@ def download(key: str, folder: str | Path | None = None, force: bool = False) ->
     """Fetch one French zip by its key in constants.FRENCH_FILES, unless it is already in the cache.
 
     Returns the provenance record of the file. The record is built from the bytes on disk, so the
-    SHA-256 always describes the file actually used.
+    SHA-256 always describes the file actually used. Its download time is the time this run read the file
+    (noted 19 November 2026), and fetched_this_run says whether the run fetched it then or read it from the cache.
     """
     from zoneinfo import ZoneInfo
     filename = C.FRENCH_FILES[key]

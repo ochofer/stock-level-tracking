@@ -24,9 +24,12 @@ from . import constants as C
 # the file's schema before any later notebook depends on it.
 COLUMNS = {
     "crsp_dsp500list": ("permno", "start", "ending"),
-    "crsp_msp500": ("caldt", "vwretd", "vwretx", "sprtrn", "totval", "totcnt"),
+    # Amended 19 November 2026: CRSP's count of the securities its index uses (`usdcnt`), for the diagnostic of
+    # notebook 04, and the amount after delisting and its payment date (`dlamt`, `dlpdt`), for the count of
+    # partial-month returns of notebook 03 (CRSP's guide, pp. 30 and 102).
+    "crsp_msp500": ("caldt", "vwretd", "vwretx", "sprtrn", "totval", "totcnt", "usdcnt"),
     "crsp_msf": ("permno", "date", "prc", "ret", "retx", "shrout"),
-    "crsp_msedelist": ("permno", "dlstdt", "dlstcd", "dlret", "dlretx"),
+    "crsp_msedelist": ("permno", "dlstdt", "dlstcd", "dlret", "dlretx", "dlamt", "dlpdt"),
     "crsp_msenames": ("permno", "namedt", "nameendt", "shrcd", "permco"),
     "crsp_dsf": ("permno", "date", "prc", "ret"),
     "crsp_ccm_lnkhist": ("gvkey", "lpermno", "linktype", "linkprim", "linkdt", "linkenddt"),
@@ -36,7 +39,7 @@ COLUMNS = {
 
 # Columns the parquet files hold as text that are dates. They are parsed on reading, and a value that
 # is present but does not parse is counted and reported, never dropped without a count.
-DATE_COLUMNS = ("start", "ending", "caldt", "date", "dlstdt", "namedt", "nameendt",
+DATE_COLUMNS = ("start", "ending", "caldt", "date", "dlstdt", "dlpdt", "namedt", "nameendt",
                 "linkdt", "linkenddt", "from", "thru", "indfrom", "indthru")
 
 MISSING_ROOT = ("The data root is not set: set the environment variable {env} to the folder that holds "
