@@ -1,8 +1,9 @@
 """
 Code copied verbatim from the source repository, github.com/ochofer/optimal-vs-naive-diversification at commit
 5414f14, so that this study runs the same estimators as the one it extends. paired.py, the paired test of two
-realised tracking errors, is copied from the same repository at commit 0e651a0, where it was added, on
-18 November 2026 (constants.COPIED_AT_COMMIT).
+realised tracking errors, is copied from the same repository at commit 88be669, on 19 November 2026. It was
+added there at commit 0e651a0 on 18 November 2026, and only its docstring has changed since
+(constants.COPIED_AT_COMMIT).
 
 Each copy's first line names its source file and the commit; every line after it is the source file unchanged,
 and tests/test_source_copies.py hashes it against constants.COPIED_FILES. The copies import their constants as

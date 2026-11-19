@@ -1,14 +1,14 @@
-# Copied verbatim from src/bp/paired.py at commit 0e651a0 of github.com/ochofer/optimal-vs-naive-diversification; every line below this one is the source file unchanged.
+# Copied verbatim from src/bp/paired.py at commit 88be669 of github.com/ochofer/optimal-vs-naive-diversification; every line below this one is the source file unchanged.
 """
 Ledoit and Wolf (2011): inference on the difference of two variances measured
 on the same months, the test Dom, Howard, Jansen and Lohre (2025) apply to
 their portfolios' realised volatilities.
 
     Ledoit, O. and Wolf, M. (2011). Robust performance hypothesis testing with
-    the variance. Wilmott, 2011(55), 86 to 89.
+    the variance. Wilmott, 2011(55), 86-89.
 
-Added on 18 November 2026, after every recorded run of the study, by the design
-of that day, and labelled so wherever it is used: notebook 12 had judged one
+Added on 18 November 2026, after every recorded run of the study, and
+labelled so wherever it is used: notebook 12 had judged one
 path against another by the standard error of a single tracking error, while
 two paths that share their months and whose active returns move together have
 a difference far less noisy than either figure. The module repeats the
@@ -25,10 +25,11 @@ correlated with one another and the returns to have fat tails.
   On the sample itself, Psi is the prewhitened Parzen-kernel estimate with
   Andrews' (1991) automatic bandwidth: a VAR(1) fitted to the four centred
   series, its singular values held within 0.97, the kernel estimate on the
-  residuals, then recoloured. Ledoit and Wolf (2008, section 3.2.2 and its
-  footnote 8) report that the prewhitened Parzen kernel performs like the
-  prewhitened QS kernel they propose and is more convenient to implement; the
-  2011 paper keeps the same machinery.
+  residuals, then recoloured. Ledoit and Wolf (2008, footnote 8 and Remark
+  4.1) report that the prewhitened Parzen kernel performs like the
+  prewhitened QS kernel they propose and, having finite support, is more
+  convenient to implement; the 2011 article (p. 88) keeps the same machinery
+  and repeats the remark.
 
   The circular block bootstrap resamples blocks of consecutive months, wrapping
   from the last month to the first, so that the dependence within a block is
@@ -64,9 +65,23 @@ which refers to the interval.
 
 The block size, the number of draws, the level and the seed are the study's
 (EVAL_BOOTSTRAP_BLOCK_MONTHS, EVAL_BOOTSTRAP_DRAWS, EVAL_BOOTSTRAP_LEVEL,
-EVAL_BOOTSTRAP_SEED in constants.py); every caller passes them. The module
-depends on numpy and the standard library alone, so that another study can
-import it unchanged.
+EVAL_BOOTSTRAP_SEED in constants.py); every caller passes them. The block is
+fixed at the bias band's twelve months, where Ledoit and Wolf (2008,
+Algorithm 3.1) calibrate it from the data; notebook 17 reports the rows at
+blocks of 3, 6 and 24 months beside the committed ones (added 19 November
+2026, PAIRED_BLOCK_LENGTHS_FURTHER). The module depends on numpy and the
+standard library alone, so that another study can import it unchanged.
+
+References.
+
+    Andrews, D. W. K. (1991). Heteroskedasticity and autocorrelation
+    consistent covariance matrix estimation. Econometrica, 59(3), 817-858.
+    Holm, S. (1979). A simple sequentially rejective multiple test procedure.
+    Scandinavian Journal of Statistics, 6(2), 65-70.
+    Ledoit, O. and Wolf, M. (2008). Robust performance hypothesis testing
+    with the Sharpe ratio. Journal of Empirical Finance, 15(5), 850-859.
+    Ledoit, O. and Wolf, M. (2011). Robust performance hypothesis testing
+    with the variance. Wilmott, 2011(55), 86-89.
 """
 from __future__ import annotations
 

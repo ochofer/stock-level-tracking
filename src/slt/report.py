@@ -284,8 +284,8 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
                    f"choose its length from the data. At blocks of {blocks} months, added on 19 November 2026, after the "
                    f"study's results were known, with no verdict, the sample estimator's difference from Ledoit-Wolf has "
                    f"intervals of {ivs[0]}, {ivs[1]} and {ivs[2]}, with Holm p-values of {holms[0]}, {holms[1]} and "
-                   f"{holms[2]}, and the other six intervals include zero at every length. That interval therefore "
-                   f"excludes zero at all four lengths. At {C.PAIRED_OTHER_BLOCKS[-1]} months Holm's p-value is "
+                   f"{holms[2]}, and the other six intervals include zero at every length. The sample estimator's interval "
+                   f"therefore excludes zero at all four lengths. At {C.PAIRED_OTHER_BLOCKS[-1]} months Holm's p-value is "
                    f"{holms[2]}, and {n24:,} samples cannot place it on either side of 0.05.")
     nb13 = json.loads((pathlib.Path(repo) / "notebooks" / "13_paired_tests.ipynb").read_text(encoding="utf-8"))
     nb13_text = "".join("".join(c["source"]) for c in nb13["cells"] if c["cell_type"] == "markdown")
