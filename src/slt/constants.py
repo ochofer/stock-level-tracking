@@ -327,7 +327,7 @@ E2_ALIGNMENT = "universe at the start of month t against CRSP's row for month t-
 # momentum and on variance; for each sort the universe's top-minus-bottom quintile
 # spread against French's top-minus-bottom spread within his largest size
 # quintile: correlation at least 0.80, and mean difference within two standard
-# errors of the difference, over the months both exist. Reason, corrected on
+# errors of the difference, over the months both exist. Reason, written on
 # 11 November 2026 from French's own counts of firms, before any run: French's
 # largest size quintile is set by NYSE breakpoints and holds between about 100 and
 # 530 names a month, fewer than the universe's 500 in almost every month from April
@@ -935,8 +935,8 @@ COPIED_FILES = {
 # test of two realised tracking errors of section 7 (PAIRED_),
 # is copied from the source repository at a later commit, which its first line names. It
 # reads no constant: every setting is passed by its caller. Changed 19 November 2026:
-# copied again from commit 88be669, where the source had corrected the file's docstring
-# (a citation, the references, a sentence on the block length). Its code equals the
+# copied again from commit 88be669, where the file's docstring differs from the one at
+# 0e651a0 (a citation, the references, a sentence on the block length). Its code equals the
 # file at 0e651a0, where it was added on 18 November 2026.
 COPIED_AT_COMMIT = {"paired.py": "88be669"}
 # Decided 11 November 2026. The copies live in src/slt/source/, not beside the
