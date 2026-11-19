@@ -311,7 +311,9 @@ VARIANCE_MIN_DAYS = 20
 SORT_TIE_BREAK = "permno"
 # French's side of E3: within his largest size quintile, the highest prior-return
 # (or variance) quintile minus the lowest, value-weighted, monthly. Columns as
-# French labels them.
+# French labels them. Fixed with milestone 2's results and committed with them on
+# 12 November 2026, so the repository's history cannot show that it came before the
+# run (dated here on 18 November 2026).
 E3_FRENCH_SPREADS = {
     "momentum": ("me_prior", "BIG HiPRIOR", "BIG LoPRIOR"),
     "variance": ("me_var", "BIG HiVAR", "BIG LoVAR"),
@@ -321,7 +323,12 @@ E3_FRENCH_LARGEST_QUINTILE = {"momentum": ("BIG LoPRIOR", "ME5 PRIOR2", "ME5 PRI
 # The standard error of the mean difference: the standard deviation of the monthly
 # difference over the square root of the number of months, with no correction for
 # autocorrelation, since a difference of two spreads formed each month is not
-# expected to carry any.
+# expected to carry any. Fixed with milestone 2's results and committed with them on
+# 12 November 2026, so the repository's history cannot show that it came before the
+# run (dated here on 18 November 2026). The Newey-West standard error beside it moves
+# no verdict: the momentum difference is 1.15 plain standard errors from zero and 1.24
+# Newey-West ones, the variance difference 0.29 and 0.27, both standard errors as
+# answer_key_summary.json holds them.
 E3_STANDARD_ERROR = "standard deviation of the monthly difference over the square root of the months"
 E3_NEWEY_WEST_LAGS_REPORTED = 12   # Newey-West at 12 lags reported beside the plain standard error, with no verdict
 SORTS = ("momentum", "variance")
@@ -736,6 +743,65 @@ E8_JUDGED_ON = STRUCTURED_ESTIMATORS
 # the weights of (1).
 E9_JUDGED_ON = COV_ESTIMATORS
 
+# The paired test of two realised tracking errors. Added 18 November 2026 by the
+# design, after every recorded run of the study, and in no verdict. The write-up of
+# 17 November compared the realised tracking errors of two paths by the sampling
+# error of one of them, while two paths under the mandate share their 306 months and
+# their active returns move together (a correlation of 0.996 for the sample and the
+# Ledoit-Wolf estimators at the 2% cap), so the difference between them is far less
+# noisy than either figure. The test is the variance test of Ledoit and Wolf (2011),
+# copied unchanged from the source repository as src/slt/source/paired.py: the
+# difference of the two log variances with its delta-method standard error, a
+# studentised circular block bootstrap of the paired months for its p-value, and from
+# the same resamples a 95% interval for the difference of the two realised tracking
+# errors in basis points a year. Notebook 13 reads the active returns as committed
+# (active_returns_monthly.csv), prints the file's SHA-256 and runs no path. Family A
+# sets the sample, factor and principal-component estimators each against
+# Ledoit-Wolf under the mandate at the 2% cap, with Holm's correction across the
+# three. Family B sets, on the Ledoit-Wolf and the factor estimators, the 4% cap and
+# no cap each against the 0.5% cap, with no correction. Each of the seven rows gives
+# the two figures, their difference, its standard error, the critical value, the
+# interval, the difference the row could detect at PAIRED_DETECTABLE_POWER, the
+# correlation of the two series and the p-value, the columns of the source's table,
+# and no verdict. The seed is the source study's.
+PAIRED_TEST_DATE = "2026-11-18"
+PAIRED_BLOCK_MONTHS = 12
+PAIRED_DRAWS = 2000
+PAIRED_LEVEL = 0.95
+PAIRED_SEED = 20261009                 # the source study's EVAL_BOOTSTRAP_SEED
+PAIRED_DETECTABLE_POWER = 0.80
+PAIRED_PERIODS = 12                    # months a year, the annualisation
+PAIRED_REFERENCE = ("ledoit_wolf", MANDATE, MAIN_CAP)
+PAIRED_FAMILY_A = tuple(((est, MANDATE, MAIN_CAP), PAIRED_REFERENCE) for est in ("sample", "factor", "pca"))
+PAIRED_FAMILY_B = tuple(((est, MANDATE, cap), (est, MANDATE, 0.005)) for est in FRONTIER_ESTIMATORS for cap in (0.04, None))
+# P1, the one expectation of notebook 13, run before the test touches the study's
+# returns: on PAIRED_SIZE_PAIRS simulated pairs of PAIRED_SIZE_MONTHS months with
+# equal variances, Student-t shocks with PAIRED_SIZE_T_DOF degrees of freedom and a
+# monthly standard deviation of PAIRED_SIZE_SD, at each correlation of
+# PAIRED_SIZE_CASES with its seed, the share of pairs rejected at 5% by the p-value is
+# at most PAIRED_SIZE_MAX. The share is reported in each case, and where it lies below
+# PAIRED_SIZE_CONSERVATIVE_BELOW the text says the test is conservative on 306 months.
+# 0.99 is the correlation of the closest pair of family A, and 0.80 that of the
+# structured estimators against Ledoit-Wolf. A monthly standard deviation of 0.23% is
+# about 80 basis points a year, the paths' realised tracking error.
+PAIRED_SIZE_PAIRS = 1000
+PAIRED_SIZE_MONTHS = EVAL_MONTHS
+PAIRED_SIZE_SD = 0.0023
+PAIRED_SIZE_T_DOF = 5
+PAIRED_SIZE_CASES = ((0.99, 20261120), (0.80, 20261121))   # (correlation, seed)
+PAIRED_SIZE_MAX = 0.065
+PAIRED_SIZE_CONSERVATIVE_BELOW = 0.035
+# Added 19 November 2026 by the design, after every recorded run, and in no verdict:
+# the two rows of family B on the factor estimator have critical values near 5.9
+# against 2.1 to 2.4 on the other five, and two months of 2008 carry almost all of the
+# difference between the two variances on that estimator. Notebook 13 shows it by code:
+# for each of those two rows it gives the share of the difference between the two
+# variances (deviations from each path's mean over all its months) that falls in
+# PAIRED_LEFT_OUT_MONTHS, and reruns the test without those months, with the same
+# settings and seed.
+PAIRED_LEFT_OUT_MONTHS = ("2008-07", "2008-12")
+PAIRED_LEFT_OUT_ROWS = tuple(pair for pair in PAIRED_FAMILY_B if pair[0][0] == "factor")
+
 # ---------------------------------------------------------------------------
 # 8. Code copied from the source repository
 # ---------------------------------------------------------------------------
@@ -751,7 +817,13 @@ COPIED_FILES = {
     "covariance.py": ("src/bp/covariance.py", "55cb25bb4aec83d7b1924248518a5b72a87b193263d383e2e93422779fe47534"),
     "attribution.py": ("src/bp/attribution.py", "63a5536c08a0ae25f90c5af954c05856c3ff6ef5b33ee7bf31545194ffeb9f1e"),
     "rules.py": ("src/bp/rules.py", "4cbfb330a519059042da03cf8ceab5a42cde394275d3ac3ea3fc7bf9305166eb"),
+    "paired.py": ("src/bp/paired.py", "bb07c2b90c7f24be524ff34a8217a0b2f1fad8e4c3fefe3f47c41dcf4301ede1"),
 }
+# Added 18 November 2026, after every recorded run of the study, by the design of that
+# day: paired.py, the paired test of two realised tracking errors of section 7 (PAIRED_),
+# is copied from the source repository at the later commit where it was added, which its
+# first line names. It reads no constant: every setting is passed by its caller.
+COPIED_AT_COMMIT = {"paired.py": "0e651a0"}
 # Decided 11 November 2026. The copies live in src/slt/source/, not beside the
 # study's own modules: covariance.py imports the source's rules module at its top,
 # so rules.py is copied as well, and the copies read their constants by the source's
@@ -766,7 +838,7 @@ COPIED_FILES = {
 # rules.py are copied for notebook 07, optimiser.py comes with milestone 3 and
 # attribution.py with milestone 4.
 COPIED_INTO = "src/slt/source/"
-COPIED_FOR_MILESTONE = {"covariance.py": 2, "rules.py": 2, "optimiser.py": 3, "attribution.py": 4}
+COPIED_FOR_MILESTONE = {"covariance.py": 2, "rules.py": 2, "optimiser.py": 3, "attribution.py": 4, "paired.py": 4}
 SOURCE_CONSTANTS_SHA256 = "40ef2c1de7b02a1695d67270e195b37d2c55c5d45493c3b47f9f8fcc38d18053"   # src/bp/constants.py at the commit, 752 lines
 # Read at the same commit for the rolling evaluation and its measures, and adapted
 # in this repository's own modules; hashed so that the version read is on record.

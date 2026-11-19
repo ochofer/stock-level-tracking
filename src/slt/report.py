@@ -5,7 +5,8 @@ build(repo) reads the files in results/<vintage>/ (constants.RESULTS_DIR) and re
 the tables as HTML, keyed by the names the templates use, and the data the dashboard's charts draw. The dashboard
 (dashboard/build_dashboard.py) and the note (note/build_note.py) both build from it, so that a figure is computed once
 and reads the same on both. One file it reads is by month, cap_relaxed.csv, the months in which the turnover cap gave
-way (notebook 10, 19 rows, each under the cell rule). Everything else is over the window or by year.
+way (notebook 10, 19 rows, each under the cell rule). Everything else is over the window or by year, the paired tests
+of notebook 13 (paired_tests.csv and paired_size_check.csv) included.
 """
 from __future__ import annotations
 
@@ -22,6 +23,11 @@ from . import constants as C
 from . import figures as F
 
 VINTAGE = pathlib.PurePath(C.RESULTS_DIR).name
+# The periods over which the gap to the index's own price return is pooled, set on 18 November 2026: the years to
+# 1956, when the list holds about 90 names, then 1957 to 1989, 1990 to 1998, 1999 to 2004, the years of the
+# mandate before the index moved to float, and 2005 to 2024. Each figure is the square root of the mean of the
+# squared tracking errors of the period's years, each year of 12 months.
+GAP_PERIODS = ((1926, 1956), (1957, 1989), (1990, 1998), (1999, 2004), (2005, 2024))
 MONTHS_WORDS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
                 "November", "December"]
 
@@ -43,6 +49,12 @@ def num(x, d=1, sign=False):
     if sign and float(s.replace(",", "")) != 0:
         return "+" + s
     return s
+
+
+def signed(x, d=1):
+    """A signed number in words, for prose: plus 3.1, minus 3.6."""
+    s = num(abs(x), d)
+    return s if float(s.replace(",", "")) == 0 else ("minus " if x < 0 else "plus ") + s
 
 
 def words(ym):
@@ -103,6 +115,10 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
     t1 = F.tracking_error_by_estimator(res)
     P["te_lo"], P["te_hi"] = lohi(t1["realised"])
     P["bias_lo"], P["bias_hi"] = lohi(t1["bias"], 2)
+    # Added 18 November 2026: the bias statistic is not the ratio of the realised to the mean forecast, and the
+    # pages say so beside the two columns. The understatement in per cent is the bias statistic less one.
+    P["ratio_lo"], P["ratio_hi"] = lohi(t1["realised"] / t1["forecast"], 2)
+    P["under_lo"], P["under_hi"] = lohi(100 * (t1["bias"] - 1), 0)
     P["recon_te"] = num(BP * recon["with_dividends"]["tracking_error"])
     P["recon_first_w"], P["recon_last_w"] = words(recon["usable_window"]["first_month"]), words(recon["usable_window"]["last_month"])
     P["recon_years_first"], P["recon_years_last"] = recon["usable_window"]["first_month"][:4], recon["usable_window"]["last_month"][:4]
@@ -209,6 +225,60 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
     P["e4_one_class"] = str(cov["share_class_check"]["months_one_class_at_or_above_level"])
     P["member_months"] = f"{universe['member_months']:,}"
 
+    # --- the paired tests (notebook 13, added 18 November 2026) ---
+    pt = read("paired_tests.csv", res).set_index("series 1")                           # notebook 13
+    size = read("paired_size_check.csv", res)                                          # notebook 13
+    e4 = pt.loc[MAIN["sample"]]
+    assert e4["series 2"] == MAIN["ledoit_wolf"] and e4["lower"] > 0, "the text says the difference is distinguishable from zero"
+    P["e4_corr"] = f"{e4['correlation']:.3f}"
+    P["e4_d"], P["e4_lo"], P["e4_hi"] = num(e4["difference"]), num(e4["lower"]), num(e4["upper"])
+    P["e4_p"], P["e4_holm"] = f"{e4['p-value']:.3f}", f"{e4['Holm p-value']:.3f}"
+    for est, key in (("ledoit_wolf", "lw"), ("factor", "fa")):
+        for cap, ck in ((0.04, "4"), (None, "n")):
+            r = pt.loc[C.PATH_LABELS[(est, C.MANDATE, cap)]]
+            assert r["series 2"] == C.PATH_LABELS[(est, C.MANDATE, 0.005)]
+            assert r["lower"] < 0 < r["upper"], "the text says no change along the frontier is distinguishable from zero"
+            P[f"{key}_d{ck}"] = signed(r["difference"])
+            P[f"{key}_d{ck}_lo"], P[f"{key}_d{ck}_hi"] = signed(r["lower"]), signed(r["upper"])
+            P[f"{key}_d{ck}_p"] = f"{r['p-value']:.2f}"
+            P[f"{key}_d{ck}_det"] = num(r["detectable difference"])
+            P[f"{key}_d{ck}_crit"] = num(r["critical value"])
+            P[f"{key}_d{ck}_corr"] = f"{r['correlation']:.2f}"
+    P["b_corr_lo"], P["b_corr_hi"] = lohi(pt[pt["comparison"] == "B"]["correlation"], 2)
+    # Added 19 November 2026: the factor estimator's two rows of family B without July and December 2008.
+    lo = read("paired_tests_without_two_months.csv", res).set_index("series 1")        # notebook 13
+    share = "share of the difference between the two variances in those months"
+    for cap, ck in ((0.04, "4"), (None, "n")):
+        r = lo.loc[C.PATH_LABELS[("factor", C.MANDATE, cap)]]
+        assert r["months left out"] == "2008-07 and 2008-12" and r["lower"] < 0 < r["upper"]
+        assert r["critical value"] < pt.loc[C.PATH_LABELS[("factor", C.MANDATE, cap)], "critical value"] / 2, \
+            "the text says the two months raise the critical value"
+        P[f"fa_x{ck}_share"] = num(100 * r[share], 0)
+        P[f"fa_x{ck}"] = signed(r["difference"])
+        P[f"fa_x{ck}_lo"], P[f"fa_x{ck}_hi"] = signed(r["lower"]), signed(r["upper"])
+        P[f"fa_x{ck}_crit"] = num(r["critical value"])
+    assert (size["P1"] == "met").all() and (size["share rejected"] < C.PAIRED_SIZE_CONSERVATIVE_BELOW).all(), \
+        "the text says P1 is met and the test conservative on 306 months"
+    P["size_hi_rho"], P["size_lo_rho"] = (num(100 * size.set_index("correlation").loc[r, "share rejected"]) for r in (0.99, 0.80))
+    rows8 = []
+    for lab, r in pt.iterrows():
+        rows8.append([r["label"][0].upper() + r["label"][1:] + (" (A)" if r["comparison"] == "A" else " (B)"),
+                      num(r["difference"], 1, True), f"{num(r['lower'], 1, True)} to {num(r['upper'], 1, True)}",
+                      f"{r['p-value']:.3f}", "" if pd.isna(r["Holm p-value"]) else f"{r['Holm p-value']:.3f}",
+                      num(r["detectable difference"]), num(r["critical value"], 2), f"{r['correlation']:.3f}"])
+    P["table8"] = table(["Comparison", "Difference, bp a year", "95 per cent interval", "p-value", "Holm p-value",
+                         "Detectable difference", "Critical value", "Correlation"], rows8)
+
+    # --- the gap to the index's own price return by period (reconstruction_by_year.csv, notebook 04) ---
+    ry = read("reconstruction_by_year.csv", res)                                       # notebook 04
+    assert (ry["months"] == 12).all() and ry["year"].min() == 1926 and ry["year"].max() == 2024
+    for k, (a, b) in enumerate(GAP_PERIODS, 1):
+        s = ry[(ry["year"] >= a) & (ry["year"] <= b)]
+        P[f"gap{k}"] = num(BP * float((s["tracking_error_against_index_price"] ** 2).mean()) ** 0.5)
+    s = ry[(ry["year"] >= 1957) & (ry["year"] <= 2004)]
+    P["gap_57_04"] = num(BP * float((s["tracking_error_against_index_price"] ** 2).mean()) ** 0.5)
+    P["gap_1926"], P["gap_1927"] = (num(BP * ry.set_index("year").loc[y, "tracking_error_against_index_price"], 0) for y in (1926, 1927))
+
     # --- Table 1: the gates and expectations, each with its figure and verdict ---
     def verdict(met):
         return "Met" if met else "Not met"
@@ -289,8 +359,11 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
         ["Benchmark against CRSP's value-weighted return, with dividends", f"{P['recon_te']} bp a year", f"{P['recon_first_w']} to {P['recon_last_w']}"],
         ["The same, price-only", f"{P['recon_te_px']} bp a year", f"{P['recon_first_w']} to {P['recon_last_w']}"],
         ["The same, with dividends, over the mandate's window", f"{P['recon_eval_te']} bp a year", f"{P['first_w']} to {P['last_w']}"],
-        ["Benchmark's price return against the index's own, no verdict", f"{P['idx_to_2004']} bp a year", "to December 2004"],
-        ["The same, from January 2005, when the index weights by float", f"{P['idx_from_2005']} bp a year", f"January 2005 to {P['recon_last_w']}"],
+        ["Benchmark's price return against the index's own, no verdict, years before 1957", f"{P['gap1']} bp a year", "1926 to 1956"],
+        ["The same, 1957 to 1989", f"{P['gap2']} bp a year", "1957 to 1989"],
+        ["The same, 1990 to 1998", f"{P['gap3']} bp a year", "1990 to 1998"],
+        ["The same, 1999 to 2004", f"{P['gap4']} bp a year", "1999 to 2004"],
+        ["The same, from 2005, when the index weights by float", f"{P['gap5']} bp a year", "2005 to 2024"],
         ["Member-months in the universe", P["member_months"], f"{P['recon_first_w']} to {P['recon_last_w']}"],
         ["Momentum spread against French's: correlation", f"{mq['correlation']:.3f}", f"{mq['months']:,} months from {words(mq['first_month'])}"],
         ["Momentum: mean monthly difference (standard error)", f"{num(BP * mq['mean_difference'])} ({num(BP * mq['standard_error'])}) bp", ""],
@@ -345,8 +418,8 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
 
     # --- the four Key points: one wording for the dashboard, the note and the README (W1) ---
     KEY_POINTS = [
-        "Under the mandate the four covariance estimators realise {{te_lo}} to {{te_hi}} basis points a year of tracking error, and each one's forecast understates it. The bias statistic, realised over forecast, is {{bias_lo}} to {{bias_hi}}, above the band of 0.8 to 1.25 fixed before the run.",
-        "Index changes force {{forced}} per cent a year of the Ledoit-Wolf path's {{total_turn}} per cent of one-way turnover, or {{forced_share}} per cent. On the Ledoit-Wolf estimator, loosening the cap on chosen turnover from 0.5 per cent a month to none raises it from {{chosen_lo}} to {{chosen_hi}} per cent a year, while the realised tracking error stays between {{fr_te_lo}} and {{fr_te_hi}} basis points a year. On the factor estimator chosen turnover rises from {{fa_chosen_lo}} to {{fa_chosen_hi}} per cent a year and the tracking error falls from {{fa_re_tight}} to {{fa_re_none}}.",
+        "Under the mandate the four covariance estimators realise {{te_lo}} to {{te_hi}} basis points a year of tracking error, and each one's forecast understates it. The bias statistic, the standard deviation of the active return in units of each month's forecast, 1 for a calibrated forecast, is {{bias_lo}} to {{bias_hi}}, above the band of 0.8 to 1.25 fixed before the run: the realised active return is {{under_lo}} to {{under_hi}} per cent more volatile than forecast.",
+        "Index changes force {{forced}} per cent a year of the Ledoit-Wolf path's {{total_turn}} per cent of one-way turnover, or {{forced_share}} per cent. Loosening the cap on chosen turnover from 0.5 per cent a month to none raises chosen turnover from {{chosen_lo}} to {{chosen_hi}} per cent a year on the Ledoit-Wolf estimator and from {{fa_chosen_lo}} to {{fa_chosen_hi}} on the factor estimator, and lowers the mean forecast on both. Neither estimator's realised tracking error moves by an amount the {{months}} months can tell from zero: {{lw_dn}} basis points a year on Ledoit-Wolf, with a paired 95 per cent interval of {{lw_dn_lo}} to {{lw_dn_hi}}, and {{fa_dn}} on the factor estimator, from {{fa_dn_lo}} to {{fa_dn_hi}}.",
         'Month by month, allocation is the largest of the three Brinson-Fachler terms on the Ledoit-Wolf, factor and principal-component estimators: {{alloc_lo}} to {{alloc_hi}} basis points a month in absolute value on average, against {{sel_lo}} to {{sel_hi}} for selection and {{int_lo}} to {{int_hi}} for interaction. Over the {{months}} months the active return is {{ar_lo}} to {{ar_hi}} basis points a year before costs, within one Newey-West standard error of zero on every path, as is each of its three terms, and the six factors explain {{share_lo}} to {{share_hi}} per cent of its variance.',
         "The benchmark rebuilt from CRSP's list of index members reproduces CRSP's own value-weighted return of the same list with a tracking error of {{recon_te}} basis points a year from {{recon_years_first}} to {{recon_years_last}}. Its momentum and variance spreads have correlations of {{mom_corr}} and {{var_corr}} with Kenneth R. French's large-cap spreads.",
     ]

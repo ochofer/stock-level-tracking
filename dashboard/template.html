@@ -230,7 +230,7 @@ dl.terms dd { margin: 0 0 0 1rem; }
 <div>
 <div class="ch-kpis">
 <div class="ch-kpi"><div class="ch-kpi__label">Realised tracking error</div><div class="ch-kpi__value">{{te_lo}} to {{te_hi}}</div><div class="ch-kpi__ref">bp a year, the four estimators under the mandate, {{first_w}} to {{last_w}}, simulated, before fees</div></div>
-<div class="ch-kpi"><div class="ch-kpi__label">Forecast bias</div><div class="ch-kpi__value">{{bias_lo}} to {{bias_hi}}</div><div class="ch-kpi__ref">realised over forecast on the four estimators, 1 for a calibrated forecast</div></div>
+<div class="ch-kpi"><div class="ch-kpi__label">Forecast bias</div><div class="ch-kpi__value">{{bias_lo}} to {{bias_hi}}</div><div class="ch-kpi__ref">the standard deviation of the active return in units of each month's forecast, the four estimators, 1 for a calibrated forecast</div></div>
 <div class="ch-kpi"><div class="ch-kpi__label">Forced turnover</div><div class="ch-kpi__value">{{forced_share}}%</div><div class="ch-kpi__ref">of one-way turnover is forced by index changes, {{forced}} of {{total_turn}} per cent a year, Ledoit-Wolf estimator under the mandate, simulated</div></div>
 <div class="ch-kpi"><div class="ch-kpi__label">Benchmark rebuilt</div><div class="ch-kpi__value">{{recon_te}}</div><div class="ch-kpi__ref">bp a year of tracking error against CRSP's value-weighted return of the same list, {{recon_first_w}} to {{recon_last_w}}, with dividends</div></div>
 </div>
@@ -247,12 +247,12 @@ dl.terms dd { margin: 0 0 0 1rem; }
 <div class="ch-fact"><dt>Period</dt><dd>The benchmark {{recon_first_w}} to {{recon_last_w}}. The mandate {{first_w}} to {{last_w}}, {{months}} months.</dd></div>
 <div class="ch-fact"><dt>Universe</dt><dd>The point-in-time S&amp;P 500 from CRSP's list of index members, about 500 stocks a month.</dd></div>
 <div class="ch-fact"><dt>Benchmark</dt><dd>The cap-weighted universe, at start-of-month market capitalisations.</dd></div>
-<div class="ch-fact"><dt>Mandate</dt><dd>Long-only, each stock and each company within 50 basis points of its benchmark weight, each untilted sector within 2 percentage points, chosen turnover at most 2 per cent a month, Energy and Utilities stocks at no more than half their benchmark weight, Tobacco and Aerospace and Defense excluded, a beta of one to the benchmark.</dd></div>
+<div class="ch-fact"><dt>Mandate</dt><dd>Long-only, each stock and each company outside the tilted sectors and the excluded sub-industries within 50 basis points of its benchmark weight, each untilted sector within 2 percentage points, chosen turnover at most 2 per cent a month, Energy and Utilities stocks between zero and half their benchmark weight, Tobacco and Aerospace and Defense at zero, a beta of one to the benchmark.</dd></div>
 <div class="ch-fact"><dt>Estimators compared</dt><dd>Sample, Ledoit-Wolf, six-factor and principal-component covariances from three years of daily returns.</dd></div>
 <div class="ch-fact"><dt>Rebalancing</dt><dd>Monthly. The turnover that index changes force lies outside the cap.</dd></div>
 <div class="ch-fact"><dt>Costs</dt><dd>Gross of fees. Trading cost at 10 basis points per unit of one-way turnover where stated.</dd></div>
 <div class="ch-fact"><dt>Attribution</dt><dd>By the eleven GICS sectors and Unclassified after Brinson and Fachler (1985)<sup id="ref-2"><a href="#note-2">2</a></sup>, and by the five factors of Fama and French (2015)<sup id="ref-3"><a href="#note-3">3</a></sup> and momentum, monthly, summed without linking.</dd></div>
-<div class="ch-fact"><dt>Specification written</dt><dd>9 November 2026, with every later change dated in the constants.</dd></div>
+<div class="ch-fact"><dt>Specification</dt><dd>First committed on 10 November 2026, its 25 levels of gates and expectations unchanged since, and every later change dated in the constants. The author's design notes date it to 9 November 2026, which the repository's history cannot show.</dd></div>
 </dl></aside>
 </div>
 
@@ -262,13 +262,13 @@ dl.terms dd { margin: 0 0 0 1rem; }
 <p class="text">Every realised value lies to the right of its forecast. The four estimators realise {{te_lo}} to {{te_hi}} basis points a year, and the bias statistic, {{bias_lo}} to {{bias_hi}}, lies above the band of 0.8 to 1.25 on all four. The forecast is the tracking error the month's own covariance matrix implies for the weights the optimiser chose.</p>
 <div id="f1" class="chart short"></div>
 <button type="button" class="tbtn" data-table="f1" aria-pressed="false">Table</button><div class="tbl tw" id="t-f1" hidden>{{t_f1}}</div>
-<p class="basis">Simulated. Monthly rebalancing. Before fees. Bias statistic: the standard deviation of each month's active return divided by that month's forecast, over the months with a forecast, 1 for a calibrated forecast.</p>
+<p class="basis">Simulated. Monthly rebalancing. Before fees. Bias statistic: the standard deviation of each month's active return divided by that month's forecast, over the months with a forecast, 1 for a calibrated forecast. It is not the ratio of the two points, which is {{ratio_lo}} to {{ratio_hi}}.</p>
 <p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{first_w}} to {{last_w}}, US large caps, USD.</p>
 </figure>
 
 <div class="fig" id="{{id:t-verdicts}}-block">
 <h2 id="{{id:t-verdicts}}">Table {{n:t-verdicts}} | The four gates and nine expectations, fixed before each run, and what the run found</h2>
-<p class="cap">A gate not met stops the study. An expectation not met is reported as a finding, in the same words as one met. An expectation named for two or more estimators has one verdict, met only if it holds for each.</p>
+<p class="cap">A gate not met stops the study. An expectation not met is reported as a finding, in the same words as one met. An expectation named for two or more estimators has one verdict, met only if it holds for each, a rule set on 12 November 2026 after the run of the mandate: before it, E5 read met for the factor estimator and not met for the Ledoit-Wolf estimator.</p>
 <div class="tw">{{table1}}</div>
 <p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{recon_first_w}} to {{recon_last_w}}, US large caps, USD.</p>
 </div>
@@ -277,12 +277,13 @@ dl.terms dd { margin: 0 0 0 1rem; }
 <section id="data" class="view">
 {{map_data}}
 <p class="ch-view-lead">Whether the rebuilt benchmark and the four covariance matrices are what they claim to be.</p>
-<p class="lead">The universe in a month is the stocks on CRSP's list of index members on the last trading day of the month before, each weighted by its market capitalisation at the start of the month. A delisting is applied as Shumway (1997)<sup id="ref-4"><a href="#note-4">4</a></sup> proposes, and a member's sector is the GICS sector in force on the same day, through CRSP's link to Compustat. The index as S&amp;P publishes it is not the benchmark: its total return is not in the extraction, and its float adjustment cannot be rebuilt from CRSP's share counts.</p>
+<p class="lead">The universe in a month is the stocks on CRSP's list of index members on the last trading day of the month before, each weighted by its market capitalisation at the start of the month. A delisting is applied by the study's rule, after Shumway (1997)<sup id="ref-4"><a href="#note-4">4</a></sup>: CRSP's delisting return where it gives one, and otherwise minus 30 per cent for a delisting code from 400 to 599 and zero for any other code. A member's sector is the GICS sector in force on the same day, through CRSP's link to Compustat. The index as S&amp;P publishes it is not the benchmark: its total return is not in the extraction, and its float adjustment cannot be rebuilt from CRSP's share counts.</p>
 
 <div class="fig" id="{{id:t-checks}}-block">
 <h2 id="{{id:t-checks}}">Table {{n:t-checks}} | The benchmark's checks, {{recon_first_w}} to {{recon_last_w}}</h2>
 <p class="cap">The benchmark against CRSP's own figures and the universe's sorts against French's, with the conditioning of the covariance matrices.</p>
 <div class="tw">{{table6}}</div>
+<p class="text">Until 2005 the index weighted each stock by its full capitalisation, as the benchmark does, so a member missing from CRSP's list would widen the gap to the index's own price return. From 1957 that gap lies between {{gap3}} and {{gap2}} basis points a year in every period. So from 1957 no period stands out, and the gap is no smaller in the years when the index weighted by full capitalisation than after 2005, when it weights by float. The comparison is therefore not fine enough to show the change of weighting, and it would show an error of membership only if the error moved the return by more than these 20 to 36 basis points a year. Before 1957, when the list holds about 90 names, it is {{gap1}}, and the comparison does not confirm the list in those years. Each period's figure is the tracking error pooled over its years.</p>
 <p class="text">The months in which the sample matrix's condition number reaches ten times the Ledoit-Wolf one have a cause found after the run: from 2014 the universe holds up to five companies with two share classes each, whose daily returns move almost together, and the difference between two such classes sets the sample matrix's smallest eigenvalue.</p>
 <p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{recon_first_w}} to {{recon_last_w}}, US large caps, USD.</p>
 </div>
@@ -313,7 +314,7 @@ dl.terms dd { margin: 0 0 0 1rem; }
 <figure class="fig" id="{{id:f-frontier}}">
 <h2>Figure {{n:f-frontier}} | Tracking error against chosen turnover at five caps, the Ledoit-Wolf and factor estimators under the mandate, {{first_w}} to {{last_w}}</h2>
 <p class="cap">For each estimator and each cap on chosen turnover (0.5, 1, 2 and 4 per cent a month, and none): the realised (filled) and mean forecast (hollow) tracking error in basis points a year, against the chosen turnover in per cent a year. The dots of each estimator run from the tightest cap on the left to no cap on the right.</p>
-<p class="text">E5 is not met. On both estimators the mean forecast falls as the cap loosens, from {{lw_fc_tight}} to {{lw_fc_none}} basis points a year on Ledoit-Wolf and from {{fa_fc_tight}} to {{fa_fc_none}} on the factor estimator. The realised tracking error at the 4 per cent cap is {{fa_re_4}} on the factor estimator, below its {{fa_re_tight}} at 0.5 per cent, and {{lw_re_4}} on Ledoit-Wolf, above its {{lw_re_tight}}. On Ledoit-Wolf chosen turnover runs from {{chosen_lo}} to {{chosen_hi}} per cent a year across the caps while the realised tracking error stays between {{fr_te_lo}} and {{fr_te_hi}}. The factor estimator chooses at most {{fa_chosen_hi}} per cent a year, and the 2 per cent cap binds on it in {{fa_bind}} per cent of months, against every month on Ledoit-Wolf. {{cap_relaxed}}</p>
+<p class="text">E5 is not met. On both estimators the mean forecast falls as the cap loosens, from {{lw_fc_tight}} to {{lw_fc_none}} basis points a year on Ledoit-Wolf and from {{fa_fc_tight}} to {{fa_fc_none}} on the factor estimator. The realised tracking error at the 4 per cent cap is {{fa_re_4}} on the factor estimator, below its {{fa_re_tight}} at 0.5 per cent, and {{lw_re_4}} on Ledoit-Wolf, above its {{lw_re_tight}}. On Ledoit-Wolf chosen turnover runs from {{chosen_lo}} to {{chosen_hi}} per cent a year across the caps while the realised tracking error stays between {{fr_te_lo}} and {{fr_te_hi}}. The factor estimator chooses at most {{fa_chosen_hi}} per cent a year, and the 2 per cent cap binds on it in {{fa_bind}} per cent of months, against every month on Ledoit-Wolf. Tested on the paired months, neither change in the realised tracking error can be told from zero: from 0.5 to 4 per cent it is {{lw_d4}} basis points a year on Ledoit-Wolf, with a 95 per cent interval of {{lw_d4_lo}} to {{lw_d4_hi}}, and {{fa_d4}} on the factor estimator, from {{fa_d4_lo}} to {{fa_d4_hi}}, a fall that comes from July and December 2008 ({{ref:t-paired}}). {{cap_relaxed}}</p>
 <div id="f3" class="chart"></div>
 <button type="button" class="tbtn" data-table="f3" aria-pressed="false">Table</button><div class="tbl tw" id="t-f3" hidden>{{t_f3}}</div>
 <p class="basis">Simulated. Monthly rebalancing. Before fees. Chosen turnover is one-way and excludes the turnover that index changes force.</p>
@@ -324,7 +325,16 @@ dl.terms dd { margin: 0 0 0 1rem; }
 <h2 id="{{id:t-paths}}">Table {{n:t-paths}} | The twelve paths under the mandate, {{first_w}} to {{last_w}}</h2>
 <p class="cap">Tracking error, active return and its standard error in basis points a year. Turnover one-way, in per cent a year.</p>
 <div class="tw">{{table2}}</div>
-<p class="basis">Simulated. Monthly rebalancing. Gross of fees. The net active return is the gross less a trading cost of 10 basis points per unit of one-way turnover, forced turnover included. No active return is beyond one Newey-West standard error of zero.</p>
+<p class="basis">Simulated. Monthly rebalancing. Gross of fees. The net active return is the gross less a trading cost of 10 basis points per unit of one-way turnover, forced turnover included. No active return is beyond one Newey-West standard error of zero. The bias statistic is the standard deviation of the active return in units of each month's forecast, and not the ratio of the two columns before it, which is {{ratio_lo}} to {{ratio_hi}} at the 2 per cent cap.</p>
+<p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{first_w}} to {{last_w}}, US large caps, USD.</p>
+</div>
+
+<div class="fig" id="{{id:t-paired}}-block">
+<h2 id="{{id:t-paired}}">Table {{n:t-paired}} | Paired tests of two realised tracking errors under the mandate, {{first_w}} to {{last_w}}</h2>
+<p class="cap">Each difference is the first path's realised tracking error less the second's, in basis points a year, tested on the months the two paths share. A: three estimators against Ledoit-Wolf at the 2 per cent cap, with Holm's correction across the three. B: the 4 per cent cap and no cap against 0.5 per cent.</p>
+<div class="tw">{{table8}}</div>
+<p class="text">The sample estimator realises {{e4_d}} basis points a year more than Ledoit-Wolf, with an interval of {{e4_lo}} to {{e4_hi}}: small, and distinguishable from zero. No other interval excludes zero. On the factor estimator July and December 2008 carry {{fa_x4_share}} and {{fa_xn_share}} per cent of the difference between the two variances, and without them the change from 0.5 to 4 per cent is {{fa_x4}}, with an interval of {{fa_x4_lo}} to {{fa_x4_hi}} and a critical value of {{fa_x4_crit}}, against {{fa_d4_crit}} with them. On 1,000 simulated pairs of 306 months with equal variances the test rejects {{size_hi_rho}} per cent at a correlation of 0.99 and {{size_lo_rho}} per cent at 0.80, at the 5 per cent level, so it is conservative on 306 months.</p>
+<p class="basis">Added on 18 November 2026, after every recorded run, with no verdict. 95 per cent intervals from a studentised circular block bootstrap of the paired months, blocks of 12, 2,000 samples. The detectable difference is the one at which the interval would exclude zero four times in five.</p>
 <p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{first_w}} to {{last_w}}, US large caps, USD.</p>
 </div>
 
@@ -375,7 +385,7 @@ dl.terms dd { margin: 0 0 0 1rem; }
 <p><strong>Data and access.</strong> CRSP and Compustat via Wharton Research Data Services, accessed through Queen Mary University of London, from an extraction of 28 September 2026. They are licensed, and the repository holds none of them: it holds code, tests, the extraction's SHA-256 and aggregate tables.<sup id="ref-5"><a href="#note-5">5</a></sup> Nothing that reproduces CRSP's index file is committed by month, and no weight of a security or of a sector of the portfolio is committed in any form. Kenneth R. French's files are downloaded at run time.</p>
 <p><strong>What is known at each date.</strong> Membership, sector and capitalisation are read on the last trading day of the month before. Each covariance matrix uses the three years of daily returns before the month. Nothing from the month itself enters a weight.</p>
 <p><strong>Rebalancing and costs.</strong> Monthly. The turnover cap applies to chosen turnover, measured from the portfolio left after last month's returns with leavers sold and entrants bought at their benchmark weight. Returns are gross of fees. A trading cost of 10 basis points per unit of one-way turnover is charged where stated, forced turnover included.</p>
-<p><strong>What the study cannot show.</strong> It is a simulation. The benchmark weights CRSP's list by full capitalisation, and the index weights by float. A GICS sub-industry is wider than a list of controversial weapons. Costs are proportional to turnover, with no market impact. Sectors exist from July 1999, so the mandate starts there. No active return is distinguishable from zero, so the study makes no claim about a return the mandate earns.</p>
+<p><strong>What the study cannot show.</strong> It is a simulation. The benchmark weights CRSP's list by full capitalisation, and the index weights by float. A GICS sub-industry is wider than a list of controversial weapons. Costs are proportional to turnover, with no market impact. The forecast is a covariance of daily returns times 21, so daily active returns correlated from one day to the next would raise the realised figure above it even with an exact covariance matrix, and the study measures the realised figure on monthly returns only. Sectors exist from July 1999, so the mandate starts there. No active return is distinguishable from zero, so the study makes no claim about a return the mandate earns.</p>
 
 <h2 id="exhibit-sources">Where each exhibit comes from</h2>
 {{exhibit_sources}}
@@ -396,10 +406,13 @@ dl.terms dd { margin: 0 0 0 1rem; }
 <dt>eigenvalue</dt><dd>the variance of one of the uncorrelated portfolios a covariance matrix splits into.</dd>
 <dt>condition number</dt><dd>a covariance matrix's largest eigenvalue over its smallest.</dd>
 <dt>band</dt><dd>the range of the bias statistic within which a forecast counts as right, 0.8 to 1.25, fixed before the run.</dd>
-<dt>bias statistic</dt><dd>the standard deviation of each month's active return divided by that month's forecast, over the months with a forecast above one millionth. It is 1 when the forecasts are right on average.</dd>
-<dt>mandate</dt><dd>the full set of constraints the portfolio obeys: long-only, each stock and each company within 50 basis points of its benchmark weight, each untilted sector within 2 percentage points, chosen turnover capped, the tilt, two sub-industries excluded and a beta of one to the benchmark.</dd>
+<dt>bias statistic</dt><dd>the standard deviation of each month's active return divided by that month's forecast, over the months with a forecast above one millionth: the standard deviation of the active return in units of each month's forecast. It is 1 when the forecasts are right on average, and it is not the realised tracking error divided by the mean forecast.</dd>
+<dt>paired test</dt><dd>a test of the difference between two figures measured on the same months, here the variance test of Ledoit and Wolf (2011)<sup id="ref-7"><a href="#note-7">7</a></sup> of two realised tracking errors. Its 95 per cent interval comes from a circular block bootstrap, which takes new samples of the months in blocks of 12 consecutive months, and its p-value is the probability from the same bootstrap of a difference at least as far from zero if the two variances were equal.</dd>
+<dt>p-value</dt><dd>the probability, from the bootstrap of a paired test, of a difference at least as far from zero as the one observed if the two variances were equal.</dd>
+<dt>Holm's correction</dt><dd>an adjustment of the p-values of a family of comparisons for their number: the smallest is multiplied by the family's size, the next by one less, and each is at least the one before it.</dd>
+<dt>mandate</dt><dd>the full set of constraints the portfolio obeys: long-only, each stock and each company outside the tilted sectors and the excluded sub-industries within 50 basis points of its benchmark weight, each untilted sector within 2 percentage points, chosen turnover capped, the tilt, two sub-industries at zero and a beta of one to the benchmark.</dd>
 <dt>beta</dt><dd>the slope of a return on the benchmark's return.</dd>
-<dt>tilt</dt><dd>every Energy and Utilities stock capped at half its benchmark weight.</dd>
+<dt>tilt</dt><dd>every Energy and Utilities stock held between zero and half its benchmark weight.</dd>
 <dt>constraint set</dt><dd>one of the cumulative sets C0 to C3: long-only, plus the bounds per stock, company and sector, plus the turnover cap, plus the rest of the mandate.</dd>
 <dt>path</dt><dd>one covariance estimator under one constraint set at one turnover cap, run month by month from the benchmark.</dd>
 <dt>turnover</dt><dd>a month's one-way trading as a share of the portfolio. Forced turnover is what index changes require, chosen turnover the rest.</dd>
@@ -418,7 +431,7 @@ dl.terms dd { margin: 0 0 0 1rem; }
 <dt>Sharpe ratio</dt><dd>in the card of Optimal versus naive diversification below, a portfolio's mean return above the one-month Treasury bill rate, over its standard deviation.</dd>
 <dt>look-ahead</dt><dd>the use, in a decision dated at one time, of data published only later.</dd>
 <dt>gate</dt><dd>a test of the data fixed in advance, which stops the study if not met.</dd>
-<dt>expectation</dt><dd>a test of a result fixed in advance, reported as a finding whether met or not.</dd>
+<dt>expectation</dt><dd>a test of a result fixed in advance, reported as a finding whether met or not. One named for two or more estimators has one verdict, met only if it holds for each, a rule set on 12 November 2026 after the run of the mandate.</dd>
 </dl>
 
 <h2 id="notes">Notes</h2>
@@ -429,6 +442,7 @@ dl.terms dd { margin: 0 0 0 1rem; }
 <li id="note-4">Shumway, T. (1997). The delisting bias in CRSP data. <em>Journal of Finance</em> 52(1), 327 to 340. <a href="https://doi.org/10.1111/j.1540-6261.1997.tb03818.x">https://doi.org/10.1111/j.1540-6261.1997.tb03818.x</a></li>
 <li id="note-5"><a href="https://github.com/ochofer/stock-level-tracking">The repository</a>: the notebooks, the tables committed in {{results}}/ and the constants fixed before each run.</li>
 <li id="note-6">Ledoit, O. and Wolf, M. (2004). A well-conditioned estimator for large-dimensional covariance matrices. <em>Journal of Multivariate Analysis</em> 88(2), 365 to 411. <a href="https://doi.org/10.1016/S0047-259X(03)00096-4">https://doi.org/10.1016/S0047-259X(03)00096-4</a></li>
+<li id="note-7">Ledoit, O. and Wolf, M. (2011). Robust performance hypothesis testing with the variance. <em>Wilmott Magazine</em>, September 2011, 86 to 89.</li>
 </ol>
 </section>
 

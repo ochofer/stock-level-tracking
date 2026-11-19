@@ -1,8 +1,9 @@
 """The code copied from the source repository: each copy is the source file unchanged below its first line, and
 the constants the copies read are the source's.
 
-The source repository is github.com/ochofer/optimal-vs-naive-diversification at constants.SOURCE_COMMIT. Its
-files are hashed in constants.COPIED_FILES; a copy fails here if one byte below its first line differs.
+The source repository is github.com/ochofer/optimal-vs-naive-diversification at constants.SOURCE_COMMIT, or at the
+later commit constants.COPIED_AT_COMMIT names for a file copied after it. Its files are hashed in
+constants.COPIED_FILES; a copy fails here if one byte below its first line differs.
 src/slt/source/constants.py must hold exactly the names the copies reference, and no module outside
 src/slt/source/ may read it. Its values, and the values this study takes from the source unchanged, are compared
 with the source's constants file at the commit, read with git, when a clone of the source repository sits beside
@@ -57,7 +58,7 @@ def test_each_copy_is_the_source_file_below_its_first_line(path):
     m = FIRST_LINE.match(first.decode())
     assert m, f"{path.name}: the first line does not name the source file and the commit"
     source_path, digest = C.COPIED_FILES[path.name]
-    assert m.group(1) == source_path and m.group(2) == C.SOURCE_COMMIT
+    assert m.group(1) == source_path and m.group(2) == C.COPIED_AT_COMMIT.get(path.name, C.SOURCE_COMMIT)
     assert hashlib.sha256(rest).hexdigest() == digest, f"{path.name} differs from the source file"
 
 

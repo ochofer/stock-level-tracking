@@ -161,7 +161,7 @@ print(json.dumps({k: record[k] for k in ("vintage", "fetch_dates", "files_used",
 
 What the checks establish: the files on this machine are, byte for byte, the files the manifest records, the manifest is the one the constants fix, and every column the later notebooks read is present. Every later result names this vintage through the provenance record.
 
-What could still be wrong. A hash shows that a file has not changed since it was fetched. It does not show that the file holds what the vendor intended. Notebooks 02 to 04 test that, against CRSP's own counts and returns. CRSP revises its history once a year, so a reader who runs the same queries later receives a later vintage, and the hashes in `extraction_files.csv` will then differ for reasons that are not errors. And the row counts in the manifest and in the footers are both counts of rows as stored. Neither says anything about a value inside a row.
+What could still be wrong. A hash shows that a file has not changed since it was fetched. It does not show that the file holds what the vendor intended. Notebooks 02 to 04 test that, against CRSP's own counts and returns. If the same queries, run on another date, return other rows, the hashes in `extraction_files.csv` will differ for reasons that are not errors. And the row counts in the manifest and in the footers are both counts of rows as stored. Neither says anything about a value inside a row.
 """),
 ]
 
@@ -356,7 +356,7 @@ NB03 = [
 - *member-month*: one stock in the universe in one month.
 - *return*: CRSP's monthly return with dividends (`ret`). The *price-only return* (`retx`) leaves dividends out.
 - *delisting*: the end of a stock's listing on its exchange. CRSP records its date, a code for its reason (`dlstcd`) and, where it can, the *delisting return* (`dlret`), the return from the last price to the value the holder received.
-- *rule D4*: the study's rule for a delisting, after Shumway (1997). CRSP's delisting return where it gives one. Where it is missing, minus 30 per cent for a code from 400 to 599, the codes for a delisting for poor performance, and zero for any other code. CRSP's code 100 marks a security still trading and is not a delisting. In a month with both a return and a delisting return, the two are compounded.
+- *rule D4*: the study's rule for a delisting, after Shumway (1997). CRSP's delisting return where it gives one. Where it is missing, minus 30 per cent for a code from 400 to 599, the codes the study treats as a delisting for poor performance, and zero for any other code. CRSP's code 100 marks a security still trading and is not a delisting. In a month with both a return and a delisting return, the two are compounded.
 - *market capitalisation*: price times shares outstanding. The capitalisation at the start of month t is the absolute price times shares outstanding at the end of month t−1, in thousands of dollars. CRSP stores the price as negative when it is the midpoint of bid and ask on a day without a trade, hence the absolute value. A price of zero or a missing value gives a missing capitalisation.
 - *usable window*: the months from the first in which the universe's count is within 10 names of CRSP's count, to December 2024, as notebook 02 found it.
 - *gate*: a test of the data layer, fixed in advance in `src/slt/constants.py`. A gate that is not met stops the study.
@@ -856,7 +856,7 @@ NB06 = [
 
 **What I expect to see, and where it comes from.**
 
-- *E3*, for the momentum sort and for the variance sort: correlation at least 0.80 between the universe's quintile spread and French's, and a mean difference within two standard errors of zero, over the months both exist. The levels date from 6 September 2026 and were fixed before any data was read. French's largest size quintile is set by NYSE breakpoints and holds between about 100 and 530 names a month, fewer than the universe's 500 in almost every month from April 1957 and more than its 90 before, so the two sets overlap without coinciding and a correlation near one is not expected. Below 0.80 the universe is not the large-cap universe it claims to be. The universe goes from about 90 names to about 500 in April 1957, so the momentum comparison is also printed and committed for January 1927 to March 1957 and April 1957 to December 2024, with no verdict. E3's verdict is on the whole window.
+- *E3*, for the momentum sort and for the variance sort: correlation at least 0.80 between the universe's quintile spread and French's, and a mean difference within two standard errors of zero, over the months both exist. The levels are in the repository's first commit, of 10 November 2026, and unchanged since. The author's design notes date them to 6 September 2026, before any data was read, which the repository's history cannot show. French's largest size quintile is set by NYSE breakpoints and holds between about 100 and 530 names a month, fewer than the universe's 500 in almost every month from April 1957 and more than its 90 before, so the two sets overlap without coinciding and a correlation near one is not expected. Below 0.80 the universe is not the large-cap universe it claims to be. The universe goes from about 90 names to about 500 in April 1957, so the momentum comparison is also printed and committed for January 1927 to March 1957 and April 1957 to December 2024, with no verdict. E3's verdict is on the whole window.
 - *The months compared*: momentum from January 1927, the first month with a price thirteen months back in the monthly stock file and a value in French's file, to December 2024. Variance from April 1990, the first month with 60 trading days of the daily stock file before it, to December 2024.
 - *The members left out*: from structural counts made on 11 November 2026, before this notebook was written, about 2,500 of 440,000 member-months from January 1927 have no price at t−13 and about 100 have no return at t−2, and they are left out of the momentum sort. About 550 are sorted with a skipped month. In the variance sort 76 of 209,020 member-months from April 1990 have fewer than 20 daily returns and are left out.
 - *Vintages*: French builds his files on CRSP's database of September 2026. Revisions between that vintage and the extraction's are part of any gap.
@@ -1193,7 +1193,7 @@ for p in written:
 
 What the notebook establishes: how close to singular each of the four estimators is, month by month over the evaluation window, whether the sample estimator's condition number is at least ten times the Ledoit-Wolf one's in every month, judged as E4's first clause, and how many members each month needed a model row.
 
-What could still be wrong. A condition number says how much a matrix amplifies errors. Whether its forecasts are right is for the second clause of E4 and for the bias statistic, the ratio of realised to forecast risk, both in milestone 3. A model row rests on the member's own days, and for a recent listing those can be few and unrepresentative. The factor model's rows use French's factors, built from all US stocks, for a universe of large ones. And the window weights every day of three years equally, so a matrix lags a change in how stocks move together.
+What could still be wrong. A condition number says how much a matrix amplifies errors. Whether its forecasts are right is for the second clause of E4 and for the bias statistic, which compares each month's forecast with what the month realised, both in milestone 3. A model row rests on the member's own days, and for a recent listing those can be few and unrepresentative. The factor model's rows use French's factors, built from all US stocks, for a universe of large ones. And the window weights every day of three years equally, so a matrix lags a change in how stocks move together.
 """),
 ]
 
@@ -1234,7 +1234,7 @@ NB08 = [
 - *tilt*: every stock in GICS sector 10 (Energy) or 55 (Utilities) held at no more than half its benchmark weight.
 - *exclusion*: weight zero for GICS sub-industries 30203010 (Tobacco) and 20101010 (Aerospace and Defense). A sub-industry is wider than a list of controversial weapons.
 - *beta*: the slope of a stock's return on the benchmark's, from the month's covariance matrix. *Beta neutrality* holds the portfolio's beta equal to the benchmark's, one.
-- *constraint set*: the constraints of one run, cumulative in four sets. *C0*: long-only, no negative weight. *C1* adds the bound per stock, which holds each stock within 50 basis points of its benchmark weight, the bound per company, which holds the sum over a company's share classes within the same 50 basis points, and the sector band, which holds each sector within 2 percentage points of its benchmark weight. *C2* adds the turnover cap. *C3*, the *mandate*, adds the tilt, the exclusions and beta neutrality. In a set with the tilt the sector band covers the other sectors only, because half of Energy's weight is above 2 percentage points in 268 of the 306 months, and no portfolio could meet both.
+- *constraint set*: the constraints of one run, cumulative in four sets. *C0*: long-only, no negative weight. *C1* adds the bound per stock, which holds each stock within 50 basis points of its benchmark weight, the bound per company, which holds the sum over a company's share classes within the same 50 basis points, and the sector band, which holds each sector within 2 percentage points of its benchmark weight. *C2* adds the turnover cap. *C3*, the *mandate*, adds the tilt, the exclusions and beta neutrality. In a set with the tilt the sector band covers the other sectors only, because half of Energy's weight is above 2 percentage points in 268 of the 306 months, and no portfolio could meet both. In the same way, in a set with the tilt or the exclusions the bounds per stock and per company cover the stocks outside the tilted sectors and the excluded sub-industries: a tilted stock is held between zero and half its benchmark weight, and an excluded one at zero.
 - *binding*: a constraint is binding when the solution sits on its limit, within one millionth.
 
 **What I expect to see.**
@@ -1472,7 +1472,7 @@ for p in [X.write_results("active_returns_monthly.csv", frame=table),
 
 What the notebook establishes: each path's realised and forecast tracking error, the forecasts' calibration, the cost of the turnover each path chose, and the verdicts of E4's second clause, E5 and E6.
 
-What could still be wrong. A realised tracking error over 306 months has its own sampling error, about 4 per cent of its value. A bias statistic near one over the window can hide periods in which the forecasts were too low and others in which they were too high. The costs are a flat rate per unit of turnover, with no market impact. And every path's active return is measured against this study's benchmark, which weights the members by their full market capitalisation. The published index weights them by the shares available to the public, so the two differ.
+What could still be wrong. A realised tracking error over 306 months has its own sampling error, about 4 per cent of its value. Two paths measured on the same months are compared by the paired test of notebook 13, added on 18 November 2026, which allows for what the two series share. A bias statistic near one over the window can hide periods in which the forecasts were too low and others in which they were too high. The costs are a flat rate per unit of turnover, with no market impact. And every path's active return is measured against this study's benchmark, which weights the members by their full market capitalisation. The published index weights them by the shares available to the public, so the two differ.
 """),
 ]
 
@@ -1911,10 +1911,156 @@ What could still be wrong. The figures inherit every limit of the tables they dr
 ]
 
 
+# ---------------------------------------------------------------------------
+# 13: the paired tests
+# ---------------------------------------------------------------------------
+
+SETUP_13 = """
+import pathlib
+import sys
+import time
+
+ROOT = pathlib.Path.cwd().parent if pathlib.Path.cwd().name == "notebooks" else pathlib.Path.cwd()
+sys.path.insert(0, str(ROOT / "src"))
+
+import pandas as pd
+
+from slt import constants as C
+from slt import extraction as X
+from slt import pairs as PR
+from slt.source import paired as PT
+
+pd.set_option("display.width", 200)
+S = PR.settings()
+print(f"set on {C.PAIRED_TEST_DATE}: blocks of {S['block']} months, {S['draws']:,} draws, level {S['level']}, "
+      f"seed {C.PAIRED_SEED}, power {C.PAIRED_DETECTABLE_POWER} for the detectable difference")
+"""
+
+NB13 = [
+    md("""
+# 13. The paired tests: two realised tracking errors on the same months
+
+**What this notebook does.** It compares, two at a time, figures that notebook 09 measured on the same 306 months, with a test built for figures that share their months, and writes two tables. It reads only the tables committed in `results/20260928/`, needs no extraction and runs on any machine with a clone of the repository. It was added on 18 November 2026, after every recorded run of the study, and changes no result that notebooks 01 to 11 judged.
+
+**Why it comes here.** The write-up compared two such figures by the sampling error of one of them. Two paths run on the same months move together month by month, so the difference between their figures is far less noisy than either figure, and a test on the paired months measures that difference against its own uncertainty.
+
+**Terms used in this notebook.**
+
+- *market capitalisation*: price times shares outstanding, at the end of the month before.
+- *benchmark*: the universe of notebook 02, each stock weighted by its market capitalisation at the start of the month.
+- *active return*: the portfolio's return minus the benchmark's in the same month.
+- *basis point*: a hundredth of a percentage point.
+- *tracking error*: the standard deviation of the monthly active return, times the square root of 12, here in basis points a year. The realised tracking error is the one measured over the months a path has run.
+- *covariance matrix*: the table of the stocks' variances and of their covariances with each other.
+- *factor*: a common source of return, here one of French's five factors or his momentum factor.
+- *covariance estimator*: one way of estimating the covariance matrix from three years of daily returns: the sample covariance, the Ledoit-Wolf estimator, the factor estimator, built on the six factors, and the principal-component estimator.
+- *turnover*: the month's one-way trading as a share of the portfolio. Chosen turnover is the part the optimiser chooses, which a cap limits.
+- *path*: one covariance estimator under one constraint set at one cap on chosen turnover, run month by month from July 1999 to December 2024. The *mandate* is constraint set C3 of notebook 08.
+- *expectation*: a test of a result fixed in advance. Its *verdict* is met or not met.
+- *standard error*: the standard deviation an estimate would have across samples of the same length, its uncertainty.
+- *paired test*: a test of the difference between two figures measured on the same months, which uses what the two series share month by month. Here it is the variance test of Ledoit and Wolf (2011), copied unchanged from the repository of Optimal versus naive diversification as `src/slt/source/paired.py`.
+- *circular block bootstrap*: a way of measuring the uncertainty of a figure from new samples of the same length taken from the months, in blocks of 12 consecutive months, the last month followed by the first, so that the correlation of nearby months is kept. The *seed* is the number that starts the random choice of blocks, so that a rerun gives the same samples.
+- *p-value*: from the bootstrap, the probability of a difference at least as far from zero as the one observed if the two variances were equal.
+- *95 per cent interval*: the range around the difference of the two tracking errors that the bootstrap gives at the 95 per cent level. A difference whose interval excludes zero is distinguishable from zero at that level.
+- *critical value*: the bootstrap's 95th percentile of the difference measured in its own standard errors. The interval is the difference plus and minus the critical value times the standard error.
+- *detectable difference*: the difference at which the interval would exclude zero about four times in five, the critical value plus 0.84, times the standard error.
+- *Holm's correction*: an adjustment of the p-values of a family of comparisons for their number. The smallest p-value is multiplied by the family's size, the next by one less, and each adjusted value is at least the one before it (Holm, 1979).
+- *size*: the share of pairs with equal variances that a test rejects at the 5 per cent level, which should be close to 5 per cent.
+- *Student-t*: a distribution with fatter tails than the normal one. Its *degrees of freedom* are the parameter that sets how fat, and with 5 the tails are fat.
+
+**What I expect to see, and where it comes from.** The settings were set on 18 November 2026, after every recorded run, and are in `src/slt/constants.py` under `PAIRED_`: blocks of 12 months, 2,000 samples, the level 0.95, the seed 20261009 of Optimal versus naive diversification, and a power of 0.80 for the detectable difference.
+
+- *P1*, the one expectation, run before the test touches the study's returns: on 1,000 simulated pairs of 306 months with equal variances, Student-t shocks with 5 degrees of freedom and a monthly standard deviation of 0.23 per cent, about 80 basis points a year, at a correlation of 0.99 and again at 0.80, the share rejected at 5 per cent is at most 6.5 per cent in each. Below 3.5 per cent the test is conservative on 306 months, and the text says so.
+- *Family A*, with no verdict: the sample, factor and principal-component estimators each against Ledoit-Wolf under the mandate at the 2 per cent cap, with Holm's correction across the three. Its first row bears on the second clause of E4.
+- *Family B*, with no verdict: on the Ledoit-Wolf and the factor estimators, the 4 per cent cap and no cap each against the 0.5 per cent cap, with no correction. Its rows bear on the second part of E5.
+- *The factor estimator without two months*, added on 19 November 2026, with no verdict: the two rows of family B on the factor estimator again, without July and December 2008, beside the share of the difference between the two variances that those two months carry.
+
+E4 and E5 keep the verdicts of notebook 09, which compare two point estimates as the expectations were fixed before the run. Running time: about two minutes.
+"""),
+    code(SETUP_13),
+    md("""
+## 1. The active returns as committed
+
+The table notebook 09 committed, one column for each of the twelve paths under the mandate, read from the repository with its SHA-256, so that this run can be tied to the commit. Every pair tested has a value in every month.
+"""),
+    code("""
+active, sha = PR.read_active(ROOT)
+print(f"{PR.ACTIVE_FILE}: {len(active)} months, {active.index[0]} to {active.index[-1]}, {active.shape[1]} paths, SHA-256 {sha}")
+assert len(active) == C.EVAL_MONTHS and list(active.columns) == list(C.MONTHLY_ACTIVE_COLUMNS)
+pairs = list(C.PAIRED_FAMILY_A) + list(C.PAIRED_FAMILY_B)
+for a, b in pairs:
+    assert active["active_return_" + C.PATH_LABELS[a]].notna().all() and active["active_return_" + C.PATH_LABELS[b]].notna().all()
+print(f"{len(pairs)} comparisons, every month present in each")
+"""),
+    md("""
+## 2. P1, the size of the test, before it touches the study's returns
+
+One thousand pairs of 306 months are simulated with equal variances at each of the two correlations, and the test is run on each pair with the settings above. The share of pairs rejected at 5 per cent by the p-value is the verdict, and the share of intervals that exclude zero is reported beside it.
+"""),
+    code("""
+t0 = time.time()
+size = PR.size_table()
+print(size.T.to_string(header=False))
+p1 = (size["P1"] == "met").all()
+for _, r in size.iterrows():
+    note = ", below 3.5 per cent, so conservative on 306 months" if r["share rejected"] < C.PAIRED_SIZE_CONSERVATIVE_BELOW else ""
+    print(f"correlation {r['correlation']}: {r['rejected by p-value']} of {r['pairs']:,} pairs rejected at 5 per cent, "
+          f"{100 * r['share rejected']:.1f} per cent{note} | {100 * r['share of intervals excluding zero']:.1f} per cent of the intervals exclude zero")
+print(f"P1: {'met' if p1 else 'not met'}, the share at most {100 * C.PAIRED_SIZE_MAX:.1f} per cent in each case | {time.time() - t0:.0f} s")
+"""),
+    md("""
+## 3. Families A and B, from the committed active returns
+
+Each difference is the first path's realised tracking error minus the second's, in basis points a year. The seed is the same for every comparison, so a rerun gives the same table.
+"""),
+    code("""
+table = PR.paired_table(active)
+show = ["comparison", "label", "sd 1", "sd 2", "difference", "standard error", "critical value", "lower", "upper",
+        "detectable difference", "correlation", "p-value", "Holm p-value"]
+print(table[show].to_string(index=False, float_format=lambda x: f"{x:.3f}"))
+for _, r in table.iterrows():
+    holm = "" if r["comparison"] == "B" else f", {r['Holm p-value']:.3f} with Holm's correction"
+    print(f"{r['label']}: {r['difference']:+.2f} bp a year, interval {r['lower']:+.2f} to {r['upper']:+.2f}, p {r['p-value']:.3f}{holm}, "
+          f"detectable {r['detectable difference']:.2f}")
+"""),
+    md("""
+## 4. The factor estimator's two rows without July and December 2008
+
+The critical values of the factor estimator's two rows in family B are far above those of the other five. This section shows where that comes from. For each of the two rows it measures the share of the difference between the two variances that July and December 2008 carry, each path's months measured from its own mean over all 306 months, and runs the test again on the other 304 months with the same settings and seed.
+"""),
+    code("""
+left_out = PR.left_out_table(active)
+share = "share of the difference between the two variances in those months"
+for _, r in left_out.iterrows():
+    print(f"{r['label']}: {100 * r[share]:.1f} per cent of the difference between the two variances in {r['months left out']}")
+    print(f"  without them, {r['months']} months: {r['difference']:+.2f} bp a year, standard error {r['standard error']:.2f}, "
+          f"critical value {r['critical value']:.2f}, interval {r['lower']:+.2f} to {r['upper']:+.2f}, p {r['p-value']:.3f}")
+"""),
+    md("""
+## 5. What is committed
+
+Three tables go into `results/20260928/`: `paired_tests.csv`, the seven comparisons with every column of the test, `paired_size_check.csv`, P1 at its two correlations, and `paired_tests_without_two_months.csv`, the two rows of section 4. None is by month, and no table of an earlier notebook changes.
+"""),
+    code("""
+for p_ in [X.write_results("paired_tests.csv", frame=table), X.write_results("paired_size_check.csv", frame=size),
+           X.write_results("paired_tests_without_two_months.csv", frame=left_out)]:
+    print("written:", p_.relative_to(ROOT))
+print(f"active returns tested: SHA-256 {sha}")
+"""),
+    md("""
+## What was learned, and what could be wrong
+
+What the notebook establishes: the size of the test on series of the study's length, tails and correlation, and, for each pair of paths the write-up compares, the difference of their realised tracking errors with an interval measured on their shared months.
+
+What could still be wrong. The interval is the bootstrap's, and on 306 months a block of 12 months is one of 25, so months of large active returns weigh on the critical value. On the factor estimator two months of 2008, July and December, carry 97 and 99 per cent of the difference between the two variances in the two rows of family B, whose critical values are about 5.9 against 2.2 to 2.4 on the other five, and section 4 shows that without those months the critical value is 2.1 and the change about zero. The test compares variances and says nothing about the mean active return. And the seven comparisons were chosen after the results were known, from the sentences of the write-up that compared two tracking errors, so they are a check of those sentences and not a search among all the pairs.
+"""),
+]
+
+
 if __name__ == "__main__":
     for name, cells in (("01_extraction.ipynb", NB01), ("02_universe.ipynb", NB02), ("03_returns.ipynb", NB03),
                         ("04_reconstruction.ipynb", NB04), ("05_sectors.ipynb", NB05), ("06_answer_key.ipynb", NB06),
                         ("07_covariance.ipynb", NB07), ("08_mandate.ipynb", NB08), ("09_rolling_evaluation.ipynb", NB09),
                         ("10_turnover.ipynb", NB10), ("11_attribution.ipynb", NB11),
-                        ("12_figures.ipynb", NB12)):
+                        ("12_figures.ipynb", NB12), ("13_paired_tests.ipynb", NB13)):
         print("wrote", write(name, cells).relative_to(ROOT))
