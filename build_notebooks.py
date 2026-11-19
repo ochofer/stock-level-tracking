@@ -202,6 +202,7 @@ NB02 = [
 - *gate*: a test of the data layer, fixed in advance in `src/slt/constants.py`. A gate that is not met stops the study.
 - *verdict*: the result of a gate, met or not met, printed in the same words either way.
 - *share code*: CRSP's two-digit code for the type of security (CRSP's guide, p. 78). Codes 10 and 11 are ordinary common shares. A first digit of 3 marks an ADR, an American depositary receipt: a certificate traded in the United States that stands for shares of a company listed abroad. A second digit of 2 marks a company incorporated outside the United States.
+- *basis point*: one hundredth of a percentage point.
 
 **What I expect to see, and where it comes from.** From structural counts made on 10 and 11 November 2026 (rows, distinct values, earliest and latest dates, read from the files' columns; no row printed): CRSP's list holds 2,064 spells of 1,936 PERMNOs, 119 PERMNOs have more than one spell, the earliest spell starts on 31 December 1925, and 503 spells end on 31 December 2024, the current members. CRSP's monthly index file has 1,189 rows from 31 December 1925, so the universe runs 1,188 months, January 1926 to December 2024.
 
@@ -336,7 +337,7 @@ for path in written:
 
 What the notebook establishes: whether CRSP's list is well formed, how closely the universe built from it agrees with CRSP's own count on the same day, the usable window that agreement opens, and G2's verdict. The comparison with Compustat's list and the share codes are reported without a verdict.
 
-What could still be wrong. The count agreeing does not show that the right stocks are in the universe, only that the number is right: a stock in place of another would leave the count unchanged. Notebook 04 tests membership more finely, because a wrong stock would move the universe's return and its summed capitalisation away from CRSP's. The rule reads membership at the start of the month, so a stock that joins mid-month enters the universe the month after, and one that leaves mid-month stays to the month's end. CRSP's own return counts both from the day of the change, and notebook 04 measures what that costs. And Compustat's history on this subscription lists only the members of September 2026, so it cannot show that the universe's past members are right. Notebook 04 sets the universe's return, each member weighted by its market value, beside the index's own price return over the months to December 2004, when the index still weighted by full capitalisation, which is evidence on past membership independent of CRSP's list.
+What could still be wrong. The count agreeing does not show that the right stocks are in the universe, only that the number is right: a stock in place of another would leave the count unchanged. Notebook 04 tests membership more finely, because a wrong stock would move the universe's return and its summed capitalisation away from CRSP's. The rule reads membership at the start of the month, so a stock that joins mid-month enters the universe the month after, and one that leaves mid-month stays to the month's end. CRSP's own monthly return reads membership at the end of the month, so it counts a stock that joins mid-month for the whole month and leaves out one that leaves mid-month (CRSP's guide, pp. 104 and 106), and notebook 04 measures how far the two definitions lie apart. Corrected on 19 November 2026: this sentence had said that CRSP's return counts both from the day of the change. And Compustat's history on this subscription lists only the members of September 2026, so it cannot show that the universe's past members are right. Notebook 04 sets the universe's return, each member weighted by its market value, beside the index's own price return, by period. That gap is a coarse check on membership, which would show an error only if the error moved the return by more than 20 to 36 basis points a year, and it does not confirm the list before 1957.
 """),
 ]
 
@@ -464,7 +465,7 @@ print(coverage.to_string(index=False))
     md("""
 ## 7. Partial-month returns among CRSP's delisting returns, added on 19 November 2026
 
-Section 2 counts the delisting months in which CRSP gives the delisting return. Some of those values are partial-month returns, which compare the last trading price with the last month-end price and say nothing of what the holder received after the delisting. This section counts them by the hundreds of the delisting code, with the guide's condition. It was added on 19 November 2026, after every recorded run, changes no return and has no verdict. Rule D4 stays as it was fixed.
+Section 2 counts the delisting months in which CRSP gives the delisting return. Some of those values are partial-month returns, which compare the last trading price with the last month-end price and say nothing of what the holder received after the delisting. This section counts them by the hundreds of the delisting code, with the guide's condition. It was added on 19 November 2026, after every recorded run, changes no return and has no verdict. Rule D4 stays as it was fixed. Four of them have a code from 500 to 599. For those four the return ends at the last trade, so a loss after the delisting is not in it. The study has not measured what its minus 30 per cent would change if applied to them.
 """),
     code("""
 partial = R.partial_month_counts(panel, data["delistings"])
@@ -545,7 +546,9 @@ NB04 = [
 
   *Added on 19 November 2026, with the reason above left as it was written before the run.* CRSP's guide computes the monthly index return from monthly security returns, and its index of the S&P 500 universe takes the members at the end of the month that have a price at the end of the month and of the month before, so that no delisting return enters, and leaves ADRs out (pp. 104 and 106). The benchmark takes the members at the start of the month, every share code and the delisting returns. Its tracking error against CRSP's return therefore compares two definitions, and section 6 rebuilds the return on CRSP's.
 - *E2*: in every month of the usable window the universe's count within 10 names of CRSP's count, and the summed capitalisation within 2 per cent of CRSP's total value in at least 95 per cent of months. Expected met, with one inference written before any run: CRSP's total value leaves out ADRs and the universe filters no share code, so in months with ADR members, which notebook 02 lists by year, the summed capitalisation may sit above CRSP's total value.
-- *The index's price return*: until 2005 the index weighted each stock by its full capitalisation, as the benchmark does, so over the months to December 2004 the gap is evidence on membership independent of CRSP's list, removals included, which Compustat's history cannot test. A wider gap is expected from 2005, when the index moved to float-adjusted shares. Neither figure has a verdict.
+- *The index's price return*: until 2005 the index weighted each stock by its full capitalisation, as the benchmark does, so over the months to December 2004 a member missing from CRSP's list or a removal dated wrongly would widen the gap, which Compustat's history cannot test. A wider gap is expected from 2005, when the index moved to float-adjusted shares. Neither figure has a verdict.
+
+  *Read on 19 November 2026, after the run, with the expectation above left as it was written.* The gap is a coarse check on membership: from 1957 it would show an error only if the error moved the return by more than 20 to 36 basis points a year, and it does not confirm the list before 1957. Pooled over the years, it is 22.2 basis points a year over 2005 to 2024 against 28.3 over the six years before, so no wider gap is found.
 
 Running time: about a minute.
 """),
@@ -607,7 +610,7 @@ for label in ("with_dividends", "price_only"):
     md("""
 ## 3. Against the index's price return, with no verdict
 
-The benchmark's price-only return beside the index's own price return, over the whole usable window, over the months to December 2004 and over the months from January 2005. Until 2005 the index weighted each stock by its full capitalisation, as the benchmark does, so the gap to December 2004 comes from membership, prices and share counts, and is evidence on membership independent of CRSP's list, removals included. From 2005 the float adjustment adds to it.
+The benchmark's price-only return beside the index's own price return, over the whole usable window, over the months to December 2004 and over the months from January 2005, each measured over its months in one piece. Until 2005 the index weighted each stock by its full capitalisation, as the benchmark does, so a member missing from CRSP's list or a removal dated wrongly would widen the gap to December 2004. The gap is a coarse check on membership. Pooled over the years of each period, from the table by year that section 7 commits, it lies between 20.6 and 36.0 basis points a year in every period from 1957, so it would show an error only if the error moved the return by more than 20 to 36 basis points a year, and at 145.8 over 1926 to 1956 it does not confirm the list before 1957. A wider gap was expected from 2005, when the index moved to float-adjusted shares. Pooled over the years, it is 22.2 over 2005 to 2024 against 28.3 over the six years before, so no wider gap is found.
 """),
     code("""
 last_full = pd.Period(C.INDEX_FULL_CAP_LAST_MONTH, "M")
@@ -615,7 +618,8 @@ index_price = {"whole_window": V.compare(b["benchmark_return_price_only"], crsp[
                "to_december_2004": V.compare(b.loc[b.index <= last_full, "benchmark_return_price_only"], crsp["index_price_return"]),
                "from_january_2005": V.compare(b.loc[b.index > last_full, "benchmark_return_price_only"], crsp["index_price_return"])}
 for label, c in index_price.items():
-    print(f"{label}: months {c['months']} | tracking error {c['tracking_error'] * 1e4:.1f} basis points a year"
+    print(f"{label}: months {c['months']} | tracking error, measured over the months in one piece, "
+          f"{c['tracking_error'] * 1e4:.1f} basis points a year"
           f" | mean monthly difference {c['mean_difference'] * 1e4:.2f} basis points | correlation {c['correlation']:.6f}")
 """),
     md("""
@@ -658,7 +662,7 @@ print(V.verdict_line("The four gates", gates, "The study goes on to the answer k
 
 A diagnostic with no verdict, added on 19 November 2026 after every recorded run: the return of the S&P 500 universe built once more on CRSP's definition of its index, as CRSP's guide gives it on pages 104 and 106. In month t it takes the members on the last trading day of month t, with a price at the end of month t and at the end of month t−1, a positive share count at the end of month t−1 and a return in month t, leaves out the ADRs, each weighted by its capitalisation at the end of month t−1, and applies no delisting return. Its tracking error and mean monthly difference against CRSP's return, with dividends and price-only, are printed beside the benchmark's of section 2, and so is the benchmark against it, which measures how far the two definitions lie apart. Beside them, the months in which the number of stocks it uses equals CRSP's used count, and the same count with the ADRs added back.
 
-How the result is read was fixed in `src/slt/constants.py` before this section ran, on the tracking error with dividends of the return on CRSP's definition against CRSP's return. At 2.3 basis points a year or less, the benchmark's gap to CRSP's return comes from the difference of definition. At 10.0 or more, the difference of definition does not account for it, and its cause is not known. Between the two, the difference accounts for part of it and the rest has no cause the study can name, and no share is given, because tracking errors do not subtract.
+How the result is read is set in `src/slt/constants.py`, on the tracking error with dividends of the return on CRSP's definition against CRSP's return. The two levels are in a commit of their own, dated 19 November 2026, 10:12, before the commit that holds the result. The repository's history shows that order and no more. At 2.3 basis points a year or less, the benchmark's gap to CRSP's return comes from the difference of definition. At 10.0 or more, the difference of definition does not account for it, and its cause is not known. Between the two, the difference accounts for part of it and the rest has no cause the study can name, and no share is given, because tracking errors do not subtract.
 """),
     code("""
 names, bad_names = X.read_table(root, "crsp_msenames")
@@ -687,7 +691,7 @@ for label in ("with_dividends", "price_only"):
 print(json.dumps({k: v for k, v in crsp_definition.items() if k.startswith(("months_", "most_"))}, indent=1))
 form = V.crsp_definition_reading(crsp_definition["with_dividends"]["tracking_error"])
 crsp_definition["reading"] = {"levels": list(C.CRSP_DEFINITION_READING_LEVELS), "form": form, "says": V.CRSP_DEFINITION_FORMS[form]}
-print(f"Reading, fixed before the run: {form}, {V.CRSP_DEFINITION_FORMS[form]}.")
+print(f"Reading, by the two levels set in the constants: {form}, {V.CRSP_DEFINITION_FORMS[form]}.")
 """),
     md("""
 ## 7. What is committed
@@ -1500,7 +1504,7 @@ print(one_line("E6"))
     md("""
 ## 5. The bias statistic with its interval, added on 19 November 2026
 
-Added on 19 November 2026, after every recorded run, with no verdict: E6's verdict is unchanged. Each mandate path's bias statistic is given with a 95 per cent interval from a circular block bootstrap of its months, in the form of the companion study's notebook 12 and with its settings. The interval is computed from the two tables by month that section 6 commits, the active returns and the forecast tracking errors, so it can be computed again from the repository alone. Each bias statistic recomputed from the two tables must equal the one of section 2. The Ledoit-Wolf path at the 0.5 per cent cap, whose bias statistic of 1.26 is the one nearest the upper end of E6's range, 1.25, is read with its interval.
+Added on 19 November 2026, after every recorded run, with no verdict: E6's verdict is unchanged. Each mandate path's bias statistic is given with a 95 per cent interval from a circular block bootstrap of its months, in the form of the companion study's notebook 12 and with its settings. The interval is computed from the two tables by month that section 6 commits, the active returns and the forecast tracking errors, so it can be computed again from the repository alone. Each bias statistic recomputed from the two tables must equal the one of section 2. The paths whose interval reaches into E6's range, whose upper end is 1.25, are listed from the table below it: two of the twelve, the Ledoit-Wolf estimator at the 0.5 per cent cap and at the 1 per cent cap. The other ten intervals lie wholly above 1.25.
 """),
     code("""
 table, empty = V.active_returns_table(records)
@@ -1511,6 +1515,9 @@ for _, r in bands.iterrows():
     s = summaries[r["path"]]
     assert abs(r["bias"] - s["bias"]) < 1e-12 and r["months"] == s["bias_months"], r["path"]
 print(bands[["path", "months", "bias", "interval_low", "interval_high"]].round(3).to_string(index=False))
+reach = bands.loc[bands["interval_low"] <= C.E6_BIAS_RANGE[1], "path"].tolist()
+print(f"interval reaching into the band, whose upper end is {C.E6_BIAS_RANGE[1]}: {', '.join(reach)}")
+print(f"interval wholly above it: {len(bands) - len(reach)} of {len(bands)} paths")
 """),
     md("""
 ## 6. What is committed
@@ -2040,7 +2047,7 @@ NB13 = [
     md("""
 # 13. The paired tests: two realised tracking errors on the same months
 
-**What this notebook does.** It compares, two at a time, figures that notebook 09 measured on the same 306 months, with a test built for figures that share their months, and writes two tables. It reads only the tables committed in `results/20260928/`, needs no extraction and runs on any machine with a clone of the repository. It was added on 18 November 2026, after every recorded run of the study, and changes no result that notebooks 01 to 11 judged.
+**What this notebook does.** It compares, two at a time, figures that notebook 09 measured on the same 306 months, with a test built for figures that share their months, and writes four tables. It reads only the tables committed in `results/20260928/`, needs no extraction and runs on any machine with a clone of the repository. It was added on 18 November 2026, after every recorded run of the study, and changes no result that notebooks 01 to 11 judged.
 
 **Why it comes here.** The write-up compared two such figures by the sampling error of one of them. Two paths run on the same months move together month by month, so the difference between their figures is far less noisy than either figure, and a test on the paired months measures that difference against its own uncertainty.
 
@@ -2070,10 +2077,11 @@ NB13 = [
 
 **What I expect to see, and where it comes from.** The settings were set on 18 November 2026, after every recorded run, and are in `src/slt/constants.py` under `PAIRED_`: blocks of 12 months, 2,000 samples, the level 0.95, the seed 20261009 of Optimal versus naive diversification, and a power of 0.80 for the detectable difference.
 
-- *P1*, the one expectation, run before the test touches the study's returns: on 1,000 simulated pairs of 306 months with equal variances, Student-t shocks with 5 degrees of freedom and a monthly standard deviation of 0.23 per cent, about 80 basis points a year, at a correlation of 0.99 and again at 0.80, the share rejected at 5 per cent is at most 6.5 per cent in each. Below 3.5 per cent the test is conservative on 306 months, and the text says so.
+- *P1*, the one expectation. In notebook 13 the size check runs before the seven comparisons: on 1,000 simulated pairs of 306 months with equal variances, Student-t shocks with 5 degrees of freedom and a monthly standard deviation of 0.23 per cent, about 80 basis points a year, at a correlation of 0.99 and again at 0.80, the share rejected at 5 per cent is at most 6.5 per cent in each. Below 3.5 per cent at both settings, the text says that the test rejects less often than its level, that an interval that excludes zero stands, and that an interval that includes zero is weaker evidence of no difference than a test of exact size would give.
 - *Family A*, with no verdict: the sample, factor and principal-component estimators each against Ledoit-Wolf under the mandate at the 2 per cent cap, with Holm's correction across the three. Its first row bears on the second clause of E4.
 - *Family B*, with no verdict: on the Ledoit-Wolf and the factor estimators, the 4 per cent cap and no cap each against the 0.5 per cent cap, with no correction. Its rows bear on the second part of E5.
 - *The factor estimator without two months*, added on 19 November 2026, with no verdict: the two rows of family B on the factor estimator again, without July and December 2008, beside the share of the difference between the two variances that those two months carry.
+- *The other block lengths*: the seven comparisons again at blocks of 3, 6 and 24 months, with the same seed and 2,000 samples, and Holm's correction across family A at each length. No order of commits is claimed for these lengths. The block is fixed at 12 months, where Ledoit and Wolf (2008, Algorithm 3.1) choose its length from the data. At blocks of 3, 6 and 24 months, added on 19 November 2026, after the study's results were known, with no verdict, the sample estimator's difference from Ledoit-Wolf has intervals of 0.81 to 2.57, 0.84 to 2.55 and 0.61 to 2.77, with Holm p-values of 0.003, 0.0015 and 0.0495, and the other six intervals include zero at every length. That interval therefore excludes zero at all four lengths. At 24 months Holm's p-value is 0.0495, and 2,000 samples cannot place it on either side of 0.05.
 
 E4 and E5 keep the verdicts of notebook 09, which compare two point estimates as the expectations were fixed before the run. Running time: about two minutes.
 """),
@@ -2093,7 +2101,7 @@ for a, b in pairs:
 print(f"{len(pairs)} comparisons, every month present in each")
 """),
     md("""
-## 2. P1, the size of the test, before it touches the study's returns
+## 2. P1, the size of the test, before the seven comparisons
 
 One thousand pairs of 306 months are simulated with equal variances at each of the two correlations, and the test is run on each pair with the settings above. The share of pairs rejected at 5 per cent by the p-value is the verdict, and the share of intervals that exclude zero is reported beside it.
 """),
@@ -2103,7 +2111,7 @@ size = PR.size_table()
 print(size.T.to_string(header=False))
 p1 = (size["P1"] == "met").all()
 for _, r in size.iterrows():
-    note = ", below 3.5 per cent, so conservative on 306 months" if r["share rejected"] < C.PAIRED_SIZE_CONSERVATIVE_BELOW else ""
+    note = ", below 3.5 per cent: the test rejects less often than its level" if r["share rejected"] < C.PAIRED_SIZE_CONSERVATIVE_BELOW else ""
     print(f"correlation {r['correlation']}: {r['rejected by p-value']} of {r['pairs']:,} pairs rejected at 5 per cent, "
           f"{100 * r['share rejected']:.1f} per cent{note} | {100 * r['share of intervals excluding zero']:.1f} per cent of the intervals exclude zero")
 print(f"P1: {'met' if p1 else 'not met'}, the share at most {100 * C.PAIRED_SIZE_MAX:.1f} per cent in each case | {time.time() - t0:.0f} s")
@@ -2137,13 +2145,30 @@ for _, r in left_out.iterrows():
           f"critical value {r['critical value']:.2f}, interval {r['lower']:+.2f} to {r['upper']:+.2f}, p {r['p-value']:.3f}")
 """),
     md("""
-## 5. What is committed
+## 5. The seven comparisons at blocks of 3, 6 and 24 months, added on 19 November 2026
 
-Three tables go into `results/20260928/`: `paired_tests.csv`, the seven comparisons with every column of the test, `paired_size_check.csv`, P1 at its two correlations, and `paired_tests_without_two_months.csv`, the two rows of section 4. None is by month, and no table of an earlier notebook changes.
+The block length is fixed at 12 months. Ledoit and Wolf (2008, Algorithm 3.1) choose it from the data instead, by simulation. This section, added on 19 November 2026, after the study's results were known, with no verdict, runs the seven comparisons again at blocks of 3, 6 and 24 months, with the same seed and 2,000 samples, and Holm's correction across family A at each length. With 2,000 samples a p-value moves in steps of one in 2,001, and the error of the bootstrap's own sampling is printed beside each Holm value of family A.
+"""),
+    code("""
+other = PR.other_blocks_table(active)
+print(other[["block"] + show].to_string(index=False, float_format=lambda x: f"{x:.3f}"))
+for _, r in other[other["comparison"] == "A"].iterrows():
+    n = int(r["draws"])
+    se = r["Holm p-value"] / r["p-value"] * (r["p-value"] * (1 - r["p-value"]) / n) ** 0.5
+    print(f"blocks of {r['block']}: {r['label']}: interval {r['lower']:+.2f} to {r['upper']:+.2f}, "
+          f"Holm p {r['Holm p-value']:.4f}, bootstrap error of that value about {se:.4f}")
+excl = ((other["lower"] > 0) | (other["upper"] < 0)).groupby(other["block"]).sum()
+print("intervals that exclude zero, by block length:", {int(k): int(v) for k, v in excl.items()})
+"""),
+    md("""
+## 6. What is committed
+
+Four tables go into `results/20260928/`: `paired_tests.csv`, the seven comparisons with every column of the test, `paired_size_check.csv`, P1 at its two correlations, `paired_tests_without_two_months.csv`, the two rows of section 4, and, added on 19 November 2026, `paired_tests_other_blocks.csv`, the seven comparisons at each of the three other block lengths of section 5. None is by month, and no table of an earlier notebook changes.
 """),
     code("""
 for p_ in [X.write_results("paired_tests.csv", frame=table), X.write_results("paired_size_check.csv", frame=size),
-           X.write_results("paired_tests_without_two_months.csv", frame=left_out)]:
+           X.write_results("paired_tests_without_two_months.csv", frame=left_out),
+           X.write_results("paired_tests_other_blocks.csv", frame=other)]:
     print("written:", p_.relative_to(ROOT))
 print(f"active returns tested: SHA-256 {sha}")
 """),

@@ -103,7 +103,7 @@ CRSP_DEFINITION_FORMS = {
 
 
 def crsp_definition_reading(tracking_error: float, levels: tuple = C.CRSP_DEFINITION_READING_LEVELS) -> str:
-    """Added 19 November 2026: how the diagnostic is read, fixed before its run (constants.CRSP_DEFINITION_READING_LEVELS),
+    """Added 19 November 2026: how the diagnostic is read, by the two levels of constants.CRSP_DEFINITION_READING_LEVELS,
     from the tracking error with dividends of the return on CRSP's definition against CRSP's return: "first" at or
     below the lower level, "third" at or above the upper, "middle" between them (CRSP_DEFINITION_FORMS)."""
     low, high = levels

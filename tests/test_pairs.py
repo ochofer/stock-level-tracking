@@ -104,3 +104,28 @@ def test_the_factor_rows_without_july_and_december_2008():
             round(r4["lower"], 2), round(r4["upper"], 2)) == (-0.10, 1.03, 2.10, -2.27, 2.06)
     assert (round(rn["difference"], 2), round(rn["standard error"], 2), round(rn["critical value"], 2),
             round(rn["lower"], 2), round(rn["upper"], 2)) == (-0.02, 1.02, 2.06, -2.12, 2.08)
+
+
+def test_the_seven_comparisons_at_the_other_block_lengths():
+    """Added 19 November 2026: the committed table is the rerun at blocks of 3, 6 and 24 months, Holm's correction is
+    applied across family A at each length, and its figures are those the text quotes."""
+    assert C.PAIRED_OTHER_BLOCKS == (3, 6, 24) and C.PAIRED_BLOCK_MONTHS not in C.PAIRED_OTHER_BLOCKS
+    committed = pd.read_csv(RES / "paired_tests_other_blocks.csv")
+    active, _ = PR.read_active(ROOT)
+    rerun = PR.other_blocks_table(active)
+    assert list(committed.columns) == list(rerun.columns) and len(committed) == 7 * len(C.PAIRED_OTHER_BLOCKS)
+    assert list(committed["block"]) == [b for b in C.PAIRED_OTHER_BLOCKS for _ in range(7)]
+    for col in rerun.columns:
+        if rerun[col].dtype.kind in "fi":
+            assert np.allclose(committed[col].to_numpy(float), rerun[col].to_numpy(float), atol=1e-7, equal_nan=True), col
+        else:
+            assert (committed[col].astype(str) == rerun[col].astype(str)).all(), col
+    for b, g in committed.groupby("block"):
+        a = g[g["comparison"] == "A"]
+        assert np.allclose(a["Holm p-value"], PT.holm(a["p-value"]), atol=1e-8), b
+        assert g[g["comparison"] == "B"]["Holm p-value"].isna().all(), b
+    s = committed[committed["series 1"] == "sample_C3_cap200bp"].set_index("block")
+    assert [(round(s.loc[b, "lower"], 2), round(s.loc[b, "upper"], 2)) for b in (3, 6, 24)] == [(0.81, 2.57), (0.84, 2.55), (0.61, 2.77)]
+    assert [round(s.loc[b, "Holm p-value"], 4) for b in (3, 6, 24)] == [0.003, 0.0015, 0.0495]
+    rest = committed[committed["series 1"] != "sample_C3_cap200bp"]
+    assert ((rest["lower"] < 0) & (rest["upper"] > 0)).all()

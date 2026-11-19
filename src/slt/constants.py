@@ -277,8 +277,9 @@ E1_MEAN_DIFF_MAX = 0.0002        # per month
 # Fixed 11 November 2026: the price-only benchmark against the index's own price
 # return over the months to December 2004, as tracking error and mean difference
 # beside the whole-window figures, with no verdict. Until 2005 the index weighted
-# by full capitalisation, so this gap is evidence on membership independent of
-# CRSP's list, removals included, which Compustat's history cannot test.
+# by full capitalisation, so a member missing from CRSP's list or a removal dated
+# wrongly would widen this gap, which Compustat's history cannot test. It is a
+# coarse check on membership.
 INDEX_FULL_CAP_LAST_MONTH = "2004-12"
 # Added 19 November 2026, after the study's results were known, with no verdict: a
 # diagnostic of E1. Notebook 04 rebuilds the return of the S&P 500 universe once more
@@ -294,7 +295,7 @@ INDEX_FULL_CAP_LAST_MONTH = "2004-12"
 # count (`usdcnt`, pp. 43 and 102).
 CRSP_DEFINITION_MEMBERSHIP = "membership interval covers the last trading day of month t"
 CRSP_DEFINITION_ADR_FIRST_DIGIT = 3
-# Fixed 19 November 2026, before the run of the diagnostic: how its
+# Set on 19 November 2026: how the diagnostic's
 # result is read, on the tracking error with dividends of the return on CRSP's
 # definition against CRSP's return, in a year. At or below the first level the text
 # says that the benchmark's 11.5 basis points come from the difference of definition.
@@ -304,7 +305,9 @@ CRSP_DEFINITION_ADR_FIRST_DIGIT = 3
 # name, with no share given, because tracking errors do not subtract. Every reading
 # gives three figures: the benchmark against CRSP's return, the return on CRSP's
 # definition against CRSP's return, and the benchmark against the return on CRSP's
-# definition.
+# definition. The two levels are in a commit of their own, dated 19 November 2026,
+# 10:12, before the commit that holds the result. The repository's history shows that
+# order and no more.
 CRSP_DEFINITION_READING_LEVELS = (0.00023, 0.0010)   # 2.3 and 10.0 basis points a year
 
 # E2, counts and values. In every month of the usable window the universe's count
@@ -838,13 +841,16 @@ PAIRED_PERIODS = 12                    # months a year, the annualisation
 PAIRED_REFERENCE = ("ledoit_wolf", MANDATE, MAIN_CAP)
 PAIRED_FAMILY_A = tuple(((est, MANDATE, MAIN_CAP), PAIRED_REFERENCE) for est in ("sample", "factor", "pca"))
 PAIRED_FAMILY_B = tuple(((est, MANDATE, cap), (est, MANDATE, 0.005)) for est in FRONTIER_ESTIMATORS for cap in (0.04, None))
-# P1, the one expectation of notebook 13, run before the test touches the study's
-# returns: on PAIRED_SIZE_PAIRS simulated pairs of PAIRED_SIZE_MONTHS months with
+# P1, the one expectation of notebook 13, whose size check runs before the seven
+# comparisons: on PAIRED_SIZE_PAIRS simulated pairs of PAIRED_SIZE_MONTHS months with
 # equal variances, Student-t shocks with PAIRED_SIZE_T_DOF degrees of freedom and a
 # monthly standard deviation of PAIRED_SIZE_SD, at each correlation of
 # PAIRED_SIZE_CASES with its seed, the share of pairs rejected at 5% by the p-value is
 # at most PAIRED_SIZE_MAX. The share is reported in each case, and where it lies below
-# PAIRED_SIZE_CONSERVATIVE_BELOW the text says the test is conservative on 306 months.
+# PAIRED_SIZE_CONSERVATIVE_BELOW at both settings the text says that the test rejects
+# less often than its level, that an interval that excludes zero stands, and that an
+# interval that includes zero is weaker evidence of no difference than a test of exact
+# size would give.
 # 0.99 is the correlation of the closest pair of family A, and 0.80 that of the
 # structured estimators against Ledoit-Wolf. A monthly standard deviation of 0.23% is
 # about 80 basis points a year, the paths' realised tracking error.
@@ -865,6 +871,12 @@ PAIRED_SIZE_CONSERVATIVE_BELOW = 0.035
 # settings and seed.
 PAIRED_LEFT_OUT_MONTHS = ("2008-07", "2008-12")
 PAIRED_LEFT_OUT_ROWS = tuple(pair for pair in PAIRED_FAMILY_B if pair[0][0] == "factor")
+# Added 19 November 2026, after the study's results were known, with no verdict, and
+# with no order of commits claimed: the seven comparisons again at blocks of 3, 6 and
+# 24 months, with PAIRED_SEED and PAIRED_DRAWS, and Holm's correction across family A
+# at each length. The study fixes the block at PAIRED_BLOCK_MONTHS, where Ledoit and
+# Wolf (2008, Algorithm 3.1) choose its length from the data.
+PAIRED_OTHER_BLOCKS = (3, 6, 24)
 
 # Added 19 November 2026, after the study's results were known. Four additions, each
 # with no verdict: E6, E8 and E9 keep the verdicts notebooks 09 and 11 gave them.

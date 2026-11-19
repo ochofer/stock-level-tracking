@@ -6,7 +6,7 @@ unchanged).
 Added on 18 November 2026, after the study's results were known, with no verdict
 (constants.PAIRED_). Everything here reads the active returns as committed, results/<vintage>/active_returns_monthly.csv,
 and runs no path, so anyone can rerun it from the repository alone. size_table() is the expectation P1, the test's
-rejection rate on simulated pairs with equal variances, and runs before paired_table() touches the study's returns.
+rejection rate on simulated pairs with equal variances, and runs before paired_table() in notebook 13.
 """
 from __future__ import annotations
 
@@ -24,9 +24,9 @@ LABELS = {"sample": "sample", "ledoit_wolf": "Ledoit-Wolf", "factor": "factor", 
 DECIMALS = 8          # the tables are written to eight decimals, as the source's are
 
 
-def settings() -> dict:
-    """The bootstrap's settings as every call passes them."""
-    return dict(block=C.PAIRED_BLOCK_MONTHS, draws=C.PAIRED_DRAWS, level=C.PAIRED_LEVEL, periods=C.PAIRED_PERIODS)
+def settings(block: int = C.PAIRED_BLOCK_MONTHS) -> dict:
+    """The bootstrap's settings as every call passes them, at the study's block length unless another is given."""
+    return dict(block=block, draws=C.PAIRED_DRAWS, level=C.PAIRED_LEVEL, periods=C.PAIRED_PERIODS)
 
 
 def read_active(repo) -> tuple:
@@ -65,12 +65,12 @@ def size_table() -> pd.DataFrame:
     return pd.DataFrame(rows).round(DECIMALS)
 
 
-def _row(family, path_1, path_2, active) -> dict:
+def _row(family, path_1, path_2, active, block: int = C.PAIRED_BLOCK_MONTHS) -> dict:
     s1 = active["active_return_" + C.PATH_LABELS[path_1]].to_numpy(dtype=float)
     s2 = active["active_return_" + C.PATH_LABELS[path_2]].to_numpy(dtype=float)
     if np.isnan(s1).any() or np.isnan(s2).any():
         raise ValueError(f"{C.PATH_LABELS[path_1]} or {C.PATH_LABELS[path_2]} has an empty month")
-    out = PT.test(s1, s2, seed=C.PAIRED_SEED, **settings())
+    out = PT.test(s1, s2, seed=C.PAIRED_SEED, **settings(block))
     detectable = PT.detectable_difference(out["se"], out["critical"], C.PAIRED_DETECTABLE_POWER)
     bp = 1e4
     return {"comparison": family, "label": label(path_1, path_2), "series 1": C.PATH_LABELS[path_1],
@@ -109,10 +109,17 @@ def left_out_table(active: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows).round(DECIMALS)
 
 
-def paired_table(active: pd.DataFrame) -> pd.DataFrame:
+def paired_table(active: pd.DataFrame, block: int = C.PAIRED_BLOCK_MONTHS) -> pd.DataFrame:
     """The seven rows: family A with Holm's correction across its three, family B with none."""
-    rows = [_row("A", a, b, active) for a, b in C.PAIRED_FAMILY_A]
+    rows = [_row("A", a, b, active, block) for a, b in C.PAIRED_FAMILY_A]
     for r, h in zip(rows, PT.holm([r["p-value"] for r in rows])):
         r["Holm p-value"] = float(h)
-    rows += [_row("B", a, b, active) for a, b in C.PAIRED_FAMILY_B]
+    rows += [_row("B", a, b, active, block) for a, b in C.PAIRED_FAMILY_B]
     return pd.DataFrame(rows).round(DECIMALS)
+
+
+def other_blocks_table(active: pd.DataFrame) -> pd.DataFrame:
+    """Added 19 November 2026, with no verdict: the seven rows again at each block length of
+    constants.PAIRED_OTHER_BLOCKS, with the same seed and number of samples and Holm's correction across family A at
+    each length."""
+    return pd.concat([paired_table(active, b) for b in C.PAIRED_OTHER_BLOCKS], ignore_index=True)

@@ -222,6 +222,7 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
     P["recon_eval_te"] = num(BP * recon["evaluation_window"]["with_dividends"]["tracking_error"])
     P["idx_to_2004"] = num(BP * recon["against_index_price_return"]["to_december_2004"]["tracking_error"])
     P["idx_from_2005"] = num(BP * recon["against_index_price_return"]["from_january_2005"]["tracking_error"])
+    readme = (pathlib.Path(repo) / "README.md").read_text(encoding="utf-8")
     P["e4_months"] = str(cov["e4_first_clause"]["months_at_or_above_level"])
     P["e4_one_class"] = str(cov["share_class_check"]["months_one_class_at_or_above_level"])
     P["member_months"] = f"{universe['member_months']:,}"
@@ -259,7 +260,36 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
         P[f"fa_x{ck}_lo"], P[f"fa_x{ck}_hi"] = signed(r["lower"]), signed(r["upper"])
         P[f"fa_x{ck}_crit"] = num(r["critical value"])
     assert (size["P1"] == "met").all() and (size["share rejected"] < C.PAIRED_SIZE_CONSERVATIVE_BELOW).all(), \
-        "the text says P1 is met and the test conservative on 306 months"
+        "the text says P1 is met and the test rejects less often than its level at both settings"
+    # Added 19 November 2026: the seven comparisons at the other block lengths, one sentence for the README, the note
+    # and notebook 13, built from the table and asserted here.
+    ob = read("paired_tests_other_blocks.csv", res)                                     # notebook 13
+    assert sorted(ob["block"].unique()) == sorted(C.PAIRED_OTHER_BLOCKS) and C.PAIRED_BLOCK_MONTHS == 12
+    first = ob[ob["series 1"] == MAIN["sample"]].set_index("block").loc[list(C.PAIRED_OTHER_BLOCKS)]
+    rest = ob[ob["series 1"] != MAIN["sample"]]
+    assert (first["series 2"] == MAIN["ledoit_wolf"]).all() and (first["lower"] > 0).all(), \
+        "the text says the sample estimator's interval excludes zero at every length"
+    assert len(rest) == 6 * len(C.PAIRED_OTHER_BLOCKS) and ((rest["lower"] < 0) & (rest["upper"] > 0)).all(), \
+        "the text says the other six intervals include zero at every length"
+    h24, p24, n24 = first.loc[24, "Holm p-value"], first.loc[24, "p-value"], int(first.loc[24, "draws"])
+    se24 = h24 / p24 * (p24 * (1 - p24) / n24) ** 0.5
+    assert abs(h24 - 0.05) < 1.96 * se24, "the text says the samples cannot place the value on either side of 0.05"
+
+    def four(x):
+        return f"{x:.4f}".rstrip("0")
+    blocks = ", ".join(str(b) for b in C.PAIRED_OTHER_BLOCKS[:-1]) + f" and {C.PAIRED_OTHER_BLOCKS[-1]}"
+    ivs = [f"{r.lower:.2f} to {r.upper:.2f}" for r in first.itertuples()]
+    holms = [four(h) for h in first["Holm p-value"]]
+    P["blocks"] = (f"The block is fixed at {C.PAIRED_BLOCK_MONTHS} months, where Ledoit and Wolf (2008, Algorithm 3.1) "
+                   f"choose its length from the data. At blocks of {blocks} months, added on 19 November 2026, after the "
+                   f"study's results were known, with no verdict, the sample estimator's difference from Ledoit-Wolf has "
+                   f"intervals of {ivs[0]}, {ivs[1]} and {ivs[2]}, with Holm p-values of {holms[0]}, {holms[1]} and "
+                   f"{holms[2]}, and the other six intervals include zero at every length. That interval therefore "
+                   f"excludes zero at all four lengths. At {C.PAIRED_OTHER_BLOCKS[-1]} months Holm's p-value is "
+                   f"{holms[2]}, and {n24:,} samples cannot place it on either side of 0.05.")
+    nb13 = json.loads((pathlib.Path(repo) / "notebooks" / "13_paired_tests.ipynb").read_text(encoding="utf-8"))
+    nb13_text = "".join("".join(c["source"]) for c in nb13["cells"] if c["cell_type"] == "markdown")
+    assert P["blocks"] in readme and P["blocks"] in nb13_text, "the README and notebook 13 carry the sentence built here"
     P["size_hi_rho"], P["size_lo_rho"] = (num(100 * size.set_index("correlation").loc[r, "share rejected"]) for r in (0.99, 0.80))
     rows8 = []
     for lab, r in pt.iterrows():
@@ -278,6 +308,10 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
         P[f"gap{k}"] = num(BP * float((s["tracking_error_against_index_price"] ** 2).mean()) ** 0.5)
     s = ry[(ry["year"] >= 1957) & (ry["year"] <= 2004)]
     P["gap_57_04"] = num(BP * float((s["tracking_error_against_index_price"] ** 2).mean()) ** 0.5)
+    # Added 19 November 2026: the months to December 2004 pooled over the years, beside the figure measured in one piece.
+    s = ry[ry["year"] <= 2004]
+    P["gap_to_2004"] = num(BP * float((s["tracking_error_against_index_price"] ** 2).mean()) ** 0.5)
+    assert f"The {P['idx_to_2004']} basis points of the months to December 2004, measured in one piece ({P['gap_to_2004']} pooled over the years)" in readme
     P["gap_1926"], P["gap_1927"] = (num(BP * ry.set_index("year").loc[y, "tracking_error_against_index_price"], 0) for y in (1926, 1927))
 
     # --- Table 1: the gates and expectations, each with its figure and verdict ---
@@ -314,6 +348,21 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
                       num(BP * s["active_return_gross"], 1, True), num(BP * s["active_return_gross_se"]),
                       num(BP * s["active_return_net_at_10bp"], 1, True), num(100 * s["turnover_total_per_year"]),
                       num(100 * s["turnover_chosen_per_year"]), f"{s['held_mean']:.0f}"])
+    # Added 19 November 2026: the paths whose interval reaches into the band, listed from the table of twelve.
+    band_hi = C.E6_BIAS_RANGE[1]
+    reach = [p for p in C.MONTHLY_PATHS if intervals.loc[C.PATH_LABELS[p], "interval_low"] <= band_hi]
+    assert sorted(reach, key=lambda p: p[2]) == [("ledoit_wolf", C.MANDATE, 0.005), ("ledoit_wolf", C.MANDATE, 0.01)], \
+        "the text names the two paths whose interval reaches into the band"
+    assert len(C.MONTHLY_PATHS) == 12 and all(intervals.loc[C.PATH_LABELS[p], "interval_low"] > band_hi
+                                              for p in C.MONTHLY_PATHS if p not in reach)
+    a_, b_ = (intervals.loc[C.PATH_LABELS[p]] for p in sorted(reach, key=lambda p: p[2]))
+    P["band_reach"] = (f"Of the twelve paths under the mandate, two have an interval that reaches into the band, both on "
+                       f"the Ledoit-Wolf estimator: at the 0.5 per cent cap the bias statistic is {a_['bias']:.2f}, with an "
+                       f"interval of {a_['interval_low']:.2f} to {a_['interval_high']:.2f}, and at the 1 per cent cap "
+                       f"{b_['bias']:.2f}, from {b_['interval_low']:.2f} to {b_['interval_high']:.2f}, so the 306 months "
+                       f"cannot tell those two paths' forecasts from ones inside the band. The other ten intervals lie "
+                       f"wholly above {band_hi}.")
+    assert P["band_reach"] in readme, "the README carries the sentence built here"
     P["table2"] = table(["Path", "Realised tracking error", "Mean forecast", "Bias statistic (95 per cent interval)", "Active return, gross",
                          "Newey-West standard error", "Active return, net at 10 bp", "Total turnover, % a year",
                          "Chosen turnover, % a year", "Names held, mean"], rows2)
@@ -396,7 +445,6 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
                         num(r.interaction, 2, True), num(r.interaction_se, 2)] for r in t4.itertuples()])
 
     # --- Other projects (C14): the README's block, word for word, its links on the short words ---
-    readme = (pathlib.Path(repo) / "README.md").read_text(encoding="utf-8")
     block = readme.split("## Other projects", 1)[1].strip().split("\n## ", 1)[0]
     paras = []
     for para in [x.strip() for x in block.split("\n\n") if x.strip()]:
