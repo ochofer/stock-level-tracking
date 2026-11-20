@@ -1,4 +1,4 @@
-# Copied verbatim from src/bp/paired.py at commit 88be669 of github.com/ochofer/optimal-vs-naive-diversification; every line below this one is the source file unchanged.
+# Copied verbatim from src/bp/paired.py at commit ca0ec64 of github.com/ochofer/optimal-vs-naive-diversification; every line below this one is the source file unchanged.
 """
 Ledoit and Wolf (2011): inference on the difference of two variances measured
 on the same months, the test Dom, Howard, Jansen and Lohre (2025) apply to
@@ -8,10 +8,9 @@ their portfolios' realised volatilities.
     the variance. Wilmott, 2011(55), 86-89.
 
 Added on 18 November 2026, after every recorded run of the study, and
-labelled so wherever it is used: notebook 12 had judged one
-path against another by the standard error of a single tracking error, while
-two paths that share their months and whose active returns move together have
-a difference far less noisy than either figure. The module repeats the
+labelled so wherever it is used. Two paths that share their months and whose
+active returns move together have a difference far less noisy than either
+figure. The module repeats the
 structure of Signal Evaluation's test of two Sharpe ratios (Ledoit and Wolf
 2008) with the variance in place of the Sharpe ratio.
 
@@ -90,8 +89,8 @@ import math
 import numpy as np
 
 __all__ = ["log_variance_difference", "sd_difference", "standard_errors", "circular_block_indices", "test", "holm",
-           "simulate_null_pair", "size_check", "normal_cdf", "normal_quantile", "detectable_difference",
-           "chance_to_exclude_zero"]
+           "simulate_null_pair", "size_check", "simulate_garch_pair", "size_check_daily", "normal_cdf", "normal_quantile",
+           "detectable_difference", "chance_to_exclude_zero"]
 
 
 def _moments(r1: np.ndarray, r2: np.ndarray):
@@ -216,12 +215,9 @@ def circular_block_indices(months: int, block: int, draws: int, rng: np.random.G
     return idx.reshape(draws, n_blocks * block)
 
 
-def _bootstrap_statistics(r1, r2, delta_log_hat, delta_sd_hat, scale, block, draws, rng):
-    """The studentised statistics of both differences on the same resamples: shape (draws,) each."""
-    t = len(r1)
-    idx = circular_block_indices(t, block, draws, rng)
-    a, b = r1[idx], r2[idx]
-    n = idx.shape[1]
+def _statistics_of_draws(a, b, block, delta_log_hat, delta_sd_hat, scale):
+    """The studentised statistics of both differences on the resamples in the rows of a and b."""
+    draws, n = a.shape
     n_blocks = n // block
     mu1, mu2 = a.mean(axis=1), b.mean(axis=1)
     g1, g2 = (a ** 2).mean(axis=1), (b ** 2).mean(axis=1)
@@ -236,8 +232,29 @@ def _bootstrap_statistics(r1, r2, delta_log_hat, delta_sd_hat, scale, block, dra
     return stat_log, stat_sd
 
 
+def _bootstrap_statistics(r1, r2, delta_log_hat, delta_sd_hat, scale, block, draws, rng, chunk: int | None = None):
+    """The studentised statistics of both differences on the same resamples: shape (draws,) each. The
+    indices of every draw are drawn once; with `chunk` the statistics are computed `chunk` draws at a
+    time, so that long daily series fit in memory. Every operation runs row by row, and at the chunk the
+    daily test uses the results equal the unchunked ones in the recorded environment; a draw computed
+    alone need not give the bits it gives among many, because the order in which numpy adds the elements
+    of a row can depend on the shape of the array the row sits in, so the test allows 1e-12 at a chunk
+    of one draw. The monthly test is not chunked (added 18 November 2026 for the daily series)."""
+    t = len(r1)
+    idx = circular_block_indices(t, block, draws, rng)
+    if chunk is None or chunk >= draws:
+        return _statistics_of_draws(r1[idx], r2[idx], block, delta_log_hat, delta_sd_hat, scale)
+    stat_log, stat_sd = np.empty(draws), np.empty(draws)
+    for start in range(0, draws, chunk):
+        part = idx[start:start + chunk]
+        sl, ss = _statistics_of_draws(r1[part], r2[part], block, delta_log_hat, delta_sd_hat, scale)
+        stat_log[start:start + len(part)], stat_sd[start:start + len(part)] = sl, ss
+    return stat_log, stat_sd
+
+
 def test(r1, r2, block: int = 12, draws: int = 2000, level: float = 0.95, seed: int | np.random.Generator = 0,
-         periods: int = 12, ddof: int = 1) -> dict:
+         periods: int = 12, ddof: int = 1, chunk: int | None = None) -> dict:
+
     """Ledoit and Wolf's test of equal variances, r1 against r2, on paired monthly series.
 
     Returns the two annualised standard deviations and their difference (r1 minus r2, in the n minus ddof
@@ -256,7 +273,7 @@ def test(r1, r2, block: int = 12, draws: int = 2000, level: float = 0.95, seed: 
     delta_log_hat = float(_delta_log(mu1, mu2, g1, g2))
     delta_sd_hat = float(_delta_sd(mu1, mu2, g1, g2, scale))
     se = standard_errors(r1, r2, periods, ddof)
-    stat_log, stat_sd = _bootstrap_statistics(r1, r2, delta_log_hat, delta_sd_hat, scale, block, draws, rng)
+    stat_log, stat_sd = _bootstrap_statistics(r1, r2, delta_log_hat, delta_sd_hat, scale, block, draws, rng, chunk)
     d_log = abs(delta_log_hat) / se["se_log"]
     p_log = (int((stat_log >= d_log).sum()) + 1) / (draws + 1)
     d_sd = abs(delta_sd_hat) / se["se_sd"]
@@ -316,7 +333,80 @@ def size_check(pairs: int, months: int, sd: float, rho: float, dof: int, seed: i
     rejected = p_values < 1 - level
     return {"rate": float(rejected.mean()), "rejected": int(rejected.sum()),
             "rate_interval": float(excludes.mean()), "rejected_interval": int(excludes.sum()), "pairs": pairs,
-            "p_values": p_values, "differences": np.array(differences)}
+            "p_values": p_values, "excludes_interval": excludes, "differences": np.array(differences)}
+
+
+def simulate_garch_pair(days: int, sd: float, rho: float, dof: int, garch: tuple[float, float, float],
+                        rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray]:
+    """Two daily series with mean zero, the same unconditional standard deviation `sd`, correlation rho,
+    Student-t shocks scaled to variance 1, and one GARCH(1,1) variance common to both: with (omega, alpha,
+    beta) = garch, the variance of day t is omega + alpha times the squared common shock of the day before
+    (the shock as it entered the series, scaled by that day's variance) + beta times the variance of the
+    day before, and it scales the common shock and both own shocks of day t; the recursion starts at the
+    unconditional variance omega / (1 - alpha - beta), which is 1 for the study's (0.02, 0.06, 0.92)."""
+    omega, alpha, beta = garch
+    scale = np.sqrt(dof / (dof - 2))
+    common, own1, own2 = (rng.standard_t(dof, size=(3, days)) / scale)
+    h = np.empty(days)
+    h0 = omega / (1.0 - alpha - beta)
+    scaled_common = np.empty(days)
+    for d in range(days):
+        h[d] = h0 if d == 0 else omega + alpha * scaled_common[d - 1] ** 2 + beta * h[d - 1]
+        scaled_common[d] = np.sqrt(h[d]) * common[d]
+    vol = np.sqrt(h)
+    e1 = np.sqrt(rho) * scaled_common + np.sqrt(1 - rho) * vol * own1
+    e2 = np.sqrt(rho) * scaled_common + np.sqrt(1 - rho) * vol * own2
+    return sd * e1, sd * e2
+
+
+def _daily_pair_test(job):
+    """One pair of the daily size check: the test on the pair with its own bootstrap seed."""
+    r1, r2, seed_sequence, block, draws, level, periods, ddof, chunk = job
+    out = test(r1, r2, block=block, draws=draws, level=level, seed=np.random.default_rng(seed_sequence),
+               periods=periods, ddof=ddof, chunk=chunk)
+    return out["p_value"], out["excludes_zero"], out["difference"], out["se"], out["critical"]
+
+
+def size_check_daily(pairs: int, days: int, sd: float, rho: float, dof: int, garch: tuple[float, float, float], seed: int,
+                     block: int = 252, draws: int = 2000, level: float = 0.95, periods: int = 252, ddof: int = 1,
+                     chunk: int | None = 200, workers: int | None = None, batch: int = 100) -> dict:
+    """The size check on simulated daily pairs with clustered volatility (simulate_garch_pair), otherwise as
+    size_check: the share of pairs with equal variances whose p-value falls below 1 - level, the share of
+    intervals excluding zero, the counts, each pair's p-value, difference, standard error and critical
+    value (the critical values added 19 November 2026, so that the size table can report their median).
+    The pairs are drawn in sequence from one generator and each pair's bootstrap seed is spawned in
+    sequence, so the first k pairs of a run of n are the pairs of a run of k (tests/test_daily.py). With
+    `workers` above one the tests of the pairs run in that many processes, `batch` pairs at a time, the
+    data still drawn in sequence; each pair's figures are those of the one-process run (added 20
+    November 2026, so that the three runs of 3,000 pairs fit a sitting)."""
+    root = np.random.SeedSequence(seed)
+    data_seed, boot_seed = root.spawn(2)
+    data_rng = np.random.default_rng(data_seed)
+    boot_seqs = boot_seed.spawn(pairs)
+    results = []
+    pool = None
+    if workers and workers > 1:
+        import multiprocessing
+        pool = multiprocessing.get_context("fork").Pool(workers)
+    try:
+        for start in range(0, pairs, batch):
+            jobs = []
+            for k in range(start, min(start + batch, pairs)):
+                r1, r2 = simulate_garch_pair(days, sd, rho, dof, garch, data_rng)
+                jobs.append((r1, r2, boot_seqs[k], block, draws, level, periods, ddof, chunk))
+            results.extend(pool.map(_daily_pair_test, jobs, chunksize=1) if pool else [_daily_pair_test(j) for j in jobs])
+    finally:
+        if pool:
+            pool.close()
+            pool.join()
+    p_values = np.array([r[0] for r in results])
+    excludes = np.array([r[1] for r in results])
+    differences, ses, crits = [r[2] for r in results], [r[3] for r in results], [r[4] for r in results]
+    rejected = p_values < 1 - level
+    return {"rate": float(rejected.mean()), "rejected": int(rejected.sum()),
+            "rate_interval": float(excludes.mean()), "rejected_interval": int(excludes.sum()), "pairs": pairs,
+            "p_values": p_values, "excludes_interval": excludes, "differences": np.array(differences), "standard_errors": np.array(ses),
+            "critical_values": np.array(crits)}
 
 
 def normal_cdf(x: float) -> float:
@@ -349,4 +439,3 @@ def chance_to_exclude_zero(gain: float, se: float, critical: float) -> float:
     """The approximate probability that the interval excludes zero when the true difference is `gain`:
     the normal probability of |gain| / se less the critical value."""
     return normal_cdf(abs(float(gain)) / float(se) - float(critical))
-

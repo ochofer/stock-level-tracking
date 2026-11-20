@@ -929,7 +929,7 @@ COPIED_FILES = {
     "covariance.py": ("src/bp/covariance.py", "55cb25bb4aec83d7b1924248518a5b72a87b193263d383e2e93422779fe47534"),
     "attribution.py": ("src/bp/attribution.py", "63a5536c08a0ae25f90c5af954c05856c3ff6ef5b33ee7bf31545194ffeb9f1e"),
     "rules.py": ("src/bp/rules.py", "4cbfb330a519059042da03cf8ceab5a42cde394275d3ac3ea3fc7bf9305166eb"),
-    "paired.py": ("src/bp/paired.py", "0cd6e67ec3fa49ba13ef3a17258766284bc322ee2d188e0df74c50530f6a5654"),
+    "paired.py": ("src/bp/paired.py", "de8c800223b15ed2971efacfcb9fae6666c6a9b192d272dec565f55d6adcfca9"),
 }
 # Added 18 November 2026, after the study's results were known: paired.py, the paired
 # test of two realised tracking errors of section 7 (PAIRED_),
@@ -937,8 +937,14 @@ COPIED_FILES = {
 # reads no constant: every setting is passed by its caller. Changed 19 November 2026:
 # copied again from commit 88be669, where the file's docstring differs from the one at
 # 0e651a0 (a citation, the references, a sentence on the block length). Its code equals the
-# file at 0e651a0, where it was added on 18 November 2026.
-COPIED_AT_COMMIT = {"paired.py": "88be669"}
+# file at 0e651a0, where it was added on 18 November 2026. Changed 20 November 2026:
+# copied again from commit ca0ec64, where the file adds the source's daily size check
+# (simulate_garch_pair, size_check_daily), an optional argument of test() that computes
+# the bootstrap in chunks of draws, and the flags of the intervals in size_check's result,
+# and the docstring's paragraph that dates the file's addition differs from the one at
+# 88be669. This study calls test() without that argument and does not call the daily
+# check, and notebook 13's four tables at the new copy equal those at 88be669 byte for byte.
+COPIED_AT_COMMIT = {"paired.py": "ca0ec64"}
 # Decided 11 November 2026. The copies live in src/slt/source/, not beside the
 # study's own modules: covariance.py imports the source's rules module at its top,
 # so rules.py is copied as well, and the copies read their constants by the source's
