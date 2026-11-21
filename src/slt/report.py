@@ -145,6 +145,12 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
     P["ar_lo"], P["ar_hi"] = lohi(ar)
     P["ar_se_lo"], P["ar_se_hi"] = lohi(se)
     P["ar_se12_lo"], P["ar_se12_hi"] = lohi([BP * paths[C.PATH_LABELS[p]]["active_return_gross_se"] for p in C.MONTHLY_PATHS])
+    # Added 21 November 2026: the mean active return a path would need to be statistically significant at the 5 per cent
+    # level, 1.96 Newey-West standard errors, at the mean standard error of the four paths and of the twelve.
+    need4 = 1.96 * sum(se) / len(se)
+    need12 = 1.96 * sum(BP * paths[C.PATH_LABELS[p]]["active_return_gross_se"] for p in C.MONTHLY_PATHS) / len(C.MONTHLY_PATHS)
+    assert round(need4) == round(need12), "the text gives one figure for the four paths and the twelve"
+    P["ar_need"] = f"{need4:.0f}"
 
     # --- the months in which the turnover cap gave way (notebook 10), by month ---
     relaxed = read("cap_relaxed.csv", res)
@@ -280,12 +286,15 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
     blocks = ", ".join(str(b) for b in C.PAIRED_OTHER_BLOCKS[:-1]) + f" and {C.PAIRED_OTHER_BLOCKS[-1]}"
     ivs = [f"{r.lower:.2f} to {r.upper:.2f}" for r in first.itertuples()]
     holms = [four(h) for h in first["Holm p-value"]]
+    det = [f"{x:.1f}" for x in (rest["detectable difference"].min(), rest["detectable difference"].max())]
     P["blocks"] = (f"The block is fixed at {C.PAIRED_BLOCK_MONTHS} months, where Ledoit and Wolf (2008, Algorithm 3.1) "
                    f"choose its length from the data. At blocks of {blocks} months, added on 19 November 2026, after the "
                    f"study's results were known, with no verdict, the sample estimator's difference from Ledoit-Wolf has "
                    f"intervals of {ivs[0]}, {ivs[1]} and {ivs[2]}, with Holm p-values of {holms[0]}, {holms[1]} and "
-                   f"{holms[2]}, and the other six intervals include zero at every length. The sample estimator's interval "
-                   f"therefore excludes zero at all four lengths. At {C.PAIRED_OTHER_BLOCKS[-1]} months Holm's p-value is "
+                   f"{holms[2]}, and none of the other six differences is statistically significant at the 5 per cent level at "
+                   f"any length, where they could detect differences of {det[0]} to {det[1]} basis points a year four times "
+                   f"in five. The sample estimator's difference is therefore statistically significant at the 5 per cent "
+                   f"level at all four lengths, tested on its own. At {C.PAIRED_OTHER_BLOCKS[-1]} months its Holm p-value is "
                    f"{holms[2]}, and {n24:,} samples cannot place it on either side of 0.05.")
     nb13 = json.loads((pathlib.Path(repo) / "notebooks" / "13_paired_tests.ipynb").read_text(encoding="utf-8"))
     nb13_text = "".join("".join(c["source"]) for c in nb13["cells"] if c["cell_type"] == "markdown")
@@ -359,9 +368,10 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
     P["band_reach"] = (f"Of the twelve paths under the mandate, two have an interval that reaches into the band, both on "
                        f"the Ledoit-Wolf estimator: at the 0.5 per cent cap the bias statistic is {a_['bias']:.2f}, with an "
                        f"interval of {a_['interval_low']:.2f} to {a_['interval_high']:.2f}, and at the 1 per cent cap "
-                       f"{b_['bias']:.2f}, from {b_['interval_low']:.2f} to {b_['interval_high']:.2f}, so the 306 months "
-                       f"cannot tell those two paths' forecasts from ones inside the band. The other ten intervals lie "
-                       f"wholly above {band_hi}.")
+                       f"{b_['bias']:.2f}, from {b_['interval_low']:.2f} to {b_['interval_high']:.2f}, so on those two paths "
+                       f"the excess over {band_hi} is not statistically significant at the 5 per cent level, and the data do "
+                       f"not rule out a forecast inside the band. On the other ten it is statistically significant at that "
+                       f"level, each interval lying wholly above {band_hi}.")
     assert P["band_reach"] in readme, "the README carries the sentence built here"
     P["table2"] = table(["Path", "Realised tracking error", "Mean forecast", "Bias statistic (95 per cent interval)", "Active return, gross",
                          "Newey-West standard error", "Active return, net at 10 bp", "Total turnover, % a year",
@@ -469,8 +479,8 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
     # --- the four Key points: one wording for the dashboard, the note and the README (W1) ---
     KEY_POINTS = [
         "Under the mandate the four covariance estimators realise {{te_lo}} to {{te_hi}} basis points a year of tracking error, and each one's forecast understates it. The bias statistic, the standard deviation of the active return in units of each month's forecast, 1 for a calibrated forecast, is {{bias_lo}} to {{bias_hi}}, above the band of 0.8 to 1.25 fixed before the run: the realised active return is {{under_lo}} to {{under_hi}} per cent more volatile than forecast.",
-        "Index changes force {{forced}} per cent a year of the Ledoit-Wolf path's {{total_turn}} per cent of one-way turnover, or {{forced_share}} per cent. Loosening the cap on chosen turnover from 0.5 per cent a month to none raises chosen turnover from {{chosen_lo}} to {{chosen_hi}} per cent a year on the Ledoit-Wolf estimator and from {{fa_chosen_lo}} to {{fa_chosen_hi}} on the factor estimator, and lowers the mean forecast on both. Neither estimator's realised tracking error moves by an amount the {{months}} months can tell from zero: {{lw_dn}} basis points a year on Ledoit-Wolf, with a paired 95 per cent interval of {{lw_dn_lo}} to {{lw_dn_hi}}, and {{fa_dn}} on the factor estimator, from {{fa_dn_lo}} to {{fa_dn_hi}}.",
-        'Month by month, allocation is the largest of the three Brinson-Fachler terms on the Ledoit-Wolf, factor and principal-component estimators: {{alloc_lo}} to {{alloc_hi}} basis points a month in absolute value on average, against {{sel_lo}} to {{sel_hi}} for selection and {{int_lo}} to {{int_hi}} for interaction. Over the {{months}} months the active return is {{ar_lo}} to {{ar_hi}} basis points a year before costs, within one Newey-West standard error of zero on every path, as is each of its three terms, and the six factors explain {{share_lo}} to {{share_hi}} per cent of its variance.',
+        "Index changes force {{forced}} per cent a year of the Ledoit-Wolf path's {{total_turn}} per cent of one-way turnover, or {{forced_share}} per cent. Loosening the cap on chosen turnover from 0.5 per cent a month to none raises chosen turnover from {{chosen_lo}} to {{chosen_hi}} per cent a year on the Ledoit-Wolf estimator and from {{fa_chosen_lo}} to {{fa_chosen_hi}} on the factor estimator, and lowers the mean forecast on both. On a paired test, neither estimator's realised tracking error moves by an amount that is statistically significant at the 5 per cent level: {{lw_dn}} basis points a year on Ledoit-Wolf, with a 95 per cent interval of {{lw_dn_lo}} to {{lw_dn_hi}}, and {{fa_dn}} on the factor estimator, from {{fa_dn_lo}} to {{fa_dn_hi}}, where the two comparisons could detect a change of {{lw_dn_det}} and {{fa_dn_det}} four times in five.",
+        'Month by month, allocation is the largest of the three Brinson-Fachler terms on the Ledoit-Wolf, factor and principal-component estimators: {{alloc_lo}} to {{alloc_hi}} basis points a month in absolute value on average, against {{sel_lo}} to {{sel_hi}} for selection and {{int_lo}} to {{int_hi}} for interaction. Over the {{months}} months the active return is {{ar_lo}} to {{ar_hi}} basis points a year before costs, and on no path is it statistically significant at the 5 per cent level, nor is any of its three terms: each lies within one Newey-West standard error of zero, and a mean active return of about {{ar_need}} basis points a year in either direction would be needed. The six factors explain {{share_lo}} to {{share_hi}} per cent of its variance.',
         "The benchmark rebuilt from CRSP's list of index members reproduces CRSP's own value-weighted return of the same list with a tracking error of {{recon_te}} basis points a year from {{recon_years_first}} to {{recon_years_last}}. Its momentum and variance spreads have correlations of {{mom_corr}} and {{var_corr}} with Kenneth R. French's large-cap spreads.",
     ]
     for k, text in enumerate(KEY_POINTS, 1):
