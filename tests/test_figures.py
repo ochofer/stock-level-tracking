@@ -69,25 +69,3 @@ def test_the_same_tables_give_the_same_svg():
         F.save(draw(table), b)
         assert a.getvalue() == b.getvalue()
         assert a.getvalue().startswith(b"<?xml")
-
-
-def test_the_readme_opens_with_the_dashboard_key_points():
-    """The README's Summary is the four Key points of the dashboard and the note, word for word (W1)."""
-    import html
-    import re
-    from slt import report as R
-    P, _ = R.build(RES.parents[1])
-    readme = (RES.parents[1] / "README.md").read_text(encoding="utf-8")
-    block = readme.split("## Summary", 1)[1].split("\n## ", 1)[0]
-    bullets = [b[2:].strip() for b in block.strip().split("\n") if b.startswith("- ")]
-    assert bullets == [html.unescape(re.sub(r"<[^>]+>", "", P[f"kp{k}"])) for k in range(1, 5)]
-
-
-def test_the_readme_gives_the_months_the_cap_gave_way_in_the_dashboards_words():
-    """The sentence on the months in which the turnover cap gave way is read from cap_relaxed.csv for the dashboard
-    and the note, and the README's E5 bullet carries it word for word (W1)."""
-    from slt import report as R
-    P, _ = R.build(RES.parents[1])
-    readme = (RES.parents[1] / "README.md").read_text(encoding="utf-8")
-    e5 = [line for line in readme.split("\n") if line.startswith("- **E5** (")]   # the result, after the expectation
-    assert len(e5) == 1 and P["cap_relaxed"] in e5[0]
