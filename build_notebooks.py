@@ -1689,7 +1689,7 @@ for p in [X.write_results("turnover_by_year.csv", frame=table), X.write_results(
     md("""
 ## What was learned, and what could be wrong
 
-What the notebook establishes: how much of each path's trading the index's own changes force, how much following the benchmark's own reweighting takes, how much the optimiser chooses, whether the forced part is the small one E7 expects, and in which months the cap gave way to the least turnover the other constraints need.
+What the notebook establishes: how much of each path's trading the index's own changes require, how much following the benchmark's own reweighting takes, how much the optimiser chooses, whether the forced part is the small one E7 expects, and in which months the cap gave way to the least turnover the other constraints need.
 
 What could still be wrong. The parts depend on the order of the steps, membership first, then reweighting, then rebalancing: another order would split the same total another way, and the overlap says how much the steps undo of each other. And the forced part counts only the trades the index's changes require on the day the month begins. A portfolio that anticipated a change would trade earlier, and this study does not.
 """),

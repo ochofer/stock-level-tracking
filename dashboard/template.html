@@ -243,13 +243,13 @@ dl.terms dd { margin: 0 0 0 1rem; }
 </ul>
 </div>
 <aside class="ch-facts"><h3>Key facts</h3><dl>
-<div class="ch-fact"><dt>Data</dt><dd>CRSP and Compustat via Wharton Research Data Services, accessed through Queen Mary University of London, extraction of 28 September 2026. Kenneth R. French Data Library, downloaded at run time.</dd></div>
+<div class="ch-fact"><dt>Data</dt><dd>CRSP and Compustat via Wharton Research Data Services, accessed through Queen Mary University of London, extraction of 28 September 2026 and, for the GICS history that gives the sectors, of 10 November 2026. Kenneth R. French Data Library, downloaded at run time.</dd></div>
 <div class="ch-fact"><dt>Period</dt><dd>The benchmark {{recon_first_w}} to {{recon_last_w}}. The mandate {{first_w}} to {{last_w}}, {{months}} months.</dd></div>
 <div class="ch-fact"><dt>Universe</dt><dd>The point-in-time S&amp;P 500 from CRSP's list of index members, about 500 stocks a month.</dd></div>
 <div class="ch-fact"><dt>Benchmark</dt><dd>The cap-weighted universe, at start-of-month market capitalisations.</dd></div>
 <div class="ch-fact"><dt>Mandate</dt><dd>Long-only, each stock and each company outside the tilted sectors and the excluded sub-industries within 50 basis points of its benchmark weight, each untilted sector within 2 percentage points, chosen turnover at most 2 per cent a month, Energy and Utilities stocks between zero and half their benchmark weight, Tobacco and Aerospace and Defense at zero, a beta of one to the benchmark.</dd></div>
 <div class="ch-fact"><dt>Estimators compared</dt><dd>Sample, Ledoit-Wolf, six-factor and principal-component covariances from three years of daily returns.</dd></div>
-<div class="ch-fact"><dt>Rebalancing</dt><dd>Monthly. The turnover that index changes force lies outside the cap.</dd></div>
+<div class="ch-fact"><dt>Rebalancing</dt><dd>Monthly. The turnover that index changes require lies outside the cap.</dd></div>
 <div class="ch-fact"><dt>Costs</dt><dd>Gross of fees. Trading cost at 10 basis points per unit of one-way turnover where stated.</dd></div>
 <div class="ch-fact"><dt>Attribution</dt><dd>By the eleven GICS sectors and Unclassified after Brinson and Fachler (1985)<sup id="ref-2"><a href="#note-2">2</a></sup>, and by the five factors of Fama and French (2015)<sup id="ref-3"><a href="#note-3">3</a></sup> and momentum, monthly, summed without linking.</dd></div>
 <div class="ch-fact"><dt>Written in advance</dt><dd>Every gate, expectation and reading rule is in src/slt/constants.py with the date it was written.</dd></div>
@@ -317,7 +317,7 @@ dl.terms dd { margin: 0 0 0 1rem; }
 <p class="text">E5 is not met. On both estimators the mean forecast falls as the cap loosens, from 64.5 to 54.1 basis points a year on Ledoit-Wolf and from 46.6 to 45.0 on the factor estimator. The realised tracking error at the 4 per cent cap is below that at 0.5 per cent on the factor estimator, 79.6 against 83.3, and above it on Ledoit-Wolf, 79.0 against 76.3. On Ledoit-Wolf chosen turnover runs from 6.3 to 59.4 per cent a year across the caps while the realised tracking error stays between 76.3 and 79.4. The factor estimator chooses at most 14.9 per cent a year, and the 2 per cent cap binds on it in 13.7 per cent of months, against every month on Ledoit-Wolf. Neither change in realised tracking error from 0.5 to 4 per cent is statistically significant at the 5 per cent level on a paired test: +2.7 basis points a year on Ledoit-Wolf (−3.2 to +8.6) and −3.7 on the factor estimator (−18.8 to +11.4), a fall that comes from July and December 2008 ({{ref:t-paired}}). In a month where the other constraints need more chosen turnover than the cap allows, the cap is raised to the least turnover they need, which happens in the first month of every capped path, July 1999, and in 6 further months at the 0.5 per cent cap on Ledoit-Wolf and 3 on the factor estimator.</p>
 <div id="f3" class="chart"></div>
 <button type="button" class="tbtn" data-table="f3" aria-pressed="false">Table</button><div class="tbl tw" id="t-f3" hidden>{{t_f3}}</div>
-<p class="basis">Simulated. Monthly rebalancing. Before fees. Chosen turnover is one-way and excludes the turnover that index changes force.</p>
+<p class="basis">Simulated. Monthly rebalancing. Before fees. Chosen turnover is one-way and excludes the turnover that index changes require.</p>
 <p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{first_w}} to {{last_w}}, US large caps, USD.</p>
 </figure>
 
@@ -340,7 +340,7 @@ dl.terms dd { margin: 0 0 0 1rem; }
 
 <div class="fig" id="{{id:t-turnover}}-block">
 <h2 id="{{id:t-turnover}}">Table {{n:t-turnover}} | What the turnover is made of, {{first_w}} to {{last_w}}</h2>
-<p class="cap">One-way turnover in per cent a year, split into the part index changes force, the part that follows the benchmark's own reweighting and the part the optimiser chooses. The three parts less their overlap equal the total.</p>
+<p class="cap">One-way turnover in per cent a year, split into the part index changes require, the part that follows the benchmark's own reweighting and the part the optimiser chooses. The three parts less their overlap equal the total.</p>
 <div class="tw">{{table3}}</div>
 <p class="text">E7 is met. On the Ledoit-Wolf path forced turnover is {{forced}} per cent a year of a total of {{total_turn}}, or {{forced_share}} per cent, below the third fixed before the run. A portfolio that holds the benchmark turns over {{held_total}} per cent a year: forced turnover {{held_forced}}, reweighting {{held_rew}} and no rebalancing.</p>
 <p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{first_w}} to {{last_w}}, US large caps, USD.</p>
@@ -382,7 +382,7 @@ dl.terms dd { margin: 0 0 0 1rem; }
 <section id="method" class="view method">
 <p class="ch-view-lead">The data, what is known at each date, the costs, what the study cannot show, and the terms.</p>
 <h2>Method</h2>
-<p><strong>Data and access.</strong> CRSP and Compustat via Wharton Research Data Services, accessed through Queen Mary University of London, from an extraction of 28 September 2026. They are licensed, and the repository holds none of them: it holds code, tests, the extraction's SHA-256 and aggregate tables.<sup id="ref-6"><a href="#note-6">6</a></sup> Nothing that reproduces CRSP's index file is committed by month, and no weight of a security or of a sector of the portfolio is committed in any form. Kenneth R. French's files are downloaded at run time.</p>
+<p><strong>Data and access.</strong> CRSP and Compustat via Wharton Research Data Services, accessed through Queen Mary University of London, from an extraction of 28 September 2026 and, for the GICS history that gives the sectors, of 10 November 2026. They are licensed, and the repository holds none of them: it holds code, tests, the extraction's SHA-256 and aggregate tables.<sup id="ref-6"><a href="#note-6">6</a></sup> Nothing that reproduces CRSP's index file is committed by month, and no weight of a security or of a sector of the portfolio is committed in any form. Kenneth R. French's files are downloaded at run time.</p>
 <p><strong>What is known at each date.</strong> Membership, sector and capitalisation are read on the last trading day of the month before. Each covariance matrix uses the three years of daily returns before the month. Nothing from the month itself enters a weight.</p>
 <p><strong>Rebalancing and costs.</strong> Monthly. The turnover cap applies to chosen turnover, measured from the portfolio left after last month's returns with leavers sold and entrants bought at their benchmark weight. Returns are gross of fees. A trading cost of 10 basis points per unit of one-way turnover is charged where stated, forced turnover included.</p>
 <p><strong>What the study cannot show.</strong> It is a simulation. The benchmark weights CRSP's list by full capitalisation, and the index weights by float. A GICS sub-industry is wider than a list of controversial weapons. Costs are proportional to turnover, with no market impact. The forecast is a covariance of daily returns times 21, so daily active returns correlated from one day to the next would raise the realised figure above it even with an exact covariance matrix, and the study measures the realised figure on monthly returns only. Sectors exist from July 1999, so the mandate starts there. No estimator's mean active return is statistically significant at the 5 per cent level, which over these 306 months would take one of about {{ar_need}} basis points a year, so the study makes no claim about a return the mandate earns.</p>
@@ -455,7 +455,7 @@ dl.terms dd { margin: 0 0 0 1rem; }
 
 <footer class="ch-foot"><div>
 <p>Every figure of the mandate on this page is a simulation on CRSP and Compustat data, gross of fees unless a trading cost is stated, and none is a record.</p>
-<p>Built by dashboard/build_dashboard.py from the tables in {{results}}/, written by notebooks 02 to 11 on the extraction of 28 September 2026, and rebuilt whenever a notebook is rerun, from the tables committed with it. Every figure has a table under it. Charts drawn with Plotly 2.35.2.</p>
+<p>Built by dashboard/build_dashboard.py from the tables in {{results}}/, written by notebooks 02 to 11 on the extraction of 28 September 2026 and, for the GICS history that gives the sectors, of 10 November 2026, and rebuilt whenever a notebook is rerun, from the tables committed with it. Every figure has a table under it. Charts drawn with Plotly 2.35.2.</p>
 <p>Carlo Hofer &middot; Data: CRSP and Compustat via Wharton Research Data Services, and Kenneth R. French Data Library &middot; <a href="https://github.com/ochofer/stock-level-tracking">Code on GitHub</a> &middot; Last build: {{build_date}}</p>
 </div></footer>
 
