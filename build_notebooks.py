@@ -1520,9 +1520,25 @@ print(f"interval reaching into the band, whose upper end is {C.E6_BIAS_RANGE[1]}
 print(f"interval wholly above it: {len(bands) - len(reach)} of {len(bands)} paths")
 """),
     md("""
-## 6. What is committed
+## 6. A studentised interval on the bias statistic, added on 24 November 2026
 
-Seven files go into `results/20260928/`. The active returns by month of the twelve paths under the mandate, gross of costs, each cell under the cell rule; the measures of every path over the window and by year, with no weight and no name; the verdicts of milestone 3, E7 added by notebook 10; and the provenance of the script's run. Added on 19 November 2026: the forecast tracking error by month of the same twelve paths, each cell empty where the active return's is, and the bias statistics with their intervals.
+Added on 24 November 2026, after the results were known, with no verdict: E6's verdict is unchanged. Beside the interval of section 5, each mandate path's bias statistic is given with a studentised interval on the log of its variance, at blocks of 3, 6, 12 and 24 months, from the same two tables by month. The log variance of the month's active return over its forecast is a function of two means, those of the ratio and of its square. Its standard error comes from the delta method, i.e., the gradient of the log variance with respect to the two means applied to their long-run covariance, and that covariance is taken from the means of whole blocks: on the sample, its consecutive blocks counted from July 1999, the months after the last whole block in none, and on each of 2,000 resamples, its own blocks, as in the paired test of notebook 13, whose resamples of whole blocks these are. The interval is the estimate plus or minus the 95th percentile of the studentised statistic times its standard error, read back as a bias statistic. The Ledoit-Wolf path at the 2 per cent cap, whose interval of section 5 lies above 1.25 with its lower end nearest it, is printed first.
+"""),
+    code("""
+studentised = V.bias_bands_studentised(table, forecast)
+cols = ["path", "block", "whole_blocks", "bias", "critical_value", "interval_low", "interval_high", "percentile_low", "percentile_high"]
+lw = C.PATH_LABELS[("ledoit_wolf", C.MANDATE, C.MAIN_CAP)]
+print(studentised.loc[studentised["path"] == lw, cols].round(3).to_string(index=False))
+print()
+print(studentised[cols].round(3).to_string(index=False))
+for block, g in studentised.groupby("block"):
+    reach = g.loc[g["interval_low"] <= C.E6_BIAS_RANGE[1], "path"].tolist()
+    print(f"blocks of {block} months, interval reaching into the band, whose upper end is {C.E6_BIAS_RANGE[1]}: {', '.join(reach) or 'none'}")
+"""),
+    md("""
+## 7. What is committed
+
+Eight files go into `results/20260928/`. The active returns by month of the twelve paths under the mandate, gross of costs, each cell under the cell rule; the measures of every path over the window and by year, with no weight and no name; the verdicts of milestone 3, E7 added by notebook 10; and the provenance of the script's run. Added on 19 November 2026: the forecast tracking error by month of the same twelve paths, each cell empty where the active return's is, and the bias statistics with their intervals. Added on 24 November 2026: the studentised intervals of section 6.
 """),
     code("""
 by_year = pd.concat([V.by_year(rec).assign(path=lab) for lab, rec in records.items()], ignore_index=True)
@@ -1545,7 +1561,8 @@ for p in [X.write_results("active_returns_monthly.csv", frame=table),
           X.write_results("verdicts_milestone3.json", record=record),
           X.write_results("provenance_evaluation.json", record=prov),
           X.write_results("forecast_te_monthly.csv", frame=forecast),
-          X.write_results("bias_intervals.csv", frame=bands)]:
+          X.write_results("bias_intervals.csv", frame=bands),
+          X.write_results("bias_intervals_studentised.csv", frame=studentised)]:
     print("written:", p.relative_to(ROOT))
 """),
     md("""
@@ -1701,7 +1718,7 @@ NB11 = [
     md("""
 # 11. The attribution: by sector and by factor, E8 and E9
 
-**What this notebook does.** It explains where the mandate's monthly result against the universe it tracks comes from, in two ways that the terms below set out: by sector, with the method of Brinson and Fachler (1985), and through six common sources of return. It judges E8 and E9 and writes the tables that are committed, by year and over the window only.
+**What this notebook does.** It explains where the mandate's monthly result against the universe it tracks comes from, in two ways that the terms below set out: by sector, with the method of Brinson and Fachler (1985), and through six common sources of return. It judges E8 and E9 and writes the tables that are committed, by year and over the window, and one by month, added on 24 November 2026.
 
 **Why it comes here.** Notebook 09 measured how far the mandate strayed from the universe. This notebook says what the straying consisted of. It reads the weights the script recorded on this machine, the extraction and French's monthly files, and runs no solver.
 
@@ -1836,9 +1853,29 @@ print(show.round(2).to_string(index=False))
 print(json.dumps(A.factor_beyond_count(nw)))
 """),
     md("""
-## 7. What is committed
+## 7. Allocation against selection by month, added on 24 November 2026
 
-Nine files go into `results/20260928/`, all by year or over the window, and the record of French's files is brought up to date. No figure by month and no weight of any sector. The two of section 6 were added on 19 November 2026.
+Added on 24 November 2026, after the results were known, with no verdict: E8 keeps the verdict of section 3. Each path's monthly allocation and selection, each summed over the twelve sectors as E8 reads them, are committed as a table by month, a cell left empty where the path's active return is in notebook 09's table. From that table, for each path, the mean absolute monthly allocation less the mean absolute monthly selection, with a 95 per cent interval from a circular block bootstrap of the months, in blocks of 12, with 2,000 resamples, which keeps each month's two terms together, as section 5 of notebook 09 resamples. An interval that lies wholly above zero says that the difference is statistically significant at the 5 per cent level.
+"""),
+    code("""
+active_committed = pd.read_csv(ROOT / C.RESULTS_DIR / "active_returns_monthly.csv")
+monthly, monthly_empty = B.monthly_table(res["totals"], labels, active_committed)
+for p in C.ATTRIBUTION_PATHS:
+    for t in C.ALLOCATION_SELECTION_TERMS:
+        assert abs(monthly[f"{t}_{labels[p]}"].abs().mean() - summ[p[0]]["total"][f"{t}_mean_abs_monthly"]) < 1e-14
+print("empty cells by column:", monthly_empty)
+difference = B.mean_abs_difference_table(monthly, labels)
+show = difference.assign(**{c: 1e4 * difference[c] for c in ("allocation_mean_abs", "selection_mean_abs", "difference", "interval_low", "interval_high")})
+print(show[["path", "months", "allocation_mean_abs", "selection_mean_abs", "difference", "interval_low", "interval_high"]].round(2).to_string(index=False))
+for _, r in difference.iterrows():
+    above = r["interval_low"] > 0
+    print(f"{r['path']}: the difference is {'' if above else 'not '}statistically significant at the 5 per cent level, interval "
+          f"{1e4 * r['interval_low']:+.2f} to {1e4 * r['interval_high']:+.2f} basis points a month")
+"""),
+    md("""
+## 8. What is committed
+
+Eleven files go into `results/20260928/`, and the record of French's files is brought up to date. All are by year or over the window except one, added on 24 November 2026 with the interval of section 7: each path's allocation and selection by month, each summed over the twelve sectors, a cell left empty where the path's active return is. No weight of any sector and no figure of a sector by month. The two of section 6 were added on 19 November 2026.
 """),
     code("""
 labels = res["labels"]
@@ -1868,6 +1905,8 @@ for p_ in [X.write_results("brinson_by_year.csv", frame=by_year),
            X.write_results("tilt_cap.csv", frame=cap),
            X.write_results("allocation_by_group.csv", frame=groups),
            X.write_results("factor_attribution_newey_west.csv", frame=nw),
+           X.write_results("allocation_selection_monthly.csv", frame=monthly),
+           X.write_results("allocation_selection_difference.csv", frame=difference),
            FR.write_provenance(french_records)]:
     print("written:", p_.relative_to(ROOT))
 """),

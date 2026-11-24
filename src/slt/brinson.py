@@ -114,6 +114,69 @@ def allocation_by_group(terms: pd.DataFrame, groups: dict = C.ALLOCATION_GROUPS)
     return out
 
 
+def monthly_table(totals: dict, labels: dict, active_table: pd.DataFrame) -> tuple:
+    """Added 24 November 2026, after the results were known, with no verdict (constants.MONTHLY_ATTRIBUTION_COLUMNS):
+    the table by month of each path's allocation and selection, each summed over the twelve sectors as E8 reads them,
+    a cell left empty where the path's active return is in the committed table (the cell rule of the month's active
+    weights). `totals` maps each path to its frame of monthly totals indexed by month, `labels` each path to its
+    label. Returns the table and the count of empty cells by column."""
+    a = active_table.set_index("month")
+    cols, empty = {}, {}
+    for p in C.ATTRIBUTION_PATHS:
+        lab = labels[p]
+        t = totals[p].copy()
+        t.index = t.index.astype(str)
+        ok = a["active_return_" + lab].reindex(t.index).notna()
+        for term in C.ALLOCATION_SELECTION_TERMS:
+            col = f"{term}_{lab}"
+            cols[col] = t[term].where(ok)
+            empty[col] = int((~ok).sum())
+    table = pd.DataFrame(cols)
+    table.index.name = "month"
+    return table.reset_index(), empty
+
+
+def mean_abs_difference_band(allocation, selection, block: int = C.ALLOCATION_SELECTION_BLOCK_MONTHS,
+                             draws: int = C.ALLOCATION_SELECTION_DRAWS, seed: int = C.ALLOCATION_SELECTION_SEED,
+                             level: float = C.ALLOCATION_SELECTION_LEVEL) -> dict:
+    """Added 24 November 2026, after the results were known, with no verdict: the mean absolute monthly allocation
+    less the mean absolute monthly selection, with a `level` interval from a circular block bootstrap of the months
+    that keeps each month's two terms together, as evaluation.bias_band resamples: each resample takes ceil(n / block)
+    starting months at random and `block` consecutive months from each, running past the last month into the first,
+    cut to n months, and the interval is the central `level` share of the resampled differences. Over the months
+    where both terms are present. Deterministic for a given seed."""
+    x = np.asarray(allocation, dtype=float)
+    y = np.asarray(selection, dtype=float)
+    keep = ~(np.isnan(x) | np.isnan(y))
+    x, y = np.abs(x[keep]), np.abs(y[keep])
+    n = len(x)
+    if n < 2 or block < 1 or draws < 1:
+        raise ValueError("the interval needs at least two months, a block of one month or more and one draw or more")
+    rng = np.random.default_rng(seed)
+    k = int(np.ceil(n / block))
+    starts = rng.integers(0, n, size=(draws, k))
+    idx = ((starts[:, :, None] + np.arange(block)[None, None, :]) % n).reshape(draws, k * block)[:, :n]
+    stats = x[idx].mean(axis=1) - y[idx].mean(axis=1)
+    tail = 100.0 * (1.0 - level) / 2.0
+    lo, hi = np.percentile(stats, [tail, 100.0 - tail])
+    return {"months": n, "allocation_mean_abs": float(x.mean()), "selection_mean_abs": float(y.mean()),
+            "difference": float(x.mean() - y.mean()), "interval_low": float(lo), "interval_high": float(hi)}
+
+
+def mean_abs_difference_table(monthly: pd.DataFrame, labels: dict) -> pd.DataFrame:
+    """Added 24 November 2026: mean_abs_difference_band for each path of the attribution, read from the table by
+    month as committed, so that a reader can rerun it from the repository alone. Figures to eight decimals, so that
+    the table is the same on any machine."""
+    rows = []
+    for p in C.ATTRIBUTION_PATHS:
+        lab = labels[p]
+        out = mean_abs_difference_band(monthly[f"allocation_{lab}"], monthly[f"selection_{lab}"])
+        rows.append({"path": lab, **out, "block": C.ALLOCATION_SELECTION_BLOCK_MONTHS,
+                     "draws": C.ALLOCATION_SELECTION_DRAWS, "seed": C.ALLOCATION_SELECTION_SEED,
+                     "level": C.ALLOCATION_SELECTION_LEVEL})
+    return pd.DataFrame(rows).round(8)
+
+
 def judge_e8(summaries: dict) -> dict:
     """E8: the identity within E8_IDENTITY_MAX_ABS_ERROR on every path; and, as one verdict over E8_JUDGED_ON, the
     allocation's mean absolute monthly effect above the selection's with the interaction's the smallest, on each."""

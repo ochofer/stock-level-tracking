@@ -37,9 +37,12 @@ MONTH_COLUMN = "month"
 # month's chosen turnover (constants.CAP_RELAXED_COLUMNS), each row under the cell rule.
 # Amended 19 November 2026: and the forecast tracking error of the same twelve paths
 # (constants.MONTHLY_FORECAST_COLUMNS), each cell empty where the active return's is.
+# Amended 24 November 2026: and the allocation and the selection of the four paths of the attribution, each
+# summed over the twelve sectors (constants.MONTHLY_ATTRIBUTION_COLUMNS), each cell empty where the active return's is.
 MONTHLY_ALLOWED = ({MONTH_COLUMN} | {"weight_" + code for code in C.GICS_SECTORS}
                    | {c.lower() for c in C.MONTHLY_ACTIVE_COLUMNS} | set(C.CAP_RELAXED_COLUMNS)
-                   | {c.lower() for c in C.MONTHLY_FORECAST_COLUMNS})
+                   | {c.lower() for c in C.MONTHLY_FORECAST_COLUMNS}
+                   | {c.lower() for c in C.MONTHLY_ATTRIBUTION_COLUMNS})
 # Twelve sectors over CRSP's 1,189 index months is 14,268 rows in long form, the largest aggregate the
 # design names; a table of one row per security and month would run to hundreds of thousands.
 ROW_LIMIT = 15000

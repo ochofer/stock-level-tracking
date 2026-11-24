@@ -914,6 +914,39 @@ ALLOCATION_GROUPS = {"all": ATTRIBUTION_SECTORS, "tilted": TILT_SECTORS,
 FACTOR_BEYOND_SE = 2.0
 FACTOR_CHANCE_LEVEL = 0.05
 
+# Added 24 November 2026, after the study's results were known. Two additions, each
+# with no verdict: E6 and E8 keep the verdicts notebooks 09 and 11 gave them.
+# (1) Notebook 09: beside the interval of 19 November on each mandate path's bias
+# statistic, a studentised interval on the log of its variance, at blocks of
+# BIAS_STUDENTISED_BLOCKS months, with BIAS_BAND_DRAWS, BIAS_BAND_SEED and
+# BIAS_BAND_LEVEL. The log variance of the month's active return over its forecast is
+# a function of two means, those of the ratio and of its square, and its standard error
+# comes from the delta method with the long-run covariance of the two series taken
+# from the means of whole blocks: on each resample from its blocks, as the paired test
+# does (src/slt/source/paired.py), and on the sample from its consecutive whole blocks
+# counted from the first month, the months after the last whole block in none. The
+# resamples are those of the paired test, whole blocks only, and the interval is the
+# estimate plus or minus the 95th percentile of the studentised statistic times its
+# standard error, read back as a bias statistic. The Ledoit-Wolf path at the 2% cap,
+# whose interval of 19 November has its lower end nearest the band, is read with it.
+BIAS_STUDENTISED_BLOCKS = (3, 6, 12, 24)
+# (2) Notebook 11: the monthly allocation and selection of each path of the
+# attribution, each summed over the twelve sectors, as E8 reads them, committed by
+# month, each cell empty where the path's active return is (the cell rule of the
+# month's active weights). And for each path the difference of the two mean absolute
+# terms, allocation less selection, with a 95% interval from a circular block bootstrap
+# of the months that keeps each month's two terms together, as bias_band resamples,
+# with the settings below.
+ALLOCATION_SELECTION_TERMS = ("allocation", "selection")
+ALLOCATION_SELECTION_BLOCK_MONTHS = 12
+ALLOCATION_SELECTION_DRAWS = 2000
+ALLOCATION_SELECTION_SEED = 20261009          # the source study's EVAL_BOOTSTRAP_SEED, as BIAS_BAND_SEED
+ALLOCATION_SELECTION_LEVEL = 0.95
+# (3) The text under Figure 4: the count of the 36 sector terms that chance alone
+# would place FACTOR_BEYOND_SE standard errors or more from zero if the tests were
+# independent is 36 times the share of a standard normal that lies that far from zero,
+# about 4.6%, in place of 36 times FACTOR_CHANCE_LEVEL.
+
 # ---------------------------------------------------------------------------
 # 8. Code copied from the source repository
 # ---------------------------------------------------------------------------
@@ -1036,6 +1069,12 @@ MONTHLY_ACTIVE_COLUMNS = tuple("active_return_" + PATH_LABELS[p] for p in MONTHL
 # error of the same twelve paths by month, in its own table, each cell empty where the
 # active return's is. It amends the decision of 12 November above for that one series.
 MONTHLY_FORECAST_COLUMNS = tuple("forecast_te_" + PATH_LABELS[p] for p in MONTHLY_PATHS)
+# Added 24 November 2026, after the study's results were known: the allocation and
+# the selection of the four paths of the attribution by month, each summed over the
+# twelve sectors, in their own table, each cell empty where the path's active return
+# is. It amends the decision of 12 November above for those two series. No series by
+# sector and no weight is committed by month.
+MONTHLY_ATTRIBUTION_COLUMNS = tuple(f"{t}_{PATH_LABELS[p]}" for p in ATTRIBUTION_PATHS for t in ALLOCATION_SELECTION_TERMS)
 # Decided 12 November 2026, after the run and before any result of it was
 # committed: the largest absolute active weight is committed for the paths under
 # C0, C1 and C2 only, where it measures how far the solver leaves the portfolio from

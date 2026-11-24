@@ -252,7 +252,7 @@ dl.terms dd { margin: 0 0 0 1rem; }
 <div class="ch-fact"><dt>Rebalancing</dt><dd>Monthly. The turnover that index changes force lies outside the cap.</dd></div>
 <div class="ch-fact"><dt>Costs</dt><dd>Gross of fees. Trading cost at 10 basis points per unit of one-way turnover where stated.</dd></div>
 <div class="ch-fact"><dt>Attribution</dt><dd>By the eleven GICS sectors and Unclassified after Brinson and Fachler (1985)<sup id="ref-2"><a href="#note-2">2</a></sup>, and by the five factors of Fama and French (2015)<sup id="ref-3"><a href="#note-3">3</a></sup> and momentum, monthly, summed without linking.</dd></div>
-<div class="ch-fact"><dt>Written in advance</dt><dd>Every gate, expectation and setting is in src/slt/constants.py with the date it was written, before the code that tests it ran.</dd></div>
+<div class="ch-fact"><dt>Written in advance</dt><dd>Every gate, expectation and reading rule is in src/slt/constants.py with the date it was written.</dd></div>
 </dl></aside>
 </div>
 
@@ -267,8 +267,8 @@ dl.terms dd { margin: 0 0 0 1rem; }
 </figure>
 
 <div class="fig" id="{{id:t-verdicts}}-block">
-<h2 id="{{id:t-verdicts}}">Table {{n:t-verdicts}} | The four gates and nine expectations, fixed before each run, and what the run found</h2>
-<p class="cap">A gate not met stops the study. An expectation not met is reported as a finding, in the same words as one met. An expectation that names two or more estimators has a single verdict, i.e., met or not met, and is met only if it holds for each.</p>
+<h2 id="{{id:t-verdicts}}">Table {{n:t-verdicts}} | The four gates and nine expectations, with the dates in src/slt/constants.py, and what the run found</h2>
+<p class="cap">A gate not met stops the study. An expectation not met is reported as a finding, in the same words as one met. An expectation that names two or more estimators has a single verdict, i.e., met or not met, and is met only if it holds for each. This rule was set on 12 November 2026, after the run of the mandate.</p>
 <div class="tw">{{table1}}</div>
 <p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{recon_first_w}} to {{recon_last_w}}, US large caps, USD.</p>
 </div>
@@ -284,7 +284,7 @@ dl.terms dd { margin: 0 0 0 1rem; }
 <p class="cap">The benchmark against CRSP's own figures and the universe's sorts against French's, with the conditioning of the covariance matrices.</p>
 <div class="tw">{{table6}}</div>
 <p class="text">The index's own price return gives a coarser check of the list of members. From 1957 the benchmark's price-only return differs from it by 20.6 to 36.0 basis points a year in every period, including 22.2 from 2005, when the index weights by float, so the comparison would show an error in the list only if the error moved the return by more than that. Before 1957, when the index held 90 names, the difference is 145.8, and the comparison does not confirm the list. Each period's figure is the tracking error pooled over its years.</p>
-<p class="text">The months in which the sample matrix's condition number reaches ten times the Ledoit-Wolf one come from share classes: from 2014 the universe holds up to five companies with two share classes each, whose daily returns move almost together, and the difference between two such classes sets the sample matrix's smallest eigenvalue.</p>
+<p class="text">The months in which the sample matrix's condition number reaches ten times the Ledoit-Wolf one come mostly from share classes: from 2014 the universe holds up to five companies with two share classes each, whose daily returns move almost together, and the difference between two such classes sets the sample matrix's smallest eigenvalue.</p>
 <p class="src">Source: CRSP and Compustat via Wharton Research Data Services, Kenneth R. French Data Library and author's calculations. Monthly, {{recon_first_w}} to {{recon_last_w}}, US large caps, USD.</p>
 </div>
 
@@ -441,7 +441,7 @@ dl.terms dd { margin: 0 0 0 1rem; }
 <li id="note-3">Fama, E. F. and French, K. R. (2015). A five-factor asset pricing model. <em>Journal of Financial Economics</em> 116(1), 1 to 22. <a href="https://doi.org/10.1016/j.jfineco.2014.10.010">https://doi.org/10.1016/j.jfineco.2014.10.010</a></li>
 <li id="note-4">Shumway, T. (1997). The delisting bias in CRSP data. <em>Journal of Finance</em> 52(1), 327 to 340. <a href="https://doi.org/10.1111/j.1540-6261.1997.tb03818.x">https://doi.org/10.1111/j.1540-6261.1997.tb03818.x</a></li>
 <li id="note-5">CRSP (2025). <em>Data Descriptions Guide for CRSPAccess (FIZ) US Stock &amp; Index Databases</em>. Center for Research in Security Prices, last modified 20 November 2025. The descriptions of the fields of CRSP's stock and index files on this page follow it: the delisting codes on p. 28, the share count on pp. 79 and 80, CRSP's index of the S&amp;P 500 universe on pp. 104 and 106. CRSP's list of index members and its link to Compustat are not in it.</li>
-<li id="note-6"><a href="https://github.com/ochofer/stock-level-tracking">The repository</a>: the notebooks, the tables committed in {{results}}/ and the constants fixed before each run.</li>
+<li id="note-6"><a href="https://github.com/ochofer/stock-level-tracking">The repository</a>: the notebooks, the tables committed in {{results}}/ and the constants, with the date each was written.</li>
 <li id="note-7">Ledoit, O. and Wolf, M. (2004). A well-conditioned estimator for large-dimensional covariance matrices. <em>Journal of Multivariate Analysis</em> 88(2), 365 to 411. <a href="https://doi.org/10.1016/S0047-259X(03)00096-4">https://doi.org/10.1016/S0047-259X(03)00096-4</a></li>
 <li id="note-8">Ledoit, O. and Wolf, M. (2011). Robust performance hypothesis testing with the variance. <em>Wilmott</em> 2011(55), 86 to 89.</li>
 </ol>

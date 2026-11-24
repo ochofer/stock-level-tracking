@@ -13,6 +13,7 @@ from __future__ import annotations
 import datetime
 import html
 import json
+import math
 import pathlib
 import re
 import zoneinfo
@@ -210,7 +211,9 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
     P["beyond_lw"] = str(beyond["ledoit_wolf"]["beyond"])
     others = [beyond[e]["beyond"] for e in EST if e != "ledoit_wolf"]
     P["beyond_lo"], P["beyond_hi"] = str(min(others)), str(max(others))
-    P["chance"] = num(0.05 * beyond["ledoit_wolf"]["terms"], 1)
+    # the count chance alone would place two standard errors or more from zero, if the tests were independent:
+    # the terms times the share of a standard normal that far from zero (constants, 24 November 2026)
+    P["chance"] = num(math.erfc(C.FACTOR_BEYOND_SE / math.sqrt(2)) * beyond["ledoit_wolf"]["terms"], 1)
     en, ut = t4.set_index("sector").loc["10"], t4.set_index("sector").loc["55"]
     P["en_alloc"], P["en_alloc_se"], P["ut_alloc"], P["ut_alloc_se"] = num(en.allocation), num(en.allocation_se), num(ut.allocation), num(ut.allocation_se)
     P["other_alloc_se_max"] = num(t4[t4["sector"] != "10"]["allocation_se"].max())

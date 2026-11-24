@@ -376,6 +376,83 @@ def bias_bands(active_table: pd.DataFrame, forecast_tbl: pd.DataFrame) -> pd.Dat
     return pd.DataFrame(rows)
 
 
+def _log_variance_and_psi(y: np.ndarray, block: int) -> tuple:
+    """For one series, or for the rows of an array of resamples: the means of the series and of its square, the
+    population variance, and the long-run covariance of the two centred series from the means of whole blocks of
+    `block` consecutive months, each scaled by the square root of the block, as src/slt/source/paired.py takes it on
+    a resample. The months after the last whole block fall in none."""
+    y = np.atleast_2d(y)
+    draws, n = y.shape
+    k = n // block
+    mu, g = y.mean(axis=1), (y ** 2).mean(axis=1)
+    v = g - mu ** 2
+    centred = np.stack([y - mu[:, None], y ** 2 - g[:, None]], axis=-1)[:, :k * block]
+    zeta = np.sqrt(block) * centred.reshape(draws, k, block, 2).mean(axis=2)
+    psi = np.einsum("dki,dkj->dij", zeta, zeta) / k
+    return mu, g, v, psi
+
+
+def bias_band_studentised(active, forecast_te, block: int, draws: int = C.BIAS_BAND_DRAWS, seed: int = C.BIAS_BAND_SEED,
+                          level: float = C.BIAS_BAND_LEVEL) -> dict:
+    """Added 24 November 2026, after the results were known, with no verdict (constants.BIAS_STUDENTISED_BLOCKS): a
+    studentised interval on the log of the variance of the month's active return over its monthly forecast, over the
+    months bias_statistic uses, read back as a bias statistic. The log variance is a function of the means of the
+    ratio and of its square, and its standard error is the delta method's with the long-run covariance from the means
+    of whole blocks of `block` months: on the sample its consecutive whole blocks from the first month, and on each
+    resample its own blocks. The resamples are the paired test's, floor(n / block) whole blocks each starting at a
+    month drawn at random, wrapping past the last month to the first (src/slt/source/paired.py). The interval is the
+    estimate plus or minus the `level` quantile of |log variance on the resample - estimate| / its standard error
+    there, times the sample's standard error. Deterministic for a given seed."""
+    from .source import paired as PT
+    f_all = np.asarray(forecast_te, dtype=float)
+    a_all = np.asarray(active, dtype=float)
+    keep = f_all > C.BIAS_FORECAST_MIN
+    z = a_all[keep] / (f_all[keep] / np.sqrt(PERIODS_PER_YEAR))
+    n = len(z)
+    if n < 2 * block or block < 1 or draws < 1:
+        raise ValueError("the interval needs two whole blocks or more, a block of one month or more and one draw or more")
+    mu, g, v, psi = _log_variance_and_psi(z, block)
+    grad = np.array([-2 * mu[0] / v[0], 1 / v[0]])
+    se = float(np.sqrt(grad @ psi[0] @ grad / n))
+    log_v = float(np.log(v[0]))
+    idx = PT.circular_block_indices(n, block, draws, np.random.default_rng(seed))
+    zs = z[idx]
+    mu_s, g_s, v_s, psi_s = _log_variance_and_psi(zs, block)
+    grad_s = np.stack([-2 * mu_s / v_s, 1 / v_s], axis=-1)
+    se_s = np.sqrt(np.einsum("di,dij,dj->d", grad_s, psi_s, grad_s) / zs.shape[1])
+    critical = float(np.quantile(np.abs(np.log(v_s) - log_v) / se_s, level))
+    to_bias = n / (n - 1)                       # the bias statistic's n minus 1 convention
+    return {"months": n, "block": block, "whole_blocks": n // block, "log_variance": log_v, "standard_error": se,
+            "critical_value": critical, "bias": float(np.sqrt(v[0] * to_bias)),
+            "interval_low": float(np.sqrt(np.exp(log_v - critical * se) * to_bias)),
+            "interval_high": float(np.sqrt(np.exp(log_v + critical * se) * to_bias))}
+
+
+def bias_bands_studentised(active_table: pd.DataFrame, forecast_tbl: pd.DataFrame,
+                           blocks: tuple = C.BIAS_STUDENTISED_BLOCKS) -> pd.DataFrame:
+    """Added 24 November 2026, after the results were known, with no verdict: for each mandate path and each block
+    length, the studentised interval of bias_band_studentised beside the percentile interval of 19 November
+    (bias_band, blocks of 12), from the two committed tables by month, so that a reader can rerun it from the
+    repository alone. Figures to eight decimals, so that the table is the same on any machine."""
+    a = active_table.set_index("month")
+    f = forecast_tbl.set_index("month")
+    rows = []
+    for p in C.MONTHLY_PATHS:
+        lab = C.PATH_LABELS[p]
+        both = pd.concat([a["active_return_" + lab], f["forecast_te_" + lab]], axis=1).dropna()
+        ar, fc = both.iloc[:, 0].to_numpy(float), both.iloc[:, 1].to_numpy(float)
+        lo, hi = bias_band(ar, fc)
+        for block in blocks:
+            s = bias_band_studentised(ar, fc, block)
+            rows.append({"path": lab, "months": s["months"], "bias": s["bias"], "block": block, "whole_blocks": s["whole_blocks"],
+                         "log_variance": s["log_variance"], "standard_error": s["standard_error"],
+                         "critical_value": s["critical_value"], "interval_low": s["interval_low"],
+                         "interval_high": s["interval_high"], "percentile_low": lo, "percentile_high": hi,
+                         "percentile_block": C.BIAS_BAND_BLOCK_MONTHS, "draws": C.BIAS_BAND_DRAWS,
+                         "seed": C.BIAS_BAND_SEED, "level": C.BIAS_BAND_LEVEL})
+    return pd.DataFrame(rows).round(8)
+
+
 def benchmark_turnover(inp: dict, first: str = C.BENCHMARK_TURNOVER_FIRST_MONTH, last: str = C.EVAL_END) -> dict:
     """Added 19 November 2026: the benchmark's own turnover, as a path's is split (mandate.decompose), for the
     benchmark held alone from `first` to `last`, so that the change from the first month to the second is counted.
