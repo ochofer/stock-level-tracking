@@ -395,7 +395,7 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
         for k in C.ATTRIBUTION_TERMS:
             cells += [num(BP * t[f"{k}_per_year"], 1, True), num(BP * t[f"{k}_per_year_se"])]
         cells += [num(BP * t[f"{k}_mean_abs_monthly"], 2) for k in C.ATTRIBUTION_TERMS]
-        rows4.append([LBL[e] + ("" if e in S3 else ", no verdict")] + cells + [str(not_held[e])])
+        rows4.append([LBL[e] + ("" if e in S3 else ", not judged by E8")] + cells + [str(not_held[e])])
     P["table4"] = table(["Path", "Allocation, bp a year", "Standard error", "Selection, bp a year", "Standard error",
                          "Interaction, bp a year", "Standard error", "Allocation, mean absolute, bp a month",
                          "Selection, mean absolute, bp a month", "Interaction, mean absolute, bp a month",
@@ -477,12 +477,12 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
         "f4": {"sector": list(t4["label"]), **{k: [round(x, 4) for x in t4[k]] for k in ("allocation", "allocation_se", "selection", "selection_se")}},
     }
 
-    # --- the four Key points of the dashboard; the first three as written on 22 November 2026 ---
+    # --- the four Key points of the dashboard, as worded on 28 November 2026 ---
     KEY_POINTS = [
-        "Under the mandate the four covariance estimators realise 78.9 to 83.6 basis points a year of tracking error, and every estimator's forecast underestimates it. The bias statistic is 1.48 to 1.85, above the band of 0.8 to 1.25 fixed in advance, i.e., the realised active return is 48 to 85 per cent more volatile than forecast.",
+        "Under the mandate the portfolios built with the four covariance estimators realise 78.9 to 83.6 basis points a year of tracking error, and every estimator's forecast underestimates it. The bias statistic is 1.48 to 1.85, above the band of 0.8 to 1.25 fixed in advance, i.e., the realised active return is 48 to 85 per cent more volatile than forecast.",
         "Index changes require 2.99 per cent a year of the Ledoit-Wolf path's 26.26 per cent of one-way turnover, i.e., 11.4 per cent. Loosening the cap on chosen turnover from 0.5 per cent a month to none raises chosen turnover from 6.3 to 59.4 per cent a year on Ledoit-Wolf and from 6.2 to 14.9 on the factor estimator, and lowers the mean forecast on both. Neither estimator's realised tracking error changes by an amount that is statistically significant at the 5 per cent level on a paired test: +3.1 basis points a year on Ledoit-Wolf, with a 95 per cent interval of −3.6 to +9.8, and −3.7 on the factor estimator, from −18.9 to +11.4, where the comparisons could detect changes of 9.1 and 17.3 four times in five.",
-        'Month by month, allocation is the largest of the three Brinson-Fachler terms on the three structured estimators, i.e., Ledoit-Wolf, factor and principal-component: 16.4 to 16.7 basis points a month in absolute value on average, against 10.6 to 13.8 for selection and 1.5 to 2.2 for interaction. Over the 306 months the mean active return is +0.2 to +13.7 basis points a year before costs, and on no path is it, or any of its three terms, statistically significant at the 5 per cent level: a mean of about 35 basis points a year in either direction would be needed. The six factors explain 2 to 13 per cent of its variance.',
-        "The benchmark rebuilt from CRSP's list of index members reproduces CRSP's own value-weighted return of the same list with a tracking error of {{recon_te}} basis points a year from {{recon_years_first}} to {{recon_years_last}}. Its momentum and variance spreads have correlations of {{mom_corr}} and {{var_corr}} with Kenneth R. French's large-cap spreads.",
+        'On average across months, allocation is the largest of the three Brinson-Fachler terms in absolute value on the three structured estimators, i.e., Ledoit-Wolf, factor and principal-component: 16.4 to 16.7 basis points a month, against 10.6 to 13.8 for selection and 1.5 to 2.2 for interaction. Over the 306 months the mean active return is +0.2 to +13.7 basis points a year before costs, and on no path is it, or any of its three terms, statistically significant at the 5 per cent level: a mean of about 35 basis points a year in either direction would be needed. The six factors explain 2 to 13 per cent of its variance.',
+        "The benchmark rebuilt from CRSP's list of index members reproduces CRSP's own value-weighted return of the same list with a tracking error of {{recon_te}} basis points a year from {{recon_years_first}} to {{recon_years_last}}. Its spreads between the top and bottom quintiles on momentum and on variance have correlations of {{mom_corr}} and {{var_corr}} with the same spreads within Kenneth R. French's largest size quintile.",
     ]
     for k, text in enumerate(KEY_POINTS, 1):
         P[f"kp{k}"] = re.sub(r"\{\{(\w+)\}\}", lambda m: P[m.group(1)], text)
