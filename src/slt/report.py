@@ -172,7 +172,7 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
     for p in bind_all:
         assert paths[C.PATH_LABELS[p]]["turnover_chosen_per_year"] > 12 * p[2], "the text says chosen turnover lies above twelve times the cap"
     CAP_RELAXED = ("In a month where the other constraints need more chosen turnover than the cap allows, the cap gives way to the "
-                   "least turnover they need. This happens in the first month of every capped path under the mandate, {{cr_first_w}}, "
+                   "least turnover they need. This happens in the first month of every optimised portfolio with a cap under the mandate, {{cr_first_w}}, "
                    "when the portfolio leaves the benchmark for the mandate and needs {{cr_first}} per cent, and in {{cr_lw_more}} further "
                    "months at the {{cr_tight}} per cent cap on the Ledoit-Wolf estimator and {{cr_fa_more}} on the factor estimator. So on "
                    "the Ledoit-Wolf estimator at caps of 0.5, 1 and 2 per cent, where the cap binds in every month, chosen turnover a "
@@ -342,9 +342,9 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
         ["E4, second clause", "Under the mandate, the sample estimator's realised tracking error above the Ledoit-Wolf one", f"{num(BP * v3['E4_second_clause']['sample_realised_te'])} against {num(BP * v3['E4_second_clause']['ledoit_wolf_realised_te'])} bp a year", verdict(v3["E4_second_clause"]["met"])],
         ["E5", "For the Ledoit-Wolf and factor estimators, the mean forecast does not rise as the cap loosens, and the realised tracking error is lower at 4 per cent than at 0.5", f"holds for the factor estimator, fails for Ledoit-Wolf ({P['lw_re_4']} against {P['lw_re_tight']} bp a year)", verdict(v3["E5"]["met"])],
         ["E6", "Realised tracking error 50 to 150 bp a year and bias statistic 0.8 to 1.25, each structured estimator", f"tracking error {num(BP * v3['E6_ledoit_wolf']['realised_te'])} to {num(BP * v3['E6_pca']['realised_te'])}, bias {v3['E6_ledoit_wolf']['bias']:.2f} to {v3['E6_factor']['bias']:.2f}", verdict(v3["E6"]["met"])],
-        ["E7", "Forced turnover less than a third of the total, Ledoit-Wolf path", f"{P['forced']} of {P['total_turn']} per cent a year, {P['forced_share']} per cent", verdict(v3["E7"].get("met", v3["E7"]["membership_share_of_total"] < 1 / 3))],
+        ["E7", "Forced turnover less than a third of the total, optimised portfolio built with Ledoit-Wolf", f"{P['forced']} of {P['total_turn']} per cent a year, {P['forced_share']} per cent", verdict(v3["E7"].get("met", v3["E7"]["membership_share_of_total"] < 1 / 3))],
         ["E8", "The three terms sum to the active return, and allocation is the largest in absolute value and interaction the smallest, each structured estimator", f"largest gap {v4['E8']['identity']['largest_error']:.1e}, allocation {P['alloc_lo']} to {P['alloc_hi']}, selection {P['sel_lo']} to {P['sel_hi']}, interaction {P['int_lo']} to {P['int_hi']} bp a month", verdict(v4["E8"]["met"])],
-        ["E9", "Contributions and residual sum to the active return, and the mean exposure to the market within 0.05 of zero on every path", f"largest gap {v4['E9']['identity']['largest_error']:.1e}, exposure {P['mkt_exp_lo']} to {P['mkt_exp_hi']}", verdict(v4["E9"]["met"])],
+        ["E9", "Contributions and residual sum to the active return, and the mean exposure to the market within 0.05 of zero on every optimised portfolio", f"largest gap {v4['E9']['identity']['largest_error']:.1e}, exposure {P['mkt_exp_lo']} to {P['mkt_exp_hi']}", verdict(v4["E9"]["met"])],
     ]
     P["table1"] = table(["", "Gate or expectation", "Result", "Verdict"], rows1, "verdicts")
 
@@ -367,14 +367,14 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
     assert len(C.MONTHLY_PATHS) == 12 and all(intervals.loc[C.PATH_LABELS[p], "interval_low"] > band_hi
                                               for p in C.MONTHLY_PATHS if p not in reach)
     a_, b_ = (intervals.loc[C.PATH_LABELS[p]] for p in sorted(reach, key=lambda p: p[2]))
-    P["band_reach"] = (f"Of the twelve paths under the mandate, two have an interval that reaches into the band, both on "
+    P["band_reach"] = (f"Of the twelve optimised portfolios under the mandate, two have an interval that reaches into the band, both on "
                        f"the Ledoit-Wolf estimator: at the 0.5 per cent cap the bias statistic is {a_['bias']:.2f}, with an "
                        f"interval of {a_['interval_low']:.2f} to {a_['interval_high']:.2f}, and at the 1 per cent cap "
-                       f"{b_['bias']:.2f}, from {b_['interval_low']:.2f} to {b_['interval_high']:.2f}, so on those two paths "
+                       f"{b_['bias']:.2f}, from {b_['interval_low']:.2f} to {b_['interval_high']:.2f}, so on those two optimised portfolios "
                        f"the excess over {band_hi} is not statistically significant at the 5 per cent level, and the data do "
                        f"not rule out a forecast inside the band. On the other ten it is statistically significant at that "
                        f"level, each interval lying wholly above {band_hi}.")
-    P["table2"] = table(["Path", "Realised tracking error", "Mean forecast", "Bias statistic (95 per cent interval)", "Active return, gross",
+    P["table2"] = table(["Optimised portfolio", "Realised tracking error", "Mean forecast", "Bias statistic (95 per cent interval)", "Active return, gross",
                          "Newey-West standard error", "Active return, net at 10 bp", "Total turnover, % a year",
                          "Chosen turnover, % a year", "Names held, mean"], rows2)
 
@@ -384,7 +384,7 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
     for e in EST:
         s = paths[MAIN[e]]
         rows3.append([f"{LBL[e]}, mandate at 2 per cent"] + [num(100 * s[f"turnover_{k}_per_year"], 2) for k in ("total", "membership", "reweighting", "rebalancing", "overlap")])
-    P["table3"] = table(["Path", "Total", "Forced", "Reweighting", "Rebalancing", "Overlap"], rows3)
+    P["table3"] = table(["Optimised portfolio", "Total", "Forced", "Reweighting", "Rebalancing", "Overlap"], rows3)
     P["held_total"], P["held_forced"], P["held_rew"] = (num(100 * held[f"turnover_{k}_per_year"], 2) for k in ("total", "membership", "reweighting"))
 
     # --- Table 4: the three terms by path ---
@@ -396,7 +396,7 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
             cells += [num(BP * t[f"{k}_per_year"], 1, True), num(BP * t[f"{k}_per_year_se"])]
         cells += [num(BP * t[f"{k}_mean_abs_monthly"], 2) for k in C.ATTRIBUTION_TERMS]
         rows4.append([LBL[e] + ("" if e in S3 else ", not judged by E8")] + cells + [str(not_held[e])])
-    P["table4"] = table(["Path", "Allocation, bp a year", "Standard error", "Selection, bp a year", "Standard error",
+    P["table4"] = table(["Optimised portfolio", "Allocation, bp a year", "Standard error", "Selection, bp a year", "Standard error",
                          "Interaction, bp a year", "Standard error", "Allocation, mean absolute, bp a month",
                          "Selection, mean absolute, bp a month", "Interaction, mean absolute, bp a month",
                          "Sector-months not held"], rows4)
@@ -479,9 +479,9 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
 
     # --- the four Key points of the dashboard, as worded on 28 November 2026 ---
     KEY_POINTS = [
-        "Under the mandate the paths of the four covariance estimators realise 78.9 to 83.6 basis points a year of tracking error, and every estimator's forecast underestimates it. The bias statistic is 1.48 to 1.85, above the band of 0.8 to 1.25, i.e., the realised active return is 48 to 85 per cent more volatile than forecast.",
-        "Index changes require 2.99 per cent a year of the Ledoit-Wolf path's 26.26 per cent of one-way turnover, i.e., 11.4 per cent. Loosening the cap on chosen turnover from 0.5 per cent a month to none raises chosen turnover from 6.3 to 59.4 per cent a year on Ledoit-Wolf and from 6.2 to 14.9 on the factor estimator, and lowers the mean forecast on both. Neither estimator's realised tracking error changes by an amount that is statistically significant at the 5 per cent level on a paired test: +3.1 basis points a year on Ledoit-Wolf, with a 95 per cent interval of −3.6 to +9.8, and −3.7 on the factor estimator, from −18.9 to +11.4, where the comparisons could detect changes of 9.1 and 17.3 four times in five.",
-        'On average across months, allocation is the largest of the three Brinson-Fachler terms in absolute value on the three structured estimators, i.e., Ledoit-Wolf, factor and principal-component: 16.4 to 16.7 basis points a month, against 10.6 to 13.8 for selection and 1.5 to 2.2 for interaction. Over the 306 months the mean active return is +0.2 to +13.7 basis points a year before costs, and on no path is it, or any of its three terms, statistically significant at the 5 per cent level. A mean active return of about 35 basis points a year in either direction would be needed. The six factors explain 2 to 13 per cent of its variance.',
+        "Under the mandate the optimised portfolios built with the four covariance estimators realise 78.9 to 83.6 basis points a year of tracking error, and every estimator's forecast underestimates it. The bias statistic is 1.48 to 1.85, above the band of 0.8 to 1.25, i.e., the realised active return is 48 to 85 per cent more volatile than forecast.",
+        "Index changes require 2.99 per cent a year of the 26.26 per cent of one-way turnover of the optimised portfolio built with Ledoit-Wolf, i.e., 11.4 per cent. Loosening the cap on chosen turnover from 0.5 per cent a month to none raises chosen turnover from 6.3 to 59.4 per cent a year on Ledoit-Wolf and from 6.2 to 14.9 on the factor estimator, and lowers the mean forecast on both. Neither estimator's realised tracking error changes by an amount that is statistically significant at the 5 per cent level on a paired test: +3.1 basis points a year on Ledoit-Wolf, with a 95 per cent interval of −3.6 to +9.8, and −3.7 on the factor estimator, from −18.9 to +11.4, where the comparisons could detect changes of 9.1 and 17.3 four times in five.",
+        'On average across months, allocation is the largest of the three Brinson-Fachler terms in absolute value on the three structured estimators, i.e., Ledoit-Wolf, factor and principal-component: 16.4 to 16.7 basis points a month, against 10.6 to 13.8 for selection and 1.5 to 2.2 for interaction. Over the 306 months the mean active return is +0.2 to +13.7 basis points a year before costs, and on no optimised portfolio is it, or any of its three terms, statistically significant at the 5 per cent level. A mean active return of about 35 basis points a year in either direction would be needed. The six factors explain 2 to 13 per cent of its variance.',
         "The benchmark rebuilt from CRSP's list of index members reproduces CRSP's own value-weighted return of the same list with a tracking error of {{recon_te}} basis points a year from {{recon_years_first}} to {{recon_years_last}}. Its spreads between the top and bottom quintiles on momentum and on variance have correlations of {{mom_corr}} and {{var_corr}} with the same spreads within Kenneth R. French's largest size quintile.",
     ]
     for k, text in enumerate(KEY_POINTS, 1):
