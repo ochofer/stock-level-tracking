@@ -100,7 +100,7 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
 
     EST = F.ORDER
     LBL = F.LABELS
-    SHORT = {"ledoit_wolf": "Ledoit-Wolf", "sample": "Sample", "factor": "Factor", "pca": "PCA"}
+    SHORT = {"ledoit_wolf": "Ledoit-Wolf", "sample": "Sample", "factor": "Factor", "pca": "Principal-component"}
     MAIN = {e: C.PATH_LABELS[(e, C.MANDATE, C.MAIN_CAP)] for e in EST}
     BP = 1e4
     P = {}
@@ -340,13 +340,13 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
         ["E3", "Momentum and variance spreads: correlation at least 0.80 with French's, mean difference within two standard errors", f"{P['mom_corr']} and {P['var_corr']}, {num(abs(answer['momentum']['quintiles']['difference_in_standard_errors']), 2)} and {num(abs(answer['variance']['quintiles']['mean_difference'] / answer['variance']['quintiles']['standard_error']), 2)} standard errors", verdict(v2["E3_momentum"]["met"] and v2["E3_variance"]["met"])],
         ["E4, first clause", "Sample condition number at least 10 times the Ledoit-Wolf one in every month", f"{v2['E4_first_clause']['months_at_or_above_level']} of {v2['E4_first_clause']['months']} months", verdict(v2["E4_first_clause"]["met"])],
         ["E4, second clause", "Under the mandate, the sample estimator's realised tracking error above the Ledoit-Wolf one", f"{num(BP * v3['E4_second_clause']['sample_realised_te'])} against {num(BP * v3['E4_second_clause']['ledoit_wolf_realised_te'])} bp a year", verdict(v3["E4_second_clause"]["met"])],
-        ["E5", "On the frontier, the mean forecast does not rise as the cap loosens, and the realised tracking error is lower at 4 per cent than at 0.5", f"holds for the factor estimator, fails for Ledoit-Wolf ({P['lw_re_4']} against {P['lw_re_tight']} bp a year)", verdict(v3["E5"]["met"])],
+        ["E5", "For the Ledoit-Wolf and factor estimators, the mean forecast does not rise as the cap loosens, and the realised tracking error is lower at 4 per cent than at 0.5", f"holds for the factor estimator, fails for Ledoit-Wolf ({P['lw_re_4']} against {P['lw_re_tight']} bp a year)", verdict(v3["E5"]["met"])],
         ["E6", "Realised tracking error 50 to 150 bp a year and bias statistic 0.8 to 1.25, each structured estimator", f"tracking error {num(BP * v3['E6_ledoit_wolf']['realised_te'])} to {num(BP * v3['E6_pca']['realised_te'])}, bias {v3['E6_ledoit_wolf']['bias']:.2f} to {v3['E6_factor']['bias']:.2f}", verdict(v3["E6"]["met"])],
         ["E7", "Forced turnover less than a third of the total, Ledoit-Wolf path", f"{P['forced']} of {P['total_turn']} per cent a year, {P['forced_share']} per cent", verdict(v3["E7"].get("met", v3["E7"]["membership_share_of_total"] < 1 / 3))],
         ["E8", "The three terms sum to the active return, and allocation is the largest in absolute value and interaction the smallest, each structured estimator", f"largest gap {v4['E8']['identity']['largest_error']:.1e}, allocation {P['alloc_lo']} to {P['alloc_hi']}, selection {P['sel_lo']} to {P['sel_hi']}, interaction {P['int_lo']} to {P['int_hi']} bp a month", verdict(v4["E8"]["met"])],
         ["E9", "Contributions and residual sum to the active return, and the mean exposure to the market within 0.05 of zero on every path", f"largest gap {v4['E9']['identity']['largest_error']:.1e}, exposure {P['mkt_exp_lo']} to {P['mkt_exp_hi']}", verdict(v4["E9"]["met"])],
     ]
-    P["table1"] = table(["", "Fixed before the run", "What the run found", "Verdict"], rows1, "verdicts")
+    P["table1"] = table(["", "Gate or expectation", "Result", "Verdict"], rows1, "verdicts")
 
     # --- Table 2: the twelve paths under the mandate ---
     rows2 = []
@@ -479,9 +479,9 @@ def build(repo, build_date: datetime.date | None = None) -> tuple:
 
     # --- the four Key points of the dashboard, as worded on 28 November 2026 ---
     KEY_POINTS = [
-        "Under the mandate the portfolios built with the four covariance estimators realise 78.9 to 83.6 basis points a year of tracking error, and every estimator's forecast underestimates it. The bias statistic is 1.48 to 1.85, above the band of 0.8 to 1.25 fixed in advance, i.e., the realised active return is 48 to 85 per cent more volatile than forecast.",
+        "Under the mandate the paths of the four covariance estimators realise 78.9 to 83.6 basis points a year of tracking error, and every estimator's forecast underestimates it. The bias statistic is 1.48 to 1.85, above the band of 0.8 to 1.25, i.e., the realised active return is 48 to 85 per cent more volatile than forecast.",
         "Index changes require 2.99 per cent a year of the Ledoit-Wolf path's 26.26 per cent of one-way turnover, i.e., 11.4 per cent. Loosening the cap on chosen turnover from 0.5 per cent a month to none raises chosen turnover from 6.3 to 59.4 per cent a year on Ledoit-Wolf and from 6.2 to 14.9 on the factor estimator, and lowers the mean forecast on both. Neither estimator's realised tracking error changes by an amount that is statistically significant at the 5 per cent level on a paired test: +3.1 basis points a year on Ledoit-Wolf, with a 95 per cent interval of −3.6 to +9.8, and −3.7 on the factor estimator, from −18.9 to +11.4, where the comparisons could detect changes of 9.1 and 17.3 four times in five.",
-        'On average across months, allocation is the largest of the three Brinson-Fachler terms in absolute value on the three structured estimators, i.e., Ledoit-Wolf, factor and principal-component: 16.4 to 16.7 basis points a month, against 10.6 to 13.8 for selection and 1.5 to 2.2 for interaction. Over the 306 months the mean active return is +0.2 to +13.7 basis points a year before costs, and on no path is it, or any of its three terms, statistically significant at the 5 per cent level: a mean of about 35 basis points a year in either direction would be needed. The six factors explain 2 to 13 per cent of its variance.',
+        'On average across months, allocation is the largest of the three Brinson-Fachler terms in absolute value on the three structured estimators, i.e., Ledoit-Wolf, factor and principal-component: 16.4 to 16.7 basis points a month, against 10.6 to 13.8 for selection and 1.5 to 2.2 for interaction. Over the 306 months the mean active return is +0.2 to +13.7 basis points a year before costs, and on no path is it, or any of its three terms, statistically significant at the 5 per cent level. A mean active return of about 35 basis points a year in either direction would be needed. The six factors explain 2 to 13 per cent of its variance.',
         "The benchmark rebuilt from CRSP's list of index members reproduces CRSP's own value-weighted return of the same list with a tracking error of {{recon_te}} basis points a year from {{recon_years_first}} to {{recon_years_last}}. Its spreads between the top and bottom quintiles on momentum and on variance have correlations of {{mom_corr}} and {{var_corr}} with the same spreads within Kenneth R. French's largest size quintile.",
     ]
     for k, text in enumerate(KEY_POINTS, 1):
